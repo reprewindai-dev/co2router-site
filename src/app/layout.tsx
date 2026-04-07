@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Space_Grotesk } from 'next/font/google'
 import Link from 'next/link'
+import { Analytics } from '@vercel/analytics/next'
 
 import { CO2RouterLogo } from '@/components/CO2RouterLogo'
 import {
@@ -163,6 +164,7 @@ export default function RootLayout({
             </footer>
           </div>
         </Providers>
+        <Analytics />
       </body>
     </html>
   )
