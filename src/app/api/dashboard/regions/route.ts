@@ -1,11 +1,9 @@
 import { NextResponse } from 'next/server'
+import { getServerEngineBaseUrl } from '@/lib/server-engine-url'
 
 export const dynamic = 'force-dynamic'
 
-const ECOBE_ENGINE_URL =
-  process.env.ECOBE_API_URL ||
-  process.env.CO2ROUTER_API_URL ||
-  'http://localhost:3000'
+const ECOBE_ENGINE_URL = getServerEngineBaseUrl()
 
 const ECOBE_ENGINE_API_KEY =
   process.env.DEKES_API_KEY ||

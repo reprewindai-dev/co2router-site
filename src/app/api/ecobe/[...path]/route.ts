@@ -1,13 +1,13 @@
 import crypto from 'crypto'
 import axios from 'axios'
 import { NextResponse } from 'next/server'
+import { getServerEngineBaseUrl } from '@/lib/server-engine-url'
 
-const DEFAULT_ENGINE_URL = 'https://ecobe-engineclaude-production.up.railway.app'
 const FORWARDED_HEADERS = ['accept', 'content-type', 'authorization', 'x-request-id', 'x-ecobe-signature'] as const
 const SIGNED_DECISION_PATHS = new Set(['ci/route', 'ci/authorize', 'ci/carbon-route'])
 
 function getEngineBaseUrl() {
-  return process.env.ECOBE_API_URL || DEFAULT_ENGINE_URL
+  return getServerEngineBaseUrl()
 }
 
 function isCuratedProofInspectionPath(joined: string) {

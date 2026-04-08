@@ -1,6 +1,8 @@
 import type {
   CommandCenterSnapshot,
   ControlSurfaceOverview,
+  HallOGridSnapshot,
+  LandingSnapshot,
   LiveSystemSnapshot,
 } from '@/types/control-surface'
 
@@ -60,6 +62,14 @@ export const FALLBACK_LIVE_SYSTEM_SNAPSHOT: LiveSystemSnapshot = {
 export const FALLBACK_COMMAND_CENTER_SNAPSHOT: CommandCenterSnapshot = {
   generatedAt: 'Shell ready',
   selectedDecisionFrameId: null,
+  projection: {
+    dataStatus: 'broken',
+    projectionLagSec: null,
+    latestProjectionAt: null,
+    latestCanonicalAt: null,
+    quality: { suspectCount: 0, invalidCount: 0 },
+    outbox: null,
+  },
   header: {
     systemActive: null,
     systemStatus: 'shell-ready',
@@ -110,6 +120,84 @@ export const FALLBACK_COMMAND_CENTER_SNAPSHOT: CommandCenterSnapshot = {
   },
 }
 
+export const FALLBACK_HALLOGRID_SNAPSHOT: HallOGridSnapshot = {
+  generatedAt: 'Shell ready',
+  selectedFrameId: null,
+  title: 'CO2 Router Console',
+  subtitle: 'Powered by HallOGrid',
+  access: {
+    tenantId: 'public-preview',
+    entitlements: ['public_preview'],
+    role: 'viewer',
+    mode: 'public_preview',
+    label: 'Live Mirror',
+    isReadOnlyPreview: true,
+    canViewOperatorConsole: false,
+    canAccessControls: false,
+    canManageDoctrine: false,
+    canViewCompliance: false,
+    redactionDelayMinutes: 15,
+    upgradePrompts: ['Unlock operator console', 'View proof workspace'],
+    proHighlights: ['trace replay', 'counterfactual analysis', 'doctrine controls'],
+    upgradeUrl: '/pricing',
+  },
+  mirror: {
+    tenantId: 'public-preview',
+    generatedAt: 'Shell ready',
+    sourceFreshnessSec: null,
+    freshnessBudgetSec: 120,
+    safeDelayWindowSec: 5400,
+    mirrorMode: 'hot',
+    degraded: true,
+    degradedReason: 'HallOGrid is reconnecting. The mirror shell remains visible while live state reattaches.',
+    laneBudgets: {
+      hotP95Ms: 100,
+      warmP95Ms: 250,
+      coldQueued: true,
+    },
+    metrics: {
+      decisionP50Ms: null,
+      decisionP95Ms: null,
+      decisionP99Ms: null,
+      consoleSnapshotP50Ms: null,
+      consoleSnapshotP95Ms: null,
+      providerRefreshAgeSec: null,
+      mirrorGenerationMs: null,
+      replayGenerationMs: null,
+      exportQueueDepth: 0,
+    },
+  },
+  projection: FALLBACK_COMMAND_CENTER_SNAPSHOT.projection,
+  selectedFrame: null,
+  frames: [],
+  world: FALLBACK_COMMAND_CENTER_SNAPSHOT.world,
+  governance: FALLBACK_COMMAND_CENTER_SNAPSHOT.governance,
+  traceStream: FALLBACK_COMMAND_CENTER_SNAPSHOT.traceStream,
+  health: FALLBACK_COMMAND_CENTER_SNAPSHOT.health,
+  transport: {
+    mode: 'snapshot+stream',
+    streamHealthy: false,
+    snapshotUrl: '/api/control-surface/hallogrid',
+    streamUrl: '/api/control-surface/hallogrid/stream',
+    adapters: [
+      {
+        id: 'canonical-rest',
+        label: 'Canonical CO2 Router mirror',
+        kind: 'canonical',
+        enabled: true,
+        notes: 'Fallback shell is active while the live mirror reconnects.',
+      },
+      {
+        id: 'polling-fallback',
+        label: 'Polling fallback adapter',
+        kind: 'polling',
+        enabled: true,
+        notes: 'Snapshot polling resumes when the live stream recovers.',
+      },
+    ],
+  },
+}
+
 export const FALLBACK_OVERVIEW: Pick<
   ControlSurfaceOverview,
   'actionDistribution' | 'providers' | 'replay'
@@ -117,4 +205,28 @@ export const FALLBACK_OVERVIEW: Pick<
   actionDistribution: [],
   providers: [],
   replay: null,
+}
+
+export const FALLBACK_LANDING_SNAPSHOT: LandingSnapshot = {
+  generatedAt: 'Shell ready',
+  liveStatus: {
+    visible: true,
+    generatedAt: 'Shell ready',
+    lastUpdatedLabel: 'reconnecting',
+    detail: 'Landing snapshot is reconnecting. The public shell stays stable while fresh live excerpts attach.',
+  },
+  overview: {
+    actionDistribution: [],
+    providers: [],
+    featuredDecision: null,
+    liveStrip: [],
+    proofContext: {
+      proofRef: null,
+      governance: 'Policy-first control posture',
+      traceRef: null,
+      replay: 'public live mirror',
+      provenance: 'Verified provider posture reattaches when the landing snapshot refreshes.',
+    },
+  },
+  liveSystem: FALLBACK_LIVE_SYSTEM_SNAPSHOT,
 }

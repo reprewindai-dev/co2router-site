@@ -6,8 +6,7 @@ import type {
   DekesIntegrationSummaryResponse,
 } from '@/types'
 import { deriveQualityTier, getDecisionSource, isDecisionDelayed } from '@/lib/decisions'
-
-const DEFAULT_ENGINE_URL = 'https://ecobe-engineclaude-production.up.railway.app'
+import { getServerEngineBaseUrl } from '@/lib/server-engine-url'
 
 type EngineSystemStatus = {
   status?: string
@@ -25,7 +24,7 @@ type DekesRuntimeReadModel = {
 }
 
 function getEngineBaseUrl() {
-  return (process.env.ECOBE_API_URL || DEFAULT_ENGINE_URL).replace(/\/$/, '')
+  return getServerEngineBaseUrl()
 }
 
 async function fetchEngineJson<T>(path: string, useInternalKey = false): Promise<T | null> {

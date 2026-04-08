@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server'
+import { getServerEngineBaseUrl } from '@/lib/server-engine-url'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
-    const baseUrl = process.env.ECOBE_API_URL || 'https://ecobe-engineclaude-production.up.railway.app'
+    const baseUrl = getServerEngineBaseUrl()
     const internalKey = process.env.ECOBE_INTERNAL_API_KEY
 
     const headers: Record<string, string> = {

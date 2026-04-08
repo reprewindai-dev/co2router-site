@@ -5,7 +5,7 @@ const faqs = [
   },
   {
     q: 'Is the engine live in production?',
-    a: 'Yes. The engine is deployed on Railway and is storing canonical decision frames in production.',
+    a: 'Yes. The engine runs as a dedicated production backend and stores canonical decision frames in production.',
   },
   {
     q: 'Is assurance fully closed?',

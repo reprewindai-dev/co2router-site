@@ -6,7 +6,7 @@ import type { LiveSystemSnapshot } from '@/types/control-surface'
 function compactHash(value: string | null) {
   if (!value) return 'unavailable'
   if (value.length <= 18) return value
-  return `${value.slice(0, 10)}…${value.slice(-6)}`
+  return `${value.slice(0, 10)}...${value.slice(-6)}`
 }
 
 export function RecentDecisionsList({

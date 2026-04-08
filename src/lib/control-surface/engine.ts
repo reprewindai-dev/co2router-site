@@ -1,17 +1,10 @@
 import crypto from 'crypto'
+import { getServerEngineBaseUrl } from '@/lib/server-engine-url'
 
-const DEFAULT_ENGINE_URL = 'https://ecobe-engineclaude-production.up.railway.app'
 const DECISION_SIGNATURE_PATHS = new Set(['/ci/route', '/ci/authorize', '/ci/carbon-route'])
 
 export function getEngineBaseUrl() {
-  return (
-    process.env.ECOBE_API_URL ||
-    process.env.CO2ROUTER_API_URL ||
-    process.env.NEXT_PUBLIC_ECOBE_API_URL ||
-    DEFAULT_ENGINE_URL
-  )
-    .replace(/\/api\/v1\/?$/, '')
-    .replace(/\/$/, '')
+  return getServerEngineBaseUrl()
 }
 
 function getInternalApiKey() {

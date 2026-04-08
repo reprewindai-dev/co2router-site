@@ -1,4 +1,4 @@
-const DEFAULT_ENGINE_URL = 'http://localhost:3000'
+import { getServerEngineBaseUrl } from '@/lib/server-engine-url'
 
 function titleCaseWords(value: string) {
   return value
@@ -81,7 +81,7 @@ function buildMethodologyProviders(
 }
 
 function getEngineBaseUrl() {
-  return (process.env.ECOBE_API_URL || process.env.NEXT_PUBLIC_ECOBE_API_URL || DEFAULT_ENGINE_URL).replace(/\/$/, '')
+  return getServerEngineBaseUrl()
 }
 
 function getInternalHeaders() {

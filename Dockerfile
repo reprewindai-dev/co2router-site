@@ -10,11 +10,11 @@ FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-# ECOBE_API_URL: Server-side rewrite URL (used by next.config.js rewrites)
+# ECOBE_API_URL: Server-side engine origin
 # Provide at build time for deployment. Default to localhost for development.
 # ECOBE engine URL — used by next.config.js rewrites at build time
-# Railway env var overrides this default
-ARG ECOBE_API_URL="https://ecobe-engineclaude-production.up.railway.app"
+# Platform env var overrides this default
+ARG ECOBE_API_URL="http://localhost:3000"
 ENV ECOBE_API_URL=${ECOBE_API_URL}
 # Client-side API URL — uses server-side rewrite proxy (relative path)
 ARG NEXT_PUBLIC_ECOBE_API_URL="/api/ecobe"
@@ -36,7 +36,7 @@ COPY --from=builder /app/public ./public
 RUN chown -R nextjs:nodejs /app
 USER nextjs
 
-# Railway sets PORT dynamically at runtime
+# Platform runtime sets PORT dynamically
 EXPOSE 3000
 
 ENV HOSTNAME="0.0.0.0"

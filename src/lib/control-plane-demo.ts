@@ -74,7 +74,7 @@ export type DemoRouteResponse = {
 }
 
 const ENGINE_BASE_URL =
-  process.env.ECOBE_API_URL || 'https://ecobe-engineclaude-production.up.railway.app'
+  process.env.ECOBE_API_URL || 'http://localhost:3000'
 
 const DEFAULT_CANDIDATE_REGIONS = ['eastus', 'westus2', 'northeurope', 'norwayeast']
 
