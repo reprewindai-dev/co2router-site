@@ -18,7 +18,7 @@ export async function GET() {
       headers['x-api-key'] = internalKey
     }
 
-    const response = await fetch(`${baseUrl}/api/v1/methodology/providers`, {
+    const response = await fetch(`${baseUrl}/api/v1/dashboard/methodology/providers`, {
       headers,
       cache: 'no-store',
     })
