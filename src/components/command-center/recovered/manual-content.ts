@@ -36,6 +36,20 @@ export const HALOGRID_MANUAL_SECTIONS: HalogridManualSection[] = [
     ],
   },
   {
+    id: 'five-actions',
+    title: 'Five Actions',
+    paragraphs: [
+      'Every decision resolves to one of five binding actions. These are not advisory labels. They are the execution authority surfaced by the CO2 Router engine and rendered directly inside HalOGrid.',
+    ],
+    bullets: [
+      'Run Now: execute in the current approved lane',
+      'Reroute: shift execution to a cleaner or safer region',
+      'Delay: hold for a cleaner window when policy allows',
+      'Throttle: reduce execution pressure under constrained posture',
+      'Deny: block execution because no safe lane exists',
+    ],
+  },
+  {
     id: 'controls',
     title: 'Controls',
     paragraphs: [
@@ -48,6 +62,18 @@ export const HALOGRID_MANUAL_SECTIONS: HalogridManualSection[] = [
       'Collapse either side panel independently or switch to Globe Only',
       'In Globe Only mode, click the HalOGrid logo to toggle Ghost Mode',
       'Triple-click the HalOGrid logo in Elite to reveal the policy surface',
+    ],
+  },
+  {
+    id: 'zoom-controls',
+    title: 'Zoom Controls',
+    paragraphs: [
+      'The theater supports three discrete zoom levels tuned for wide monitoring, regional inspection, and close pursuit of a selected lane. Operators can use mouse wheel, tactical dock buttons, or the floating right-side controls.',
+    ],
+    bullets: [
+      'Wide: world posture and routing balance',
+      'Mid: regional density and conflict visibility',
+      'Close: selected lane emphasis and fly-to inspection',
     ],
   },
   {
@@ -132,6 +158,19 @@ export const HALOGRID_MANUAL_SECTIONS: HalogridManualSection[] = [
     ],
   },
   {
+    id: 'hidden-elite',
+    title: 'Hidden Elite Features',
+    paragraphs: [
+      'HalOGrid keeps discoverable power-user behavior in the product without faking backend capability. These controls are designed for operators and presenters who want a cleaner surface or faster access to governance posture.',
+    ],
+    bullets: [
+      'Ghost Mode: click the HalOGrid mark in Presentation mode to drop the top rail',
+      'Policy Tuner reveal: triple-click the HalOGrid mark in Elite to open read-only governance weights',
+      'Decision Forensics: pin a lane and inspect normalized candidates in the inspector rail',
+      'Proof posture: proof hash, replay, and evidence reference counts stay visible in the inspector',
+    ],
+  },
+  {
     id: 'alarms',
     title: 'Alarm Queue',
     paragraphs: [
@@ -183,6 +222,44 @@ export const HALOGRID_MANUAL_SECTIONS: HalogridManualSection[] = [
     ],
   },
   {
+    id: 'color-system',
+    title: 'Color System',
+    paragraphs: [
+      'The console supports three operator-calibrated display modes. Night mode is the cinematic default, Day mode is for bright-room legibility, and Focus mode is the fatigue-aware, warm-spectrum option for longer working sessions.',
+    ],
+    bullets: [
+      'Night: high contrast, cold atmosphere, strongest bloom',
+      'Day: lighter surfaces, softer bloom, high ambient readability',
+      'Focus: warmer palette, lower glare, reduced visual fatigue',
+    ],
+  },
+  {
+    id: 'mobile-tablet',
+    title: 'Mobile And Tablet',
+    paragraphs: [
+      'The premium console is optimized for desktop command-center use first, but the shell layout and drawers remain responsive so investors and operators can still inspect the command center on tablet-class devices.',
+    ],
+    bullets: [
+      'Rails collapse into drawers sooner on narrower viewports',
+      'Pinned decision detail remains accessible without leaving the globe view',
+      'Presentation mode reduces chrome for portable demos',
+    ],
+  },
+  {
+    id: 'controls-reference',
+    title: 'Controls Reference',
+    paragraphs: [
+      'HalOGrid is designed so the entire surface can be reduced to the globe, expanded back into a full command workspace, or shifted into a presentation state without losing access to the selected decision.',
+    ],
+    bullets: [
+      'Hover a lane to preview live proof posture at the cursor',
+      'Click a lane to pin the decision in the inspector',
+      'Use the side handles to restore collapsed rails',
+      'Use the tactical dock to control layers and zoom',
+      'Use Full Screen for investor or NOC presentation',
+    ],
+  },
+  {
     id: 'watchdog',
     title: 'Watchdog And Degraded Operation',
     paragraphs: [
@@ -206,6 +283,18 @@ export const HALOGRID_MANUAL_SECTIONS: HalogridManualSection[] = [
       'Current domains and backend wiring remain in place',
       'Recovered UI now consumes the live HallOGrid data contract',
       'The in-app manual matches the operator surface instead of a mock narrative',
+    ],
+  },
+  {
+    id: 'performance-stress',
+    title: 'Performance And Stress',
+    paragraphs: [
+      'The rebuilt HalOGrid theater is always 3D. When fleet posture becomes noisy, the scene reduces ring density and glow intensity through storm-mode tuning rather than dropping into a degraded 2D fallback.',
+    ],
+    bullets: [
+      'Storm mode reduces visual clutter under blocked or degraded posture',
+      'The scene remains interactive during stale or degraded backend conditions',
+      'Pinned decision detail stays available even when the live feed requires refetch or watchdog intervention',
     ],
   },
 ]

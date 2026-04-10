@@ -243,6 +243,42 @@ body {
   font-size: 11px;
 }
 
+/* ── HaloGrid Command Center ── */
+@keyframes hg-radar-ping {
+  0% { transform: translate(-50%,-50%) scale(0.3); opacity: 0.9; }
+  100% { transform: translate(-50%,-50%) scale(2.8); opacity: 0; }
+}
+@keyframes hg-rotate-globe {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes hg-scan {
+  0% { transform: translateX(-100%); opacity: 0; }
+  50% { opacity: 0.6; }
+  100% { transform: translateX(100%); opacity: 0; }
+}
+@keyframes hg-pulse-dot {
+  0%,100% { box-shadow: 0 0 4px var(--dot-color), 0 0 12px var(--dot-color); transform: scale(1); }
+  50% { box-shadow: 0 0 8px var(--dot-color), 0 0 24px var(--dot-color); transform: scale(1.15); }
+}
+@keyframes hg-arc-dash {
+  to { stroke-dashoffset: -20; }
+}
+@keyframes hg-counter-tick {
+  0% { transform: translateY(0); opacity: 1; }
+  50% { transform: translateY(-3px); opacity: 0.7; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+@keyframes hg-atmosphere {
+  0%,100% { opacity: 0.35; }
+  50% { opacity: 0.55; }
+}
+.hg-radar-ping { animation: hg-radar-ping 2.8s ease-out infinite; }
+.hg-scan { animation: hg-scan 3s ease-in-out infinite; }
+.hg-pulse-dot { animation: hg-pulse-dot 2.4s ease-in-out infinite; }
+.hg-arc-dash { animation: hg-arc-dash 1.2s linear infinite; }
+.hg-atmosphere { animation: hg-atmosphere 4s ease-in-out infinite; }
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;
