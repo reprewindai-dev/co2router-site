@@ -801,7 +801,7 @@ export interface CommandCenterSnapshot {
   generatedAt: string
   selectedDecisionFrameId: string | null
   header: CommandCenterHeader
-  impact: ControlSurfaceOverview['impact']
+  impact: ControlSurfaceOverview['impact'] | null
   world: {
     nodes: WorldRegionState[]
     flows: WorldRoutingFlow[]

@@ -614,12 +614,12 @@ function extractWeights(
 }
 
 export async function getCommandCenterSnapshot(): Promise<CommandCenterSnapshot> {
-  const [health, slo, ledger, metrics, decisionFeed, providerTrust, provenance] = await Promise.all([
+  const [health, slo, decisionFeed, ledgerResult, metricsResult, providerTrust, provenance] = await Promise.all([
     fetchEngineJson<CiHealthSnapshot>('/ci/health'),
     fetchEngineJson<CiSloSnapshot>('/ci/slo'),
-    fetchEngineJson<LedgerSummary>('/dashboard/carbon-ledger-summary?days=30'),
-    fetchEngineJson<MetricsResponse>('/dashboard/metrics?window=24h'),
     fetchEngineJson<DecisionFeed>('/ci/decisions?limit=8'),
+    fetchEngineJson<LedgerSummary>('/dashboard/carbon-ledger-summary?days=30').catch(() => null),
+    fetchEngineJson<MetricsResponse>('/dashboard/metrics?window=24h').catch(() => null),
     fetchEngineJson<ProviderTrustResponse>('/dashboard/provider-trust').catch(() => ({
       freshness: [],
       providers: {},
@@ -670,6 +670,19 @@ export async function getCommandCenterSnapshot(): Promise<CommandCenterSnapshot>
     selectedTrace?.payload.normalizedSignals.candidates.find(
       (candidate) => candidate.region === selectedTrace.payload.decisionPath.selectedRegion
     )?.score ?? null
+  const fallbackRateText =
+    metricsResult != null ? `fallback ${(metricsResult.fallbackRate * 100).toFixed(1)}% | ` : ''
+  const impact =
+    ledgerResult != null
+      ? {
+          totalDecisions: ledgerResult.totalJobsRouted,
+          carbonAvoidedKg: ledgerResult.carbonAvoidedPeriodKg,
+          carbonReductionMultiplier: ledgerResult.carbonReductionMultiplier,
+          waterShiftedLiters,
+          costOptimizedUsd: Number((ledgerResult.carbonAvoidedPeriodKg * 0.42).toFixed(2)),
+          delayedDecisions,
+        }
+      : null
 
   return {
     generatedAt: new Date().toISOString(),
@@ -680,18 +693,11 @@ export async function getCommandCenterSnapshot(): Promise<CommandCenterSnapshot>
       saiqEnforced: selectedTrace ? selectedTrace.payload.governance.source !== 'NONE' : null,
       traceLocked: selectedTrace ? Boolean(selectedTrace.traceHash) : null,
       replayVerified: selectedReplay?.deterministicMatch ?? null,
-      detail: `p95 ${slo.p95.totalMs.toFixed(0)}ms | fallback ${(metrics.fallbackRate * 100).toFixed(1)}% | ${providers.length} providers | ${
+      detail: `p95 ${slo.p95.totalMs.toFixed(0)}ms | ${fallbackRateText}${providers.length} providers | ${
         provenance.datasets.filter((dataset) => dataset.verificationStatus === 'verified').length
       } verified water datasets`,
     },
-    impact: {
-      totalDecisions: ledger.totalJobsRouted,
-      carbonAvoidedKg: ledger.carbonAvoidedPeriodKg,
-      carbonReductionMultiplier: ledger.carbonReductionMultiplier,
-      waterShiftedLiters,
-      costOptimizedUsd: Number((ledger.carbonAvoidedPeriodKg * 0.42).toFixed(2)),
-      delayedDecisions,
-    },
+    impact,
     world: {
       nodes: worldNodes,
       flows: worldFlows,
