@@ -1,6 +1,6 @@
 import crypto from 'crypto'
 
-const DEFAULT_ENGINE_URL = 'https://ecobe-engineclaude-production.up.railway.app'
+const DEFAULT_ENGINE_URL = 'https://ecobe-engineclaude-co2router.onrender.com'
 const DECISION_SIGNATURE_PATHS = new Set(['/ci/route', '/ci/authorize', '/ci/carbon-route'])
 
 export function getEngineBaseUrl() {

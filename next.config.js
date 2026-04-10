@@ -1,5 +1,5 @@
 /** @type {import('next').NextConfig} */
-const ECOBE_ENGINE_URL = (process.env.ECOBE_API_URL || 'https://ecobe-engineclaude-production.up.railway.app')
+const ECOBE_ENGINE_URL = (process.env.ECOBE_API_URL || 'https://ecobe-engineclaude-co2router.onrender.com')
   .replace(/\/api\/v1\/?$/, '')
 
 const nextConfig = {

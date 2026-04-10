@@ -7,7 +7,7 @@ import type {
 } from '@/types'
 import { deriveQualityTier, getDecisionSource, isDecisionDelayed } from '@/lib/decisions'
 
-const DEFAULT_ENGINE_URL = 'https://ecobe-engineclaude-production.up.railway.app'
+const DEFAULT_ENGINE_URL = 'https://ecobe-engineclaude-co2router.onrender.com'
 
 type EngineSystemStatus = {
   status?: string

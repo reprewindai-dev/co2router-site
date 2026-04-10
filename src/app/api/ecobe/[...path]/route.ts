@@ -2,7 +2,7 @@ import crypto from 'crypto'
 import axios from 'axios'
 import { NextResponse } from 'next/server'
 
-const DEFAULT_ENGINE_URL = 'https://ecobe-engineclaude-production.up.railway.app'
+const DEFAULT_ENGINE_URL = 'https://ecobe-engineclaude-co2router.onrender.com'
 const FORWARDED_HEADERS = ['accept', 'content-type', 'authorization', 'x-request-id', 'x-ecobe-signature'] as const
 const SIGNED_DECISION_PATHS = new Set(['ci/route', 'ci/authorize', 'ci/carbon-route'])
 
