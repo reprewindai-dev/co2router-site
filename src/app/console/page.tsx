@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 
-import { HaloGridShell } from '@/components/command-center/recovered/HaloGridShell'
+import { CommandCenterShell } from '@/components/command-center/CommandCenterShell'
 import { createPageMetadata } from '@/lib/seo'
 
 export const metadata: Metadata = createPageMetadata({
@@ -17,5 +17,5 @@ export const metadata: Metadata = createPageMetadata({
 })
 
 export default function ConsolePage() {
-  return <HaloGridShell />
+  return <CommandCenterShell />
 }

@@ -68,6 +68,14 @@ export const FALLBACK_COMMAND_CENTER_SNAPSHOT: CommandCenterSnapshot = {
     replayVerified: null,
     detail: 'Command-center structure is live. Decision data attaches as the current frame resolves.',
   },
+  impact: {
+    totalDecisions: 0,
+    carbonAvoidedKg: 0,
+    carbonReductionMultiplier: null,
+    waterShiftedLiters: 0,
+    costOptimizedUsd: 0,
+    delayedDecisions: 0,
+  },
   world: {
     nodes: [],
     flows: [],

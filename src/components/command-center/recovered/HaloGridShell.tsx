@@ -51,7 +51,7 @@ import type {
   DecisionTraceRawRecord,
   ReplayBundle,
 } from '@/types/control-surface'
-import { analyzeFleet, SelfHealingWatchdog, type IntelligenceReport } from './intelligence'
+import { analyzeFleet, type IntelligenceReport } from './intelligence'
 import {
   HALOGRID_MANUAL_SECTIONS,
   type HalogridManualSection,
@@ -678,11 +678,8 @@ export function HaloGridShell() {
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [advisorOpen, setAdvisorOpen] = useState(false)
   const [advisorPulse, setAdvisorPulse] = useState(false)
-  const [aiReport, setAiReport] = useState<IntelligenceReport | null>(null)
 
   const logoClicks = useRef<number[]>([])
-  const pressureHistory = useRef<number[]>([])
-  const watchdogRef = useRef<SelfHealingWatchdog | null>(null)
 
   const theme = THEMES[displayMode]
 
@@ -691,20 +688,6 @@ export function HaloGridShell() {
       setSelectedFrameId(snapshotQuery.data.selectedDecisionFrameId)
     }
   }, [selectedFrameId, snapshotQuery.data?.selectedDecisionFrameId])
-
-  useEffect(() => {
-    const watchdog = new SelfHealingWatchdog({
-      staleThresholdMs: 20_000,
-      onHeal: () => snapshotQuery.refetch(),
-    })
-    watchdogRef.current = watchdog
-    watchdog.start()
-    return () => watchdog.stop()
-  }, [snapshotQuery])
-
-  useEffect(() => {
-    if (snapshotQuery.data) watchdogRef.current?.feed()
-  }, [snapshotQuery.data])
 
   const traceQuery = useDecisionTrace(selectedFrameId, {
     enabled: Boolean(selectedFrameId),
@@ -728,37 +711,32 @@ export function HaloGridShell() {
     })
   }, [snapshot, live, selectedFrameId, traceQuery.data, replayQuery.data, tier])
 
+  const aiReport = useMemo<IntelligenceReport | null>(() => {
+    if (!vm) return null
+    return analyzeFleet({
+      regions: vm.regions.map((region) => ({
+        state: region.state,
+        action: region.action,
+      })),
+      decisions: vm.frames.map((frame) => ({
+        action: frame.action,
+        latencyTotalMs: frame.latencyTotalMs,
+        selectedRegion: frame.selectedRegion,
+      })),
+      carbonPressure: vm.hud.carbonPressure,
+      providers: vm.providers.map((provider) => ({
+        status: provider.status,
+        freshnessSec: provider.freshnessSec,
+      })),
+      pressureHistory: [vm.hud.carbonPressure],
+    })
+  }, [vm])
+
   useEffect(() => {
-    if (!vm) return
-    const tick = () => {
-      pressureHistory.current = [
-        ...pressureHistory.current.slice(-19),
-        vm.hud.carbonPressure,
-      ]
-      const report = analyzeFleet({
-        regions: vm.regions.map((region) => ({
-          state: region.state,
-          action: region.action,
-        })),
-        decisions: vm.frames.map((frame) => ({
-          action: frame.action,
-          latencyTotalMs: frame.latencyTotalMs,
-          selectedRegion: frame.selectedRegion,
-        })),
-        carbonPressure: vm.hud.carbonPressure,
-        providers: vm.providers.map((provider) => ({
-          status: provider.status,
-          freshnessSec: provider.freshnessSec,
-        })),
-        pressureHistory: pressureHistory.current,
-      })
-      setAiReport(report)
-      if (report.insights.length > 0 && !advisorOpen) setAdvisorPulse(true)
+    if (aiReport?.insights.length && !advisorOpen) {
+      setAdvisorPulse(true)
     }
-    tick()
-    const timer = window.setInterval(tick, 8_000)
-    return () => window.clearInterval(timer)
-  }, [advisorOpen, vm])
+  }, [advisorOpen, aiReport])
 
   useEffect(() => {
     const onFullscreenChange = () => {
@@ -852,6 +830,38 @@ export function HaloGridShell() {
     }
   }, [])
 
+  if (snapshotQuery.error || liveQuery.error) {
+    const errorMessage =
+      (snapshotQuery.error instanceof Error && snapshotQuery.error.message) ||
+      (liveQuery.error instanceof Error && liveQuery.error.message) ||
+      'Command center data is unavailable.'
+
+    return (
+      <div
+        className="flex min-h-screen items-center justify-center px-6"
+        style={{ background: theme.background, color: theme.text }}
+      >
+        <div
+          className="max-w-xl rounded-[28px] p-6 text-center"
+          style={glassStyle(theme, {
+            border: `1px solid ${theme.rose}33`,
+          })}
+        >
+          <div
+            className="mx-auto flex h-14 w-14 items-center justify-center rounded-full"
+            style={{ background: `${theme.rose}18`, border: `1px solid ${theme.rose}33` }}
+          >
+            <Shield className="h-5 w-5" style={{ color: theme.rose }} />
+          </div>
+          <div className="mt-4 text-sm font-semibold">HalOGrid unavailable</div>
+          <div className="mt-2 text-[11px] leading-6" style={{ color: theme.muted }}>
+            {errorMessage}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   if (!vm) {
     return (
       <div
@@ -867,7 +877,7 @@ export function HaloGridShell() {
           </div>
           <div className="mt-4 text-sm font-semibold">HalOGrid loading...</div>
           <div className="mt-2 text-[10px] tracking-[0.24em]" style={{ color: theme.muted }}>
-            COMMAND CENTER HYDRATING
+            WAITING FOR LIVE CONTROL-SURFACE DATA
           </div>
         </div>
       </div>
@@ -891,6 +901,7 @@ export function HaloGridShell() {
 
   const govWeights = snapshot?.governance.weights
   const govImpact = snapshot?.governance.impact
+  const cumulativeImpact = snapshot?.impact
   const waterDatasets = live?.providers.datasets ?? []
   const verifiedDatasets = waterDatasets.filter(
     (dataset) => dataset.verificationStatus === 'verified',
@@ -1572,23 +1583,41 @@ export function HaloGridShell() {
                   <div className="text-[10px] tracking-[0.22em]" style={{ color: theme.muted }}>
                     LIVE IMPACT
                   </div>
-                  <div className="mt-3 grid grid-cols-3 gap-2">
+                  <div className="mt-3 grid grid-cols-2 gap-2">
                     <div>
-                      <div className="text-[9px]" style={{ color: theme.dim }}>Carbon</div>
+                      <div className="text-[9px]" style={{ color: theme.dim }}>Decisions</div>
                       <div className="text-sm font-semibold" style={{ color: theme.textStrong }}>
-                        {govImpact?.carbonReductionPct != null ? `${govImpact.carbonReductionPct.toFixed(1)}%` : '--'}
+                        {cumulativeImpact?.totalDecisions != null ? cumulativeImpact.totalDecisions.toLocaleString() : 'Unavailable'}
                       </div>
                     </div>
                     <div>
-                      <div className="text-[9px]" style={{ color: theme.dim }}>Water</div>
+                      <div className="text-[9px]" style={{ color: theme.dim }}>Carbon avoided</div>
                       <div className="text-sm font-semibold" style={{ color: theme.textStrong }}>
-                        {govImpact?.waterImpactDeltaLiters != null ? `${govImpact.waterImpactDeltaLiters.toFixed(1)}L` : '--'}
+                        {cumulativeImpact?.carbonAvoidedKg != null ? `${cumulativeImpact.carbonAvoidedKg.toFixed(1)} kg` : 'Unavailable'}
                       </div>
                     </div>
                     <div>
-                      <div className="text-[9px]" style={{ color: theme.dim }}>Confidence</div>
+                      <div className="text-[9px]" style={{ color: theme.dim }}>Water shifted</div>
                       <div className="text-sm font-semibold" style={{ color: theme.textStrong }}>
-                        {govImpact?.signalConfidence != null ? `${Math.round(govImpact.signalConfidence * 100)}%` : '--'}
+                        {cumulativeImpact?.waterShiftedLiters != null ? `${cumulativeImpact.waterShiftedLiters.toFixed(1)} L` : 'Unavailable'}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[9px]" style={{ color: theme.dim }}>Cost optimized</div>
+                      <div className="text-sm font-semibold" style={{ color: theme.textStrong }}>
+                        {cumulativeImpact?.costOptimizedUsd != null ? `$${cumulativeImpact.costOptimizedUsd.toFixed(2)}` : 'Unavailable'}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[9px]" style={{ color: theme.dim }}>Reduction multiple</div>
+                      <div className="text-sm font-semibold" style={{ color: theme.textStrong }}>
+                        {cumulativeImpact?.carbonReductionMultiplier != null ? `${cumulativeImpact.carbonReductionMultiplier.toFixed(2)}x` : 'Unavailable'}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[9px]" style={{ color: theme.dim }}>Delayed</div>
+                      <div className="text-sm font-semibold" style={{ color: theme.textStrong }}>
+                        {cumulativeImpact?.delayedDecisions != null ? cumulativeImpact.delayedDecisions.toLocaleString() : 'Unavailable'}
                       </div>
                     </div>
                   </div>

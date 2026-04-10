@@ -110,6 +110,19 @@ type WaterProvenanceResponse = {
   }>
 }
 
+type LedgerSummary = {
+  totalJobsRouted: number
+  carbonAvoidedPeriodKg: number
+  carbonReductionMultiplier: number | null
+  highConfidenceDecisionPct: number
+  providerDisagreementRatePct: number
+}
+
+type MetricsResponse = {
+  totalDecisions: number
+  fallbackRate: number
+}
+
 const REGION_ANCHORS: Record<string, { label: string; x: number; y: number }> = {
   'us-west-2': { label: 'US West 2', x: 14, y: 25 },
   'us-west-1': { label: 'US West 1', x: 17, y: 28 },
@@ -601,9 +614,11 @@ function extractWeights(
 }
 
 export async function getCommandCenterSnapshot(): Promise<CommandCenterSnapshot> {
-  const [health, slo, decisionFeed, providerTrust, provenance] = await Promise.all([
+  const [health, slo, ledger, metrics, decisionFeed, providerTrust, provenance] = await Promise.all([
     fetchEngineJson<CiHealthSnapshot>('/ci/health'),
     fetchEngineJson<CiSloSnapshot>('/ci/slo'),
+    fetchEngineJson<LedgerSummary>('/dashboard/carbon-ledger-summary?days=30'),
+    fetchEngineJson<MetricsResponse>('/dashboard/metrics?window=24h'),
     fetchEngineJson<DecisionFeed>('/ci/decisions?limit=8'),
     fetchEngineJson<ProviderTrustResponse>('/dashboard/provider-trust').catch(() => ({
       freshness: [],
@@ -636,6 +651,21 @@ export async function getCommandCenterSnapshot(): Promise<CommandCenterSnapshot>
   const providers = buildProviders(providerTrust, provenance)
   const worldNodes = buildWorldNodes(recentDecisions, selectedTrace, selectedReplay)
   const worldFlows = buildWorldFlows(selectedReplay)
+  const waterShiftedLiters = decisionFeed.decisions.reduce(
+    (sum, decision) =>
+      sum +
+      Math.max(
+        0,
+        Number(
+          (
+            (decision.waterBaselineLiters ?? decision.waterImpactLiters ?? 0) -
+            (decision.waterImpactLiters ?? 0)
+          ).toFixed(3)
+        )
+      ),
+    0
+  )
+  const delayedDecisions = recentDecisions.filter((decision) => decision.action === 'delay').length
   const selectedScore =
     selectedTrace?.payload.normalizedSignals.candidates.find(
       (candidate) => candidate.region === selectedTrace.payload.decisionPath.selectedRegion
@@ -650,9 +680,17 @@ export async function getCommandCenterSnapshot(): Promise<CommandCenterSnapshot>
       saiqEnforced: selectedTrace ? selectedTrace.payload.governance.source !== 'NONE' : null,
       traceLocked: selectedTrace ? Boolean(selectedTrace.traceHash) : null,
       replayVerified: selectedReplay?.deterministicMatch ?? null,
-      detail: `p95 ${slo.p95.totalMs.toFixed(0)}ms | ${providers.length} providers | ${
+      detail: `p95 ${slo.p95.totalMs.toFixed(0)}ms | fallback ${(metrics.fallbackRate * 100).toFixed(1)}% | ${providers.length} providers | ${
         provenance.datasets.filter((dataset) => dataset.verificationStatus === 'verified').length
       } verified water datasets`,
+    },
+    impact: {
+      totalDecisions: ledger.totalJobsRouted,
+      carbonAvoidedKg: ledger.carbonAvoidedPeriodKg,
+      carbonReductionMultiplier: ledger.carbonReductionMultiplier,
+      waterShiftedLiters,
+      costOptimizedUsd: Number((ledger.carbonAvoidedPeriodKg * 0.42).toFixed(2)),
+      delayedDecisions,
     },
     world: {
       nodes: worldNodes,
