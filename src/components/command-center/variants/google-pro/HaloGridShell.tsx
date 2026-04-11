@@ -681,7 +681,7 @@ export function HaloGridShell() {
   const [showNodes, setShowNodes] = useState(true)
   const [showRadar, setShowRadar] = useState(true)
   const [showHeat, setShowHeat] = useState(false)
-  const [zoomLevel, setZoomLevel] = useState<1 | 2 | 3>(2)
+  const [zoomLevel, setZoomLevel] = useState<1 | 2 | 3>(1)
   const [ghostMode, setGhostMode] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [advisorOpen, setAdvisorOpen] = useState(false)
@@ -699,12 +699,6 @@ export function HaloGridShell() {
   const chatScrollRef = useRef<HTMLDivElement | null>(null)
 
   const theme = THEMES[displayMode]
-
-  useEffect(() => {
-    if (!selectedFrameId && snapshotQuery.data?.selectedDecisionFrameId) {
-      setSelectedFrameId(snapshotQuery.data.selectedDecisionFrameId)
-    }
-  }, [selectedFrameId, snapshotQuery.data?.selectedDecisionFrameId])
 
   const traceQuery = useDecisionTrace(selectedFrameId, {
     enabled: Boolean(selectedFrameId),
