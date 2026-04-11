@@ -31,6 +31,7 @@ const ZOOM_DISTANCE: Record<ZoomLevel, number> = {
   2: 2.58,
   3: 1.96,
 }
+const GLOBE_WORLD_SCALE = 0.01
 
 function latLngToVector3(lat: number, lng: number, radius: number) {
   const phi = (90 - lat) * (Math.PI / 180)
@@ -380,7 +381,7 @@ function GlobeScene({
           speed={stormMode ? 0.4 : 0.7}
         />
       )}
-      <primitive object={globe} />
+      <primitive object={globe} scale={[GLOBE_WORLD_SCALE, GLOBE_WORLD_SCALE, GLOBE_WORLD_SCALE]} />
       {showNodes &&
         regions.map((region) => (
           <NodeMarker
