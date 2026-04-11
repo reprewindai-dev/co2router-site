@@ -40,3 +40,6 @@ temp/
 # TypeScript incremental state
 *.tsbuildinfo
 .vercel
+
+# Local runtime state (dev only)
+.runtime/

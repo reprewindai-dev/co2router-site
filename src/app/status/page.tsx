@@ -22,6 +22,18 @@ export default async function StatusPage() {
   const verifiedDatasets = snapshot.providers.datasets.filter(
     (dataset) => dataset.verificationStatus === 'verified'
   ).length
+  const mismatchDatasets = snapshot.providers.datasets.filter(
+    (dataset) => dataset.verificationStatus === 'mismatch'
+  ).length
+  const governanceInactive = snapshot.governance.policyState === 'NONE'
+  const systemLabel =
+    !snapshot.latency.available
+      ? 'Pending'
+      : mismatchDatasets > 0 || governanceInactive
+        ? 'Degraded'
+        : snapshot.latency.withinBudget.total
+          ? 'Healthy'
+          : 'Watch'
 
   return (
     <InformationPageShell
@@ -35,14 +47,10 @@ export default async function StatusPage() {
         <article className="rounded-[28px] border border-white/10 bg-white/[0.03] p-6">
           <div className="text-[11px] uppercase tracking-[0.22em] text-cyan-300">System</div>
           <div className="mt-3 text-4xl font-black tracking-[-0.05em] text-white">
-            {snapshot.latency.available
-              ? snapshot.latency.withinBudget.total
-                ? 'Healthy'
-                : 'Watch'
-              : 'Pending'}
+            {systemLabel}
           </div>
           <p className="mt-3 text-sm leading-7 text-slate-300">
-            Fast operational read across engine latency and current control-plane posture.
+            Fast operational read across latency, governance activation, and provenance integrity.
           </p>
         </article>
         <article className="rounded-[28px] border border-white/10 bg-white/[0.03] p-6">
@@ -122,6 +130,10 @@ export default async function StatusPage() {
                 <span className="font-semibold text-white">
                   {verifiedDatasets}/{snapshot.providers.datasets.length}
                 </span>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span>hash mismatches</span>
+                <span className="font-semibold text-white">{mismatchDatasets}</span>
               </div>
             </div>
           </article>

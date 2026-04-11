@@ -2,6 +2,7 @@ import crypto from 'crypto'
 
 const DEFAULT_ENGINE_URL = 'https://ecobe-engineclaude-co2router.onrender.com'
 const DECISION_SIGNATURE_PATHS = new Set(['/ci/route', '/ci/authorize', '/ci/carbon-route'])
+const DEFAULT_ENGINE_TIMEOUT_MS = 12_000
 
 export function getEngineBaseUrl() {
   return (
@@ -32,6 +33,33 @@ function signDecisionBody(body: string) {
   return crypto.createHmac('sha256', secret).update(body).digest('hex')
 }
 
+function getEngineTimeoutMs() {
+  const raw = process.env.ECOBE_ENGINE_TIMEOUT_MS || process.env.CO2ROUTER_ENGINE_TIMEOUT_MS
+  if (!raw) return DEFAULT_ENGINE_TIMEOUT_MS
+  const parsed = Number(raw)
+  if (!Number.isFinite(parsed)) return DEFAULT_ENGINE_TIMEOUT_MS
+  return Math.max(1_000, Math.min(60_000, Math.round(parsed)))
+}
+
+function mergeAbortSignals(signals: Array<AbortSignal | null | undefined>) {
+  const filtered = signals.filter(Boolean) as AbortSignal[]
+  if (filtered.length === 0) return undefined
+  if (filtered.length === 1) return filtered[0]
+
+  const controller = new AbortController()
+  const onAbort = () => controller.abort()
+
+  for (const signal of filtered) {
+    if (signal.aborted) {
+      controller.abort()
+      break
+    }
+    signal.addEventListener('abort', onAbort, { once: true })
+  }
+
+  return controller.signal
+}
+
 export async function fetchEngineJson<T>(
   path: string,
   init: RequestInit = {},
@@ -59,11 +87,27 @@ export async function fetchEngineJson<T>(
     }
   }
 
-  const response = await fetch(`${getEngineBaseUrl()}/api/v1${path}`, {
-    ...init,
-    headers,
-    cache: 'no-store',
-  })
+  const timeoutMs = getEngineTimeoutMs()
+  const timeoutController = new AbortController()
+  const timeout = setTimeout(() => timeoutController.abort(), timeoutMs)
+  const mergedSignal = mergeAbortSignals([init.signal, timeoutController.signal])
+
+  let response: Response
+  try {
+    response = await fetch(`${getEngineBaseUrl()}/api/v1${path}`, {
+      ...init,
+      headers,
+      cache: 'no-store',
+      signal: mergedSignal,
+    })
+  } catch (error) {
+    if (timeoutController.signal.aborted) {
+      throw new Error(`Engine request timed out for ${path} after ${timeoutMs}ms`)
+    }
+    throw error
+  } finally {
+    clearTimeout(timeout)
+  }
 
   if (!response.ok) {
     const text = await response.text()

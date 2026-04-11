@@ -1,6 +1,6 @@
 'use client'
 
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import type {
   CiRouteResponse,
@@ -11,6 +11,8 @@ import type {
   ReplayBundle,
   SimulationMode,
   SimulationRouteResponse,
+  TeamChatMessage,
+  TeamChatSnapshot,
 } from '@/types/control-surface'
 
 const REFRESH_INTERVAL_MS = 30_000
@@ -48,6 +50,8 @@ export function useCommandCenterSnapshot() {
     queryFn: () => getJson<CommandCenterSnapshot>('/api/control-surface/command-center'),
     staleTime: 15_000,
     refetchInterval: 15_000,
+    retry: 1,
+    retryDelay: 2_000,
   })
 }
 
@@ -83,6 +87,8 @@ export function useLiveSystemSnapshot() {
     queryFn: () => getJson<LiveSystemSnapshot>('/api/control-surface/live-system'),
     staleTime: REFRESH_INTERVAL_MS,
     refetchInterval: REFRESH_INTERVAL_MS,
+    retry: 1,
+    retryDelay: 2_000,
   })
 }
 
@@ -93,5 +99,41 @@ export function useSimulation(mode: SimulationMode = 'fast') {
         method: 'POST',
         body: JSON.stringify(payload),
       }),
+  })
+}
+
+export function useTeamChat(teamId: string | null, limit = 80) {
+  return useQuery<TeamChatSnapshot>({
+    queryKey: ['control-surface-team-chat', teamId, limit],
+    queryFn: () =>
+      getJson<TeamChatSnapshot>(
+        `/api/control-surface/team-chat?teamId=${encodeURIComponent(teamId ?? 'co2-router-ops')}&limit=${limit}`,
+      ),
+    enabled: Boolean(teamId),
+    staleTime: 2_000,
+    refetchInterval: 2_500,
+  })
+}
+
+export function useSendTeamChatMessage() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (payload: {
+      teamId: string
+      operatorId: string
+      operatorName: string
+      body: string
+    }) =>
+      getJson<{ message: TeamChatMessage }>('/api/control-surface/team-chat', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+    onSuccess: (_data, variables) => {
+      void queryClient.invalidateQueries({
+        queryKey: ['control-surface-team-chat', variables.teamId],
+        exact: false,
+      })
+    },
   })
 }
