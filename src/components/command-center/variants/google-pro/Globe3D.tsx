@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { OrbitControls, Stars } from '@react-three/drei'
-import { Bloom, EffectComposer, Vignette } from '@react-three/postprocessing'
 import * as THREE from 'three'
 import ThreeGlobe from 'three-globe'
 
@@ -410,19 +409,6 @@ function GlobeScene({
         zoomLevel={zoomLevel}
         mode={mode}
       />
-      <EffectComposer multisampling={0}>
-        <Bloom
-          mipmapBlur
-          luminanceThreshold={theme.mode === 'day' ? 0.5 : 0.24}
-          luminanceSmoothing={0.18}
-          intensity={theme.bloomStrength}
-        />
-        <Vignette
-          eskil={false}
-          offset={theme.vignetteOffset}
-          darkness={theme.vignetteDarkness}
-        />
-      </EffectComposer>
     </>
   )
 }
