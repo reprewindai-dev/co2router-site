@@ -104,6 +104,16 @@ type ProviderTrustResponse = {
   }>
 }
 
+type WaterProvenanceResponse = {
+  datasets: Array<{
+    name: string
+    datasetVersion: string | null
+    manifestHash: string | null
+    computedHash: string | null
+    verificationStatus: 'verified' | 'unverified' | 'missing_source' | 'mismatch' | 'unavailable'
+  }>
+}
+
 type LedgerSummary = {
   totalJobsRouted: number
   carbonAvoidedPeriodKg: number
@@ -115,6 +125,12 @@ type LedgerSummary = {
 type MetricsResponse = {
   totalDecisions: number
   fallbackRate: number
+}
+
+function deriveFallbackRate(decisions: ControlSurfaceDecisionSummary[]) {
+  if (decisions.length === 0) return 0
+  const fallbackCount = decisions.filter((decision) => decision.fallbackUsed).length
+  return Number((fallbackCount / decisions.length).toFixed(4))
 }
 
 function toSourceMode(decision: DecisionRow): 'live' | 'mirrored' | 'fallback' {
@@ -197,35 +213,61 @@ function buildActionDistribution(decisions: ControlSurfaceDecisionSummary[]): Ac
   }))
 }
 
-function buildProviders(providerTrust: ProviderTrustResponse): ControlSurfaceProviderNode[] {
+function normalizeProviderIdentity(provider: string): string {
+  const normalized = provider.trim().toUpperCase().replace(/[\s-]+/g, '_')
+  if (normalized === 'EMBER' || normalized === 'EMBER_STRUCTURAL' || normalized === 'EMBER_STRUCTURAL_BASELINE') {
+    return 'EMBER_STRUCTURAL_BASELINE'
+  }
+  if (normalized === 'WATTTIME') return 'WATTTIME_MOER'
+  return normalized
+}
+
+function providerLabel(provider: string): string {
+  return provider.replace(/_/g, ' ')
+}
+
+function buildProviders(
+  providerTrust: ProviderTrustResponse,
+  provenance: WaterProvenanceResponse | null
+): ControlSurfaceProviderNode[] {
   const freshnessMap = new Map(
-    providerTrust.freshness.map((item) => [item.provider.toUpperCase(), item])
+    providerTrust.freshness.map((item) => [normalizeProviderIdentity(item.provider), item])
+  )
+  const provenanceMap = new Map(
+    (provenance?.datasets ?? []).map((dataset) => [dataset.name.trim().toLowerCase(), dataset])
   )
 
   const carbonProviders = Object.entries(providerTrust.providers).map(([key, snapshots]) => {
-    const fresh = freshnessMap.get(key) ?? freshnessMap.get(key.toLowerCase())
+    const canonicalKey = normalizeProviderIdentity(key)
+    const fresh = freshnessMap.get(canonicalKey)
     const latestConfidence = snapshots[0]?.confidence ?? null
     const isStale = Boolean(fresh?.isStale)
     const status: ControlSurfaceProviderNode['status'] = isStale ? 'degraded' : 'healthy'
+    const statusReasonCode: ControlSurfaceProviderNode['statusReasonCode'] = isStale
+      ? 'DEGRADED_STALE'
+      : 'HEALTHY_LIVE'
     const mode: ControlSurfaceProviderNode['mode'] =
-      key === 'ember' ? 'mirrored' : isStale ? 'fallback' : 'live'
+      canonicalKey === 'EMBER_STRUCTURAL_BASELINE' ? 'mirrored' : isStale ? 'fallback' : 'live'
     const signalAuthority: ControlSurfaceProviderNode['signalAuthority'] =
-      key.toLowerCase().includes('watttime') ? 'marginal' : isStale ? 'fallback' : 'average'
+      canonicalKey.includes('WATTTIME') ? 'marginal' : isStale ? 'fallback' : 'average'
     return {
-      id: key,
-      label: key.replace(/_/g, ' '),
+      id: canonicalKey,
+      label: providerLabel(canonicalKey),
       providerType: 'carbon' as const,
       status,
+      statusReasonCode,
+      statusLabel: isStale ? 'degraded stale' : 'healthy live',
       freshnessSec: fresh && fresh.freshnessSec >= 0 ? fresh.freshnessSec : null,
       confidence: latestConfidence,
-      mirrored: true,
+      mirrored: canonicalKey === 'EMBER_STRUCTURAL_BASELINE',
       lineageCount: snapshots.length,
       mode,
       signalAuthority,
-      degradedReason: isStale ? 'Freshness breached safe mirror window' : null,
-      mirrorVersion: typeof snapshots[0]?.metadata?.['version'] === 'string'
-        ? String(snapshots[0]?.metadata?.['version'])
-        : null,
+      degradedReason: isStale ? 'Freshness breached safe mirror window.' : null,
+      mirrorVersion:
+        typeof snapshots[0]?.metadata?.['version'] === 'string'
+          ? String(snapshots[0]?.metadata?.['version'])
+          : null,
     }
   })
 
@@ -233,17 +275,43 @@ function buildProviders(providerTrust: ProviderTrustResponse): ControlSurfacePro
     const freshnessSec =
       provider.freshnessSec ??
       (provider.observedAt ? Math.max(0, Math.round((Date.now() - new Date(provider.observedAt).getTime()) / 1000)) : null)
-    const status: ControlSurfaceProviderNode['status'] =
-      provider.authorityStatus === 'fallback'
-        ? 'degraded'
-        : freshnessSec != null && freshnessSec > 172800
-          ? 'degraded'
-          : 'healthy'
+    const provenanceRecord = provenanceMap.get(provider.provider.trim().toLowerCase())
+    const provenanceStatus = provenanceRecord?.verificationStatus ?? 'unavailable'
+    const bundleExpired = freshnessSec != null && freshnessSec > 172800
+
+    let status: ControlSurfaceProviderNode['status'] = 'healthy'
+    let statusReasonCode: ControlSurfaceProviderNode['statusReasonCode'] = 'VERIFIED_STATIC'
+    let degradedReason: string | null = null
+
+    if (provider.authorityStatus === 'fallback') {
+      status = 'degraded'
+      statusReasonCode = 'PROVENANCE_FAILED'
+      degradedReason = 'Water authority degraded to fallback posture.'
+    } else if (provenanceStatus === 'mismatch') {
+      status = 'degraded'
+      statusReasonCode = 'HASH_MISMATCH'
+      degradedReason = 'Verified dataset hash does not match the current manifest.'
+    } else if (
+      provenanceStatus === 'missing_source' ||
+      provenanceStatus === 'unverified' ||
+      provenanceStatus === 'unavailable'
+    ) {
+      status = 'degraded'
+      statusReasonCode = 'PROVENANCE_FAILED'
+      degradedReason = 'Water provenance could not be verified from the current bundle.'
+    } else if (bundleExpired) {
+      status = 'degraded'
+      statusReasonCode = 'EXPIRED_BUNDLE'
+      degradedReason = 'Verified static bundle is past its allowed TTL.'
+    }
+
     return {
       id: `water:${provider.provider}`,
-      label: provider.provider.replace(/_/g, ' '),
+      label: providerLabel(provider.provider),
       providerType: 'water' as const,
       status,
+      statusReasonCode,
+      statusLabel: statusReasonCode.toLowerCase().replace(/_/g, ' '),
       freshnessSec,
       confidence: provider.confidence ?? null,
       mirrored: false,
@@ -258,11 +326,9 @@ function buildProviders(providerTrust: ProviderTrustResponse): ControlSurfacePro
             : 'advisory',
       authorityMode: provider.authorityMode ?? 'basin',
       scenario: provider.scenario ?? 'current',
-      degradedReason:
-        provider.authorityStatus === 'fallback'
-          ? 'Water authority degraded to fallback posture.'
-          : null,
+      degradedReason,
       mirrorVersion: provider.datasetVersion ?? null,
+      provenanceStatus,
     } satisfies ControlSurfaceProviderNode
   })
 
@@ -454,16 +520,71 @@ async function getReplayBundle(decisions: DecisionFeed['decisions']) {
 export async function GET() {
   const startedAt = performance.now()
   try {
-    const [health, slo, ledger, metrics, decisionFeed] = await Promise.all([
+    const describeFailure = (error: unknown) => (error instanceof Error ? error.message : 'Unknown engine failure.')
+
+    const [healthSettled, sloSettled, decisionsSettled] = await Promise.allSettled([
       fetchEngineJson<CiHealthSnapshot>('/ci/health'),
       fetchEngineJson<CiSloSnapshot>('/ci/slo'),
-      fetchEngineJson<LedgerSummary>('/dashboard/carbon-ledger-summary?days=30'),
-      fetchEngineJson<MetricsResponse>('/dashboard/metrics?window=24h'),
       fetchEngineJson<DecisionFeed>('/ci/decisions?limit=12'),
     ])
 
-    const [providerTrustResult, outboxResult] = await Promise.allSettled([
+    const [ledgerResult, metricsResult] = await Promise.all([
+      fetchEngineJson<LedgerSummary>('/dashboard/carbon-ledger-summary?days=30').catch(() => null),
+      fetchEngineJson<MetricsResponse>('/dashboard/metrics?window=24h').catch(() => null),
+    ])
+
+    if (decisionsSettled.status === 'rejected') {
+      throw new Error(`Decision feed unavailable: ${describeFailure(decisionsSettled.reason)}`)
+    }
+
+    const decisionFeed = decisionsSettled.value
+
+    const fallbackSlo: CiSloSnapshot = {
+      samples: 0,
+      p50: { totalMs: 0, computeMs: 0 },
+      p95: { totalMs: 0, computeMs: 0 },
+      p99: { totalMs: 0, computeMs: 0 },
+      current: { totalMs: 0, computeMs: 0 },
+      budget: { totalP95Ms: 0, computeP95Ms: 0 },
+      withinBudget: { total: false, compute: false },
+    }
+
+    const sloError = sloSettled.status === 'rejected' ? describeFailure(sloSettled.reason) : null
+    const slo = sloSettled.status === 'fulfilled' ? sloSettled.value : fallbackSlo
+
+    const fallbackHealth: CiHealthSnapshot = {
+      status: 'degraded',
+      timestamp: new Date().toISOString(),
+      checks: {
+        database: false,
+        waterArtifacts: {
+          bundlePresent: false,
+          manifestPresent: false,
+          schemaCompatible: false,
+          regionCount: 0,
+          sourceCount: 0,
+          datasetHashesPresent: false,
+        },
+      },
+      errors: ['Health snapshot unavailable.'],
+      sloBudgetMs: {
+        totalP95Ms: slo.budget.totalP95Ms,
+        computeP95Ms: slo.budget.computeP95Ms,
+      },
+    }
+
+    const healthError = healthSettled.status === 'rejected' ? describeFailure(healthSettled.reason) : null
+    const health =
+      healthSettled.status === 'fulfilled'
+        ? healthSettled.value
+        : {
+            ...fallbackHealth,
+            errors: healthError ? [`Health snapshot unavailable: ${healthError}`] : fallbackHealth.errors,
+          }
+
+    const [providerTrustResult, provenanceResult, outboxResult] = await Promise.allSettled([
       fetchEngineJson<ProviderTrustResponse>('/dashboard/provider-trust'),
+      fetchEngineJson<WaterProvenanceResponse>('/water/provenance'),
       hasInternalApiKey()
         ? fetchEngineJson<OutboxMetrics>('/integrations/events/outbox/metrics', undefined, { internal: true })
         : Promise.resolve(null),
@@ -473,6 +594,7 @@ export async function GET() {
       providerTrustResult.status === 'fulfilled'
         ? providerTrustResult.value
         : { freshness: [], providers: {} }
+    const provenance = provenanceResult.status === 'fulfilled' ? provenanceResult.value : null
     const outbox = outboxResult.status === 'fulfilled' ? outboxResult.value : null
 
     const replay = await getReplayBundle(decisionFeed.decisions)
@@ -482,10 +604,36 @@ export async function GET() {
     }
 
     const decisions = decisionFeed.decisions.map(buildDecisionSummary)
-    const providers = buildProviders(providerTrust)
+    const fallbackRate = metricsResult?.fallbackRate ?? deriveFallbackRate(decisions)
+    const totalDecisionCount = ledgerResult?.totalJobsRouted ?? metricsResult?.totalDecisions ?? decisionFeed.decisions.length
+    const carbonAvoidedKg = ledgerResult?.carbonAvoidedPeriodKg ?? 0
+    const carbonReductionMultiplier = ledgerResult?.carbonReductionMultiplier ?? null
+    const providers = buildProviders(providerTrust, provenance)
     const actionDistribution = buildActionDistribution(decisions)
     const timeline = buildTimeline(decisions, replay, outbox, providers)
     const scenarioPreviews = await getScenarioPreviews(liveDecision)
+
+    if (healthSettled.status !== 'fulfilled') {
+      timeline.unshift({
+        id: 'engine-health-degraded',
+        type: 'ProviderDegraded',
+        label: 'Engine health snapshot degraded',
+        timestamp: new Date().toISOString(),
+        severity: 'warning',
+        detail: healthError ? `Engine health endpoint degraded: ${healthError}` : 'Engine health endpoint is unavailable or timed out.',
+      })
+    }
+
+    if (sloSettled.status !== 'fulfilled') {
+      timeline.unshift({
+        id: 'engine-slo-degraded',
+        type: 'ProviderDegraded',
+        label: 'Engine latency surface degraded',
+        timestamp: new Date().toISOString(),
+        severity: 'warning',
+        detail: sloError ? `Engine SLO endpoint degraded: ${sloError}` : 'Engine SLO endpoint is unavailable or timed out.',
+      })
+    }
     if (providerTrustResult.status === 'rejected') {
       timeline.unshift({
         id: 'provider-trust-degraded',
@@ -494,6 +642,36 @@ export async function GET() {
         timestamp: new Date().toISOString(),
         severity: 'warning',
         detail: 'The overview stayed live, but provider freshness details could not be loaded.',
+      })
+    }
+    if (provenanceResult.status === 'rejected') {
+      timeline.unshift({
+        id: 'provenance-degraded',
+        type: 'ProviderDegraded',
+        label: 'Water provenance surface degraded',
+        timestamp: new Date().toISOString(),
+        severity: 'warning',
+        detail: 'Provider overview stayed live, but provenance verification could not be loaded.',
+      })
+    }
+    if (!ledgerResult) {
+      timeline.unshift({
+        id: 'impact-summary-degraded',
+        type: 'ProviderDegraded',
+        label: 'Impact summary degraded',
+        timestamp: new Date().toISOString(),
+        severity: 'warning',
+        detail: 'Carbon ledger summary is unavailable, so impact falls back to the live decision feed.',
+      })
+    }
+    if (!metricsResult) {
+      timeline.unshift({
+        id: 'decision-metrics-degraded',
+        type: 'ProviderDegraded',
+        label: 'Decision metrics degraded',
+        timestamp: new Date().toISOString(),
+        severity: 'warning',
+        detail: 'Fallback-rate summary is unavailable, so the overview derives it from live decisions only.',
       })
     }
     if (!slo.withinBudget.total || !slo.withinBudget.compute) {
@@ -525,11 +703,11 @@ export async function GET() {
         } | Current ${slo.current.totalMs.toFixed(0)}ms | Rolling p95 ${slo.p95.totalMs.toFixed(0)}ms`,
       },
       impact: {
-        totalDecisions: ledger.totalJobsRouted,
-        carbonAvoidedKg: ledger.carbonAvoidedPeriodKg,
-        carbonReductionMultiplier: ledger.carbonReductionMultiplier,
+        totalDecisions: totalDecisionCount,
+        carbonAvoidedKg,
+        carbonReductionMultiplier,
         waterShiftedLiters,
-        costOptimizedUsd: Number((ledger.carbonAvoidedPeriodKg * 0.42).toFixed(2)),
+        costOptimizedUsd: Number((carbonAvoidedKg * 0.42).toFixed(2)),
         delayedDecisions,
       },
       liveDecision,
@@ -541,9 +719,9 @@ export async function GET() {
       scenarioPreviews,
       timeline,
       metrics: {
-        fallbackRate: metrics.fallbackRate,
-        highConfidenceDecisionPct: ledger.highConfidenceDecisionPct,
-        providerDisagreementRatePct: ledger.providerDisagreementRatePct,
+        fallbackRate,
+        highConfidenceDecisionPct: ledgerResult?.highConfidenceDecisionPct ?? 0,
+        providerDisagreementRatePct: ledgerResult?.providerDisagreementRatePct ?? 0,
         p50TotalMs: slo.p50.totalMs,
         p50ComputeMs: slo.p50.computeMs,
         p95TotalMs: slo.p95.totalMs,

@@ -818,3 +818,18 @@ export interface CommandCenterSnapshot {
   }
   health: SystemHealthSnapshot
 }
+
+export interface TeamChatMessage {
+  id: string
+  teamId: string
+  operatorId: string
+  operatorName: string
+  body: string
+  createdAt: string
+}
+
+export interface TeamChatSnapshot {
+  teamId: string
+  messages: TeamChatMessage[]
+  generatedAt: string
+}

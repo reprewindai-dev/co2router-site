@@ -1,46 +1,6 @@
 import Link from 'next/link'
 
-const tiers = [
-  {
-    name: 'Operator',
-    price: 'From $2,500/mo',
-    entry: 'One live control point for a single team.',
-    description: 'For buyers who need one production decision loop with canonical decision storage, proof visibility, and a real enforcement wedge.',
-    scale: 'Best for teams running up to 250k decisions per month.',
-    highlights: [
-      'Decision API v1 and control-surface access',
-      'CI/CD or HTTP control-point rollout',
-      'Canonical decision storage and replay references',
-      'Pilot onboarding with one production runtime path',
-    ],
-  },
-  {
-    name: 'Governance',
-    price: 'From $8,000/mo',
-    entry: 'Multi-team governance with production enforcement depth.',
-    description: 'For organizations standardizing policy, proof, and runtime control across multiple workloads, regions, and entry points.',
-    scale: 'Built for high-volume decisioning, additional adapters, and regulated operating environments.',
-    highlights: [
-      'Multi-team policy governance and approval controls',
-      'Enhanced proof export and replay visibility',
-      'Kubernetes, queue, and webhook adapter coverage',
-      'Operational support for regulated workload posture',
-    ],
-  },
-  {
-    name: 'Assurance',
-    price: 'Custom',
-    entry: 'Assurance-driven deployment for enterprise control programs.',
-    description: 'For enterprises that need governed evidence workflows, signed export chains, and controlled operational trust boundaries.',
-    scale: 'Scoped to assurance requirements, governance depth, and controlled rollout design.',
-    highlights: [
-      'Controlled assurance and proof export workflows',
-      'Signed chain delivery and replay routing design',
-      'Dedicated architecture review for internal control teams',
-      'Commercial packaging aligned to governance scope',
-    ],
-  },
-]
+import { pricingTiers } from '@/lib/pricing'
 
 export default function PricingPage() {
   return (
@@ -54,7 +14,7 @@ export default function PricingPage() {
       </section>
 
       <section className="grid gap-6 lg:grid-cols-3">
-        {tiers.map((tier) => (
+        {pricingTiers.map((tier) => (
           <div key={tier.name} className="surface-card flex h-full flex-col p-6">
             <div className="eyebrow">{tier.name}</div>
             <div className="mt-4 text-3xl font-semibold text-white">{tier.price}</div>
@@ -73,7 +33,7 @@ export default function PricingPage() {
               href="/access"
               className="mt-6 inline-flex rounded-full border border-white/10 px-4 py-2 text-sm font-semibold text-slate-100 transition hover:border-white/20 hover:bg-white/5 hover:text-white"
             >
-              {tier.name === 'Assurance' ? 'Talk to sales' : 'Request access'}
+              {tier.ctaLabel}
             </Link>
           </div>
         ))}

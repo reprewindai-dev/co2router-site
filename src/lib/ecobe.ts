@@ -1,4 +1,4 @@
-const DEFAULT_ENGINE_URL = 'http://localhost:3000'
+const DEFAULT_ENGINE_URL = 'https://ecobe-engineclaude-co2router.onrender.com'
 
 function titleCaseWords(value: string) {
   return value
@@ -81,12 +81,46 @@ function buildMethodologyProviders(
 }
 
 function getEngineBaseUrl() {
-  return (process.env.ECOBE_API_URL || process.env.NEXT_PUBLIC_ECOBE_API_URL || DEFAULT_ENGINE_URL).replace(/\/$/, '')
+  return (
+    process.env.ECOBE_API_URL ||
+    process.env.CO2ROUTER_API_URL ||
+    process.env.NEXT_PUBLIC_ECOBE_API_URL ||
+    DEFAULT_ENGINE_URL
+  )
+    .replace(/\/api\/v1\/?$/, '')
+    .replace(/\/$/, '')
 }
 
 function getInternalHeaders() {
-  const internalKey = process.env.ECOBE_INTERNAL_API_KEY
-  return internalKey ? { 'x-ecobe-internal-key': internalKey } : {}
+  const internalKey = process.env.ECOBE_INTERNAL_API_KEY || process.env.CO2ROUTER_INTERNAL_API_KEY
+  return internalKey ? { authorization: `Bearer ${internalKey}` } : {}
+}
+
+function getEngineTimeoutMs() {
+  const raw = process.env.ECOBE_ENGINE_TIMEOUT_MS || process.env.CO2ROUTER_ENGINE_TIMEOUT_MS
+  if (!raw) return 12_000
+  const parsed = Number(raw)
+  if (!Number.isFinite(parsed)) return 12_000
+  return Math.max(1_000, Math.min(60_000, Math.round(parsed)))
+}
+
+function mergeAbortSignals(signals: Array<AbortSignal | null | undefined>) {
+  const filtered = signals.filter(Boolean) as AbortSignal[]
+  if (filtered.length === 0) return undefined
+  if (filtered.length === 1) return filtered[0]
+
+  const controller = new AbortController()
+  const onAbort = () => controller.abort()
+
+  for (const signal of filtered) {
+    if (signal.aborted) {
+      controller.abort()
+      break
+    }
+    signal.addEventListener('abort', onAbort, { once: true })
+  }
+
+  return controller.signal
 }
 
 async function fetchEngineJson<T>(
@@ -105,11 +139,22 @@ async function fetchEngineJson<T>(
       }
     }
 
-    const response = await fetch(`${getEngineBaseUrl()}/api/v1${path}`, {
-      ...requestInit,
-      headers,
-      cache: 'no-store',
-    })
+    const timeoutMs = getEngineTimeoutMs()
+    const timeoutController = new AbortController()
+    const timeout = setTimeout(() => timeoutController.abort(), timeoutMs)
+    const mergedSignal = mergeAbortSignals([requestInit.signal, timeoutController.signal])
+
+    let response: Response
+    try {
+      response = await fetch(`${getEngineBaseUrl()}/api/v1${path}`, {
+        ...requestInit,
+        headers,
+        cache: 'no-store',
+        signal: mergedSignal,
+      })
+    } finally {
+      clearTimeout(timeout)
+    }
 
     if (!response.ok) return null
     return (await response.json()) as T

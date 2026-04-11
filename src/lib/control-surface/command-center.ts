@@ -614,10 +614,16 @@ function extractWeights(
 }
 
 export async function getCommandCenterSnapshot(): Promise<CommandCenterSnapshot> {
-  const [health, slo, decisionFeed, ledgerResult, metricsResult, providerTrust, provenance] = await Promise.all([
+  const describeFailure = (error: unknown) => (error instanceof Error ? error.message : 'Unknown engine failure.')
+
+  const [healthSettled, sloSettled, decisionsSettled, provenanceSettled] = await Promise.allSettled([
     fetchEngineJson<CiHealthSnapshot>('/ci/health'),
     fetchEngineJson<CiSloSnapshot>('/ci/slo'),
     fetchEngineJson<DecisionFeed>('/ci/decisions?limit=8'),
+    fetchEngineJson<WaterProvenanceResponse>('/water/provenance'),
+  ])
+
+  const [ledgerResult, metricsResult, providerTrust] = await Promise.all([
     fetchEngineJson<LedgerSummary>('/dashboard/carbon-ledger-summary?days=30').catch(() => null),
     fetchEngineJson<MetricsResponse>('/dashboard/metrics?window=24h').catch(() => null),
     fetchEngineJson<ProviderTrustResponse>('/dashboard/provider-trust').catch(() => ({
@@ -625,8 +631,63 @@ export async function getCommandCenterSnapshot(): Promise<CommandCenterSnapshot>
       providers: {},
       waterProviders: [],
     })),
-    fetchEngineJson<WaterProvenanceResponse>('/water/provenance'),
   ])
+
+  if (decisionsSettled.status === 'rejected') {
+    throw new Error(`Decision feed unavailable: ${describeFailure(decisionsSettled.reason)}`)
+  }
+
+  const decisionFeed = decisionsSettled.value
+
+  const fallbackSlo: CiSloSnapshot = {
+    samples: 0,
+    p50: { totalMs: 0, computeMs: 0 },
+    p95: { totalMs: 0, computeMs: 0 },
+    p99: { totalMs: 0, computeMs: 0 },
+    current: { totalMs: 0, computeMs: 0 },
+    budget: { totalP95Ms: 0, computeP95Ms: 0 },
+    withinBudget: { total: false, compute: false },
+  }
+
+  const sloError = sloSettled.status === 'rejected' ? describeFailure(sloSettled.reason) : null
+  const slo = sloSettled.status === 'fulfilled' ? sloSettled.value : fallbackSlo
+
+  const fallbackHealth: CiHealthSnapshot = {
+    status: 'degraded',
+    timestamp: new Date().toISOString(),
+    checks: {
+      database: false,
+      waterArtifacts: {
+        bundlePresent: false,
+        manifestPresent: false,
+        schemaCompatible: false,
+        regionCount: 0,
+        sourceCount: 0,
+        datasetHashesPresent: false,
+      },
+    },
+    errors: ['Health snapshot unavailable.'],
+    sloBudgetMs: {
+      totalP95Ms: slo.budget.totalP95Ms,
+      computeP95Ms: slo.budget.computeP95Ms,
+    },
+  }
+
+  const healthError = healthSettled.status === 'rejected' ? describeFailure(healthSettled.reason) : null
+  const health =
+    healthSettled.status === 'fulfilled'
+      ? healthSettled.value
+      : {
+          ...fallbackHealth,
+          errors: healthError ? [`Health snapshot unavailable: ${healthError}`] : fallbackHealth.errors,
+        }
+
+  const provenance: WaterProvenanceResponse =
+    provenanceSettled.status === 'fulfilled'
+      ? provenanceSettled.value
+      : {
+          datasets: [],
+        }
 
   const recentDecisions = decisionFeed.decisions.map(buildCommandCenterDecisionItem)
   const defaultSelected =
@@ -670,8 +731,8 @@ export async function getCommandCenterSnapshot(): Promise<CommandCenterSnapshot>
     selectedTrace?.payload.normalizedSignals.candidates.find(
       (candidate) => candidate.region === selectedTrace.payload.decisionPath.selectedRegion
     )?.score ?? null
-  const fallbackRateText =
-    metricsResult != null ? `fallback ${(metricsResult.fallbackRate * 100).toFixed(1)}% | ` : ''
+  const fallbackRateText = metricsResult != null ? `fallback ${(metricsResult.fallbackRate * 100).toFixed(1)}% | ` : ''
+  const sloText = sloError ? `slo degraded | ` : ''
   const impact =
     ledgerResult != null
       ? {
@@ -693,7 +754,7 @@ export async function getCommandCenterSnapshot(): Promise<CommandCenterSnapshot>
       saiqEnforced: selectedTrace ? selectedTrace.payload.governance.source !== 'NONE' : null,
       traceLocked: selectedTrace ? Boolean(selectedTrace.traceHash) : null,
       replayVerified: selectedReplay?.deterministicMatch ?? null,
-      detail: `p95 ${slo.p95.totalMs.toFixed(0)}ms | ${fallbackRateText}${providers.length} providers | ${
+      detail: `${sloText}p95 ${slo.p95.totalMs.toFixed(0)}ms | ${fallbackRateText}${providers.length} providers | ${
         provenance.datasets.filter((dataset) => dataset.verificationStatus === 'verified').length
       } verified water datasets`,
     },

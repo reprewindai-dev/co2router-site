@@ -11,6 +11,8 @@ export const coreSitePaths = [
   '/',
   '/design-partners',
   '/design-partners/one-pager',
+  '/pricing',
+  '/access',
   '/console',
   '/assurance',
   '/status',

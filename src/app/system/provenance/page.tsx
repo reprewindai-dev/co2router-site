@@ -9,19 +9,35 @@ export const dynamic = 'force-dynamic'
 export const metadata: Metadata = createPageMetadata({
   title: 'Provenance',
   description:
-    'Verified water provenance behind CO2 Router decisions, including Aqueduct, AWARE, WWF, and NREL dataset posture.',
+    'Live water provenance posture behind CO2 Router decisions, including Aqueduct, AWARE, WWF, and NREL dataset verification state.',
   path: '/system/provenance',
-  keywords: ['water provenance', 'verified datasets', 'Aqueduct AWARE WWF NREL'],
+  keywords: ['water provenance', 'dataset verification', 'Aqueduct AWARE WWF NREL'],
 })
 
 export default async function SystemProvenancePage() {
   const snapshot = await getLiveSystemSnapshot()
+  const verifiedDatasets = snapshot.providers.datasets.filter(
+    (dataset) => dataset.verificationStatus === 'verified'
+  ).length
+  const mismatchDatasets = snapshot.providers.datasets.filter(
+    (dataset) => dataset.verificationStatus === 'mismatch'
+  ).length
+  const title =
+    mismatchDatasets > 0
+      ? 'Water provenance integrity is degraded.'
+      : verifiedDatasets === snapshot.providers.datasets.length
+        ? 'Verified water datasets behind the authority layer.'
+        : 'Water provenance is partially verified behind the authority layer.'
+  const summary =
+    mismatchDatasets > 0
+      ? 'This page reports the live provenance route for the water datasets behind CO2 Router decisions. The current engine target is returning dataset hash mismatches, so this surface is intentionally marked degraded instead of claiming verified posture.'
+      : 'This page reports the live provenance route for the water datasets behind CO2 Router decisions: Aqueduct, AWARE, WWF, and NREL. Those inputs are visible because they are part of the authority layer, not because they are useful marketing artifacts.'
 
   return (
     <InformationPageShell
       eyebrow="System / Provenance"
-      title="Verified water datasets behind the authority layer."
-      summary="This page reports the live provenance route for the water datasets behind CO2 Router decisions: Aqueduct, AWARE, WWF, and NREL. Those inputs are visible because they are part of the authority layer, not because they are useful marketing artifacts."
+      title={title}
+      summary={summary}
       secondaryHref="/assurance"
       secondaryLabel="View Assurance"
     >

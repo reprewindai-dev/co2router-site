@@ -15,6 +15,8 @@ const actionTone: Record<string, string> = {
 
 export default async function ControlSurfacePage() {
   const snapshot = await getControlPlaneSnapshot()
+  const provenanceMismatchCount = snapshot.provenance?.summary.mismatch ?? 0
+  const provenanceVerifiedCount = snapshot.provenance?.summary.verified ?? 0
 
   return (
     <div className="space-y-8 pb-10">
@@ -30,11 +32,15 @@ export default async function ControlSurfacePage() {
           <div className="grid gap-3 sm:grid-cols-3">
             <div className="surface-card p-4">
               <div className="eyebrow">System status</div>
-              <div className="mt-2 text-2xl font-semibold text-white">{snapshot.health?.status ?? 'unknown'}</div>
+              <div className="mt-2 text-2xl font-semibold text-white">
+                {provenanceMismatchCount > 0 ? 'degraded' : snapshot.health?.status ?? 'unknown'}
+              </div>
             </div>
             <div className="surface-card p-4">
               <div className="eyebrow">Assurance</div>
-              <div className="mt-2 text-2xl font-semibold text-white">{snapshot.health?.assurance?.status ?? 'unknown'}</div>
+              <div className="mt-2 text-2xl font-semibold text-white">
+                {provenanceMismatchCount > 0 ? 'degraded' : snapshot.health?.assurance?.status ?? 'unknown'}
+              </div>
             </div>
             <div className="surface-card p-4">
               <div className="eyebrow">Recent frames</div>
@@ -238,9 +244,11 @@ export default async function ControlSurfacePage() {
           <div className="rounded-2xl border border-white/10 bg-slate-950/50 p-4">
             <div className="text-sm font-semibold text-white">Assurance event</div>
             <p className="mt-2 text-sm text-slate-400">
-              {snapshot.health?.assurance?.status === 'assurance_ready'
-                ? 'Verified dataset hashes are present for the live authority layer.'
-                : `Operational only; unhashed datasets: ${(snapshot.health?.assurance?.unhashedDatasets ?? []).join(', ') || 'none reported'}.`}
+              {provenanceMismatchCount > 0
+                ? `Live provenance is degraded: ${provenanceMismatchCount} dataset hash mismatch${provenanceMismatchCount === 1 ? '' : 'es'} detected.`
+                : snapshot.health?.assurance?.status === 'assurance_ready'
+                  ? `Verified dataset hashes present for ${provenanceVerifiedCount} dataset${provenanceVerifiedCount === 1 ? '' : 's'}.`
+                  : `Operational only; unhashed datasets: ${(snapshot.health?.assurance?.unhashedDatasets ?? []).join(', ') || 'none reported'}.`}
             </p>
           </div>
           <div className="rounded-2xl border border-white/10 bg-slate-950/50 p-4">
