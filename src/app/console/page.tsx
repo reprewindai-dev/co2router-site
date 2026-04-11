@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
+import { headers } from 'next/headers'
 
-import { CommandCenterShell } from '@/components/command-center/CommandCenterShell'
+import { CommandCenterShellVariant } from '@/components/command-center/CommandCenterShellVariant'
 import { createPageMetadata } from '@/lib/seo'
 
 export const metadata: Metadata = createPageMetadata({
@@ -16,6 +17,23 @@ export const metadata: Metadata = createPageMetadata({
   ],
 })
 
-export default function ConsolePage() {
-  return <CommandCenterShell />
+export const dynamic = 'force-dynamic'
+
+function resolveDefaultVariant(hostname: string | null): 'opus' | 'google-pro' {
+  const normalizedHost = (hostname ?? '').trim().toLowerCase()
+  if (normalizedHost.includes('co2router.tech')) return 'google-pro'
+  return 'opus'
+}
+
+export default async function ConsolePage(props: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>
+}) {
+  const headerList = headers()
+  const rawHost = headerList.get('x-forwarded-host') ?? headerList.get('host')
+  const searchParams = (await props.searchParams) ?? {}
+  const variantValue = searchParams.variant
+  const requestedVariant = Array.isArray(variantValue) ? variantValue[0] : variantValue
+  const variant = requestedVariant ?? resolveDefaultVariant(rawHost)
+
+  return <CommandCenterShellVariant variant={variant} />
 }

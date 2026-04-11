@@ -17,7 +17,9 @@ export default async function HaloGridComparePage(props: {
 }) {
   const searchParams = (await props.searchParams) ?? {}
   const variantValue = searchParams.variant
-  const variant = Array.isArray(variantValue) ? variantValue[0] : variantValue ?? 'opus'
+  const rawVariant = Array.isArray(variantValue) ? variantValue[0] : variantValue ?? 'opus'
+  const normalizedVariant =
+    rawVariant === 'google' || rawVariant === 'pro' ? 'google-pro' : rawVariant
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
@@ -27,7 +29,7 @@ export default async function HaloGridComparePage(props: {
           <div className="flex items-center gap-2 text-xs">
             <a
               className={`rounded-full border px-3 py-1 ${
-                variant === 'opus'
+                normalizedVariant === 'opus'
                   ? 'border-cyan-300/40 bg-cyan-400/10 text-cyan-100'
                   : 'border-white/15 bg-white/5 text-slate-200 hover:border-white/25'
               }`}
@@ -37,7 +39,7 @@ export default async function HaloGridComparePage(props: {
             </a>
             <a
               className={`rounded-full border px-3 py-1 ${
-                variant === 'google-pro'
+                normalizedVariant === 'google-pro'
                   ? 'border-amber-300/40 bg-amber-400/10 text-amber-100'
                   : 'border-white/15 bg-white/5 text-slate-200 hover:border-white/25'
               }`}
@@ -55,7 +57,7 @@ export default async function HaloGridComparePage(props: {
         </div>
       </div>
 
-      <CommandCenterShellVariant variant={variant} />
+      <CommandCenterShellVariant variant={normalizedVariant} />
     </div>
   )
 }
