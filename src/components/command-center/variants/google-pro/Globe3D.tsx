@@ -45,6 +45,8 @@ function GlobeScene({
   theme,
   nodes,
   flows,
+  showNodes,
+  showRadar,
   onReady,
 }: {
   countries: Array<Record<string, unknown>>
@@ -52,6 +54,8 @@ function GlobeScene({
   theme: ThemeLike
   nodes: GlobeNode[]
   flows: GlobeFlow[]
+  showNodes: boolean
+  showRadar: boolean
   onReady?: (globe: ThreeGlobeInstance | null) => void
 }) {
   const controlsRef = useRef<any>(null)
@@ -60,7 +64,7 @@ function GlobeScene({
 
   const pointData = useMemo(
     () =>
-      nodes.map((node) => ({
+      (showNodes ? nodes : []).map((node) => ({
         lat: node.lat,
         lng: node.lng,
         color:
@@ -71,7 +75,24 @@ function GlobeScene({
               : '#4ade80',
         radius: node.status === 'Blocked' ? 1.2 : node.status === 'Marginal' ? 0.95 : 0.8,
       })),
-    [nodes],
+    [nodes, showNodes],
+  )
+
+  const ringData = useMemo(
+    () =>
+      (showRadar ? nodes : []).map((node) => ({
+        lat: node.lat,
+        lng: node.lng,
+        color:
+          node.status === 'Blocked'
+            ? '#f87171'
+            : node.status === 'Marginal'
+              ? '#fbbf24'
+              : '#4ade80',
+        maxRadius: node.status === 'Blocked' ? 8 : 4,
+        propagationSpeed: node.status === 'Blocked' ? 1.5 : 0.8,
+      })),
+    [nodes, showRadar],
   )
 
   useEffect(() => {
@@ -96,6 +117,12 @@ function GlobeScene({
         .pointColor((item: object) => (item as { color: string }).color)
         .pointAltitude(0.02)
         .pointRadius((item: object) => (item as { radius: number }).radius)
+        .ringsData(ringData)
+        .ringLat((item: object) => (item as { lat: number }).lat)
+        .ringLng((item: object) => (item as { lng: number }).lng)
+        .ringColor((item: object) => (item as { color: string }).color)
+        .ringMaxRadius((item: object) => (item as { maxRadius: number }).maxRadius)
+        .ringPropagationSpeed((item: object) => (item as { propagationSpeed: number }).propagationSpeed)
         .arcsData(flows)
         .arcStartLat((item: object) => (item as GlobeFlow).startLat)
         .arcStartLng((item: object) => (item as GlobeFlow).startLng)
@@ -122,7 +149,7 @@ function GlobeScene({
       onReady?.(null)
       globeRef.current = null
     }
-  }, [countries, flows, onReady, pointData, theme.globeBump, theme.globeTexture, theme.primary])
+  }, [countries, flows, onReady, pointData, ringData, theme.globeBump, theme.globeTexture, theme.primary])
 
   useFrame(() => {
     const controls = controlsRef.current
@@ -161,6 +188,8 @@ export default function Globe3D({
   theme,
   nodes,
   flows,
+  showNodes = true,
+  showRadar = true,
   onReady,
 }: {
   mode: 'hybrid' | 'theater' | 'presentation'
@@ -168,6 +197,8 @@ export default function Globe3D({
   theme: ThemeLike
   nodes: GlobeNode[]
   flows: GlobeFlow[]
+  showNodes?: boolean
+  showRadar?: boolean
   onReady?: (globe: ThreeGlobeInstance | null) => void
   onNodeHover?: (node: GlobeNode | null) => void
   onNodeClick?: (node: GlobeNode | null) => void
@@ -205,6 +236,8 @@ export default function Globe3D({
           theme={theme}
           nodes={nodes}
           flows={flows}
+          showNodes={showNodes}
+          showRadar={showRadar}
           onReady={onReady}
         />
         <EffectComposer>

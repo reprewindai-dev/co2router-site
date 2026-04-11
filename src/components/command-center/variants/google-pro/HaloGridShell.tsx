@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useMemo, useState } from 'react'
+import dynamic from 'next/dynamic'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   Bell,
@@ -14,7 +15,6 @@ import {
   Sun,
   Sunset,
 } from 'lucide-react'
-import type ThreeGlobe from 'three-globe'
 
 import { useCommandCenterSnapshot, useLiveSystemSnapshot, useSendTeamChatMessage, useTeamChat } from '@/lib/hooks/control-surface'
 import type { TeamChatMessage, WorldRegionState } from '@/types/control-surface'
@@ -22,13 +22,20 @@ import type { TeamChatMessage, WorldRegionState } from '@/types/control-surface'
 import AlarmQueuePanel from './AlarmQueuePanel'
 import DetailCard from './DetailCard'
 import FleetSummaryPanel from './FleetSummaryPanel'
-import Globe3D from './Globe3D'
-import GlobeDataLayer from './GlobeDataLayer'
 import HaloGridHUD from './HaloGridHUD'
 import InlineTeamChat from './InlineTeamChat'
 import OperatorLocalAuth from './OperatorLocalAuth'
 import SmartAdvisorPanel from './SmartAdvisorPanel'
 import { THEMES, type ThemeMode } from './theme'
+
+const Globe3D = dynamic(() => import('./Globe3D'), {
+  ssr: false,
+  loading: () => (
+    <div className="absolute inset-0 flex items-center justify-center font-mono text-xs uppercase tracking-widest text-sky-500 animate-pulse">
+      Initializing WebGL Engine...
+    </div>
+  ),
+})
 
 type OperatorIdentity = {
   id: string
@@ -114,7 +121,6 @@ export function HaloGridShell() {
   const [showNodes, setShowNodes] = useState(true)
   const [showRadar, setShowRadar] = useState(true)
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
-  const [globeInstance, setGlobeInstance] = useState<ThreeGlobe | null>(null)
 
   const { data: liveData } = useLiveSystemSnapshot()
   const { data: snapshotData } = useCommandCenterSnapshot()
@@ -217,64 +223,8 @@ export function HaloGridShell() {
           zoomLevel={zoomLevel}
           theme={theme}
           nodes={nodes}
-          flows={flows}
-          onReady={setGlobeInstance}
-        />
-        <GlobeDataLayer
-          globeInstance={globeInstance}
-          regions={nodes.map((node) => ({
-            id: node.id,
-            label: node.name,
-            x: 0,
-            y: 0,
-            lat: node.lat,
-            lng: node.lng,
-            state: node.status.toLowerCase() as 'active' | 'marginal' | 'blocked',
-            action: node.actionLabel,
-            frameId: node.frameId,
-            reasonCode: node.actionLabel,
-            pressurePct: 50,
-            emphasis: 0.5,
-          }))}
-          flows={flows.map((flow) => ({
-            id: flow.id,
-            from: {
-              id: flow.id,
-              label: flow.id,
-              x: 0,
-              y: 0,
-              lat: flow.startLat,
-              lng: flow.startLng,
-              state: 'active',
-              action: flow.action,
-              frameId: null,
-              reasonCode: null,
-              pressurePct: 50,
-              emphasis: 0.5,
-            },
-            to: {
-              id: flow.id,
-              label: flow.id,
-              x: 0,
-              y: 0,
-              lat: flow.endLat,
-              lng: flow.endLng,
-              state: flow.action === 'Blocked' ? 'blocked' : 'active',
-              action: flow.action,
-              frameId: null,
-              reasonCode: null,
-              pressurePct: 50,
-              emphasis: 0.5,
-            },
-            mode: flow.action === 'Blocked' ? 'blocked' : 'route',
-            stroke: 0.8,
-            altitude: 0.2,
-            dashLength: 0.4,
-            dashGap: 0.2,
-            dashAnimateTime: 2000,
-          }))}
-          theme={theme}
-          showArcs={showArcs}
+          flows={showArcs ? flows : []}
+          showNodes={showNodes}
           showRadar={showRadar}
         />
       </div>
@@ -426,7 +376,7 @@ export function HaloGridShell() {
                 style={{ borderColor: theme.border }}
                 aria-label="Zoom out globe"
               >
-                −
+                -
               </button>
             </div>
 
@@ -491,3 +441,4 @@ export function HaloGridShell() {
     </div>
   )
 }
+
