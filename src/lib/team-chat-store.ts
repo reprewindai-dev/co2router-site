@@ -8,6 +8,9 @@ function resolveRuntimeDir() {
   if (configuredDir && configuredDir.trim().length > 0) {
     return path.resolve(configuredDir.trim())
   }
+  if (process.env.VERCEL === '1') {
+    return '/tmp/co2router-runtime'
+  }
   return path.join(process.cwd(), '.runtime')
 }
 

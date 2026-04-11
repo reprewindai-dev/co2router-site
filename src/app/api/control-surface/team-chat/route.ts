@@ -22,6 +22,13 @@ function sanitizeLooseText(value: unknown, max = 48) {
 
 function takeChatRateLimitToken(key: string) {
   const now = Date.now()
+
+  if (chatBuckets.size > 256) {
+    chatBuckets.forEach((bucketValue, bucketKey) => {
+      if (bucketValue.resetAt <= now) chatBuckets.delete(bucketKey)
+    })
+  }
+
   const current = chatBuckets.get(key)
 
   if (!current || current.resetAt <= now) {
