@@ -73,6 +73,21 @@ export function CommercialHomePage() {
 
       <HeroMotionSurface liveDecision={heroDecision} />
 
+      <section className="flex flex-wrap items-center justify-between gap-4 rounded-[28px] border border-cyan-300/20 bg-cyan-400/10 px-5 py-4">
+        <div>
+          <div className="text-[11px] uppercase tracking-[0.22em] text-cyan-200">Live Control Plane</div>
+          <div className="mt-1 text-sm text-slate-100 sm:text-base">
+            Open the HaloGrid execution console, inspect the current routing frame, and verify proof posture.
+          </div>
+        </div>
+        <a
+          href="/console"
+          className="rounded-full border border-cyan-200/40 bg-cyan-300 px-5 py-2 text-sm font-semibold text-slate-950 transition hover:bg-cyan-200"
+        >
+          Open Console
+        </a>
+      </section>
+
       <section className="grid gap-3 lg:grid-cols-3">
         {liveStrip.length > 0
           ? liveStrip.map((decision) => (
