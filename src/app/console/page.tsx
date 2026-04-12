@@ -5,22 +5,26 @@ import { CommandCenterShellVariant } from '@/components/command-center/CommandCe
 import { createPageMetadata } from '@/lib/seo'
 
 export const metadata: Metadata = createPageMetadata({
-  title: 'Control Surface',
+  title: 'CO2 Control Center | Live Mission Control',
   description:
-    'Live execution authority, SAIQ governance, trace, replay, provenance, and proof across the CO2 Router command center.',
+    'Real-time carbon-aware compute routing. Five zones, four shock features, one principle: Compute does not run until Earth approves it. Live globe, decision feed, doctrine control, and cryptographic proof.',
   path: '/console',
   keywords: [
-    'CO2 Router control surface',
-    'execution control plane',
-    'trace replay provenance',
-    'SAIQ governance',
+    'CO2 Router control center',
+    'carbon-aware compute',
+    'live mission control',
+    'sustainable cloud routing',
+    'CSRD compliance',
+    'carbon intelligence',
+    'green compute dashboard',
   ],
 })
 
 export const dynamic = 'force-dynamic'
 
-function resolveDefaultVariant(hostname: string | null): 'opus' | 'google-pro' {
-  return 'google-pro'
+function resolveDefaultVariant(hostname: string | null): 'opus' | 'google-pro' | 'mission-control' {
+  // Default to the new CO2 Control Panel (mission-control)
+  return 'mission-control'
 }
 
 export default async function ConsolePage(props: {
