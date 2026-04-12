@@ -8,29 +8,73 @@ export interface SiteLinkSection {
   links: SiteLink[]
 }
 
-export const primaryNavLinks: SiteLink[] = [
+const commercialPrimaryNavLinks: SiteLink[] = [
   { href: '/', label: 'Overview' },
   { href: '/design-partners', label: 'Design Partners' },
-  { href: '/console', label: 'Control Surface' },
   { href: '/assurance', label: 'Assurance' },
   { href: '/pricing', label: 'Pricing' },
-  { href: '/status', label: 'Status' },
-  { href: '/methodology', label: 'Methodology' },
-  { href: '/blog', label: 'Blog' },
+  { href: '/company/about', label: 'Company' },
+  { href: '/contact', label: 'Contact' },
 ]
 
-export const footerLinkSections: SiteLinkSection[] = [
+const technicalPrimaryNavLinks: SiteLink[] = [
+  { href: '/', label: 'Technical Overview' },
+  { href: '/console', label: 'HaloGrid' },
+  { href: '/developers/architecture', label: 'Architecture' },
+  { href: '/system/replay', label: 'Replay' },
+  { href: '/developers/quickstart', label: 'Quickstart' },
+  { href: '/developers/api', label: 'API' },
+]
+
+const commercialFooterLinkSections: SiteLinkSection[] = [
   {
     title: 'Product',
     links: [
       { href: '/', label: 'Overview' },
       { href: '/design-partners', label: 'Design Partners' },
-      { href: '/console', label: 'Control Surface' },
       { href: '/assurance', label: 'Assurance' },
       { href: '/pricing', label: 'Pricing' },
+      { href: '/methodology', label: 'Methodology' },
+      { href: '/status', label: 'Status' },
+    ],
+  },
+  {
+    title: 'Trust',
+    links: [
+      { href: '/company/security', label: 'Security' },
+      { href: '/assurance', label: 'Assurance' },
       { href: '/status', label: 'Status' },
       { href: '/methodology', label: 'Methodology' },
+    ],
+  },
+  {
+    title: 'Company',
+    links: [
+      { href: '/company/about', label: 'About' },
+      { href: '/company/roadmap', label: 'Roadmap' },
       { href: '/blog', label: 'Blog' },
+      { href: '/contact', label: 'Contact' },
+    ],
+  },
+  {
+    title: 'Technical',
+    links: [
+      { href: '/console', label: 'HaloGrid' },
+      { href: '/developers/quickstart', label: 'Quickstart' },
+      { href: '/developers/api', label: 'API' },
+      { href: '/developers/architecture', label: 'Architecture' },
+    ],
+  },
+]
+
+const technicalFooterLinkSections: SiteLinkSection[] = [
+  {
+    title: 'HaloGrid',
+    links: [
+      { href: '/', label: 'Technical Overview' },
+      { href: '/console', label: 'Control Surface' },
+      { href: '/console/compare', label: 'Compare Builds' },
+      { href: '/status', label: 'Status' },
     ],
   },
   {
@@ -53,14 +97,49 @@ export const footerLinkSections: SiteLinkSection[] = [
     ],
   },
   {
-    title: 'Company',
+    title: 'Commercial',
     links: [
+      { href: '/pricing', label: 'Pricing' },
       { href: '/company/about', label: 'About' },
       { href: '/company/security', label: 'Security' },
-      { href: '/company/roadmap', label: 'Roadmap' },
       { href: '/contact', label: 'Contact' },
     ],
   },
+]
+
+export function getPrimaryNavLinks(audience: 'commercial' | 'technical'): SiteLink[] {
+  return audience === 'technical' ? technicalPrimaryNavLinks : commercialPrimaryNavLinks
+}
+
+export function getFooterLinkSections(audience: 'commercial' | 'technical'): SiteLinkSection[] {
+  return audience === 'technical' ? technicalFooterLinkSections : commercialFooterLinkSections
+}
+
+export function getHeaderSubtitle(audience: 'commercial' | 'technical') {
+  return audience === 'technical'
+    ? 'Technical Control Plane Interface'
+    : 'Decision Infrastructure Interface'
+}
+
+export function getFooterTagline(audience: 'commercial' | 'technical') {
+  return audience === 'technical'
+    ? 'Inspect HaloGrid, proof, replay, and deterministic execution authority.'
+    : 'Authorize compute before it runs. Prove every decision.'
+}
+
+export const primaryNavLinks: SiteLink[] = commercialPrimaryNavLinks
+
+export const footerLinkSections: SiteLinkSection[] = commercialFooterLinkSections
+
+export const legacyProductLinks: SiteLink[] = [
+  { href: '/', label: 'Overview' },
+  { href: '/design-partners', label: 'Design Partners' },
+  { href: '/console', label: 'Control Surface' },
+  { href: '/assurance', label: 'Assurance' },
+  { href: '/pricing', label: 'Pricing' },
+  { href: '/status', label: 'Status' },
+  { href: '/methodology', label: 'Methodology' },
+  { href: '/blog', label: 'Blog' },
 ]
 
 export const legalResourceLinks: SiteLink[] = [

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Space_Grotesk } from 'next/font/google'
+import { headers } from 'next/headers'
 import Link from 'next/link'
 import { Analytics } from '@vercel/analytics/next'
 
@@ -9,63 +10,76 @@ import {
   defaultOgImage,
   siteName,
   siteTitle,
-  siteUrl,
 } from '@/lib/seo'
-import { footerLinkSections, primaryNavLinks } from '@/lib/site-navigation'
+import { getFooterLinkSections, getFooterTagline, getHeaderSubtitle, getPrimaryNavLinks } from '@/lib/site-navigation'
+import { getAudienceForHost, getSiteUrlForHost } from '@/lib/site-host'
 
 import './globals.css'
 import { Providers } from './providers'
 
 const spaceGrotesk = Space_Grotesk({ subsets: ['latin'] })
 
-export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
-  applicationName: siteName,
-  title: {
-    default: `${siteName} | ${siteTitle}`,
-    template: `%s | ${siteName}`,
-  },
-  description: defaultDescription,
-  alternates: {
-    canonical: '/',
-  },
-  openGraph: {
-    type: 'website',
-    siteName,
-    title: `${siteName} | ${siteTitle}`,
+export async function generateMetadata(): Promise<Metadata> {
+  const headerList = await headers()
+  const siteUrl = getSiteUrlForHost(headerList.get('x-forwarded-host') ?? headerList.get('host'))
+
+  return {
+    metadataBase: new URL(siteUrl),
+    applicationName: siteName,
+    title: {
+      default: `${siteName} | ${siteTitle}`,
+      template: `%s | ${siteName}`,
+    },
     description: defaultDescription,
-    url: siteUrl,
-    images: [
-      {
-        url: defaultOgImage,
-        width: 1200,
-        height: 630,
-        alt: `${siteName} control surface poster`,
-      },
-    ],
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: `${siteName} | ${siteTitle}`,
-    description: defaultDescription,
-    images: [defaultOgImage],
-  },
-  robots: {
-    index: true,
-    follow: true,
-  },
-  icons: {
-    icon: '/co2router-symbol.png',
-    shortcut: '/co2router-symbol.png',
-    apple: '/co2router-symbol.png',
-  },
+    alternates: {
+      canonical: '/',
+    },
+    openGraph: {
+      type: 'website',
+      siteName,
+      title: `${siteName} | ${siteTitle}`,
+      description: defaultDescription,
+      url: '/',
+      images: [
+        {
+          url: defaultOgImage,
+          width: 1200,
+          height: 630,
+          alt: `${siteName} control surface poster`,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${siteName} | ${siteTitle}`,
+      description: defaultDescription,
+      images: [defaultOgImage],
+    },
+    robots: {
+      index: true,
+      follow: true,
+    },
+    icons: {
+      icon: '/co2router-symbol.png',
+      shortcut: '/co2router-symbol.png',
+      apple: '/co2router-symbol.png',
+    },
+  }
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const headerList = await headers()
+  const host = headerList.get('x-forwarded-host') ?? headerList.get('host')
+  const audience = getAudienceForHost(host)
+  const siteUrl = getSiteUrlForHost(host)
+  const primaryNavLinks = getPrimaryNavLinks(audience)
+  const footerLinkSections = getFooterLinkSections(audience)
+  const headerSubtitle = getHeaderSubtitle(audience)
+  const footerTagline = getFooterTagline(audience)
   const websiteSchema = {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
@@ -93,7 +107,7 @@ export default function RootLayout({
                 <Link href="/" className="group flex flex-col items-start gap-1">
                   <CO2RouterLogo size="md" orientation="lockup" />
                   <p className="hidden pl-[3.95rem] text-[10px] font-medium uppercase tracking-widest text-slate-500 md:block">
-                    Decision Infrastructure Interface
+                    {headerSubtitle}
                   </p>
                 </Link>
                 <nav className="flex flex-wrap items-center gap-1">
@@ -132,7 +146,7 @@ export default function RootLayout({
                     Deterministic Environmental Execution Control Plane
                   </div>
                   <p className="max-w-xl text-sm text-slate-400">
-                    Authorize compute before it runs. Prove every decision.
+                    {footerTagline}
                   </p>
                 </div>
 

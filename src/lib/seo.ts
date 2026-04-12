@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
+import { commercialSiteUrl } from './site-host'
 
-export const siteUrl = 'https://co2router.com'
+export const siteUrl = commercialSiteUrl
 export const siteName = 'CO2 Router'
 export const siteTitle = 'Deterministic Environmental Execution Control Plane'
 export const defaultDescription =
@@ -45,8 +46,6 @@ export function createPageMetadata({
   path,
   keywords = [],
 }: PageMetadataOptions): Metadata {
-  const url = path === '/' ? siteUrl : `${siteUrl}${path}`
-
   return {
     title,
     description,
@@ -59,7 +58,7 @@ export function createPageMetadata({
       siteName,
       title,
       description,
-      url,
+      url: path,
       images: [
         {
           url: defaultOgImage,

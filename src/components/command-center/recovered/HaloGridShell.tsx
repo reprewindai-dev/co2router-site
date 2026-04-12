@@ -124,6 +124,30 @@ function formatDateTimeLabel(iso: string | null) {
   })
 }
 
+function readStoredValue(key: string) {
+  try {
+    return window.localStorage.getItem(key)
+  } catch {
+    return null
+  }
+}
+
+function writeStoredValue(key: string, value: string) {
+  try {
+    window.localStorage.setItem(key, value)
+  } catch {
+    // Ignore storage failures and keep the session in-memory.
+  }
+}
+
+function createOperatorId() {
+  const generated =
+    typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
+  return generated.slice(0, 12)
+}
+
 function severityTone(
   theme: HaloTheme,
   severity: 'info' | 'warning' | 'critical',
@@ -795,9 +819,9 @@ export function HaloGridShell() {
   useEffect(() => {
     if (typeof window === 'undefined') return
 
-    const storedTeamId = window.localStorage.getItem('halogrid-team-id')
-    const storedOperatorId = window.localStorage.getItem('halogrid-operator-id')
-    const storedOperatorName = window.localStorage.getItem('halogrid-operator-name')
+    const storedTeamId = readStoredValue('halogrid-team-id')
+    const storedOperatorId = readStoredValue('halogrid-operator-id')
+    const storedOperatorName = readStoredValue('halogrid-operator-name')
 
     if (storedTeamId) {
       setChatTeamId(storedTeamId)
@@ -806,9 +830,9 @@ export function HaloGridShell() {
     if (storedOperatorId) {
       setChatOperatorId(storedOperatorId)
     } else {
-      const generated = crypto.randomUUID().slice(0, 12)
+      const generated = createOperatorId()
       setChatOperatorId(generated)
-      window.localStorage.setItem('halogrid-operator-id', generated)
+      writeStoredValue('halogrid-operator-id', generated)
     }
 
     if (storedOperatorName) {
@@ -819,21 +843,21 @@ export function HaloGridShell() {
         .toString()
         .padStart(2, '0')}`
       setChatOperatorName(generatedName)
-      window.localStorage.setItem('halogrid-operator-name', generatedName)
+      writeStoredValue('halogrid-operator-name', generatedName)
     }
   }, [])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
     if (chatTeamId) {
-      window.localStorage.setItem('halogrid-team-id', chatTeamId)
+      writeStoredValue('halogrid-team-id', chatTeamId)
     }
   }, [chatTeamId])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
     if (chatOperatorName) {
-      window.localStorage.setItem('halogrid-operator-name', chatOperatorName)
+      writeStoredValue('halogrid-operator-name', chatOperatorName)
     }
   }, [chatOperatorName])
 
@@ -998,8 +1022,12 @@ export function HaloGridShell() {
     const mql = window.matchMedia('(orientation: portrait) and (max-width: 1100px)')
     const handler = (e: MediaQueryListEvent | MediaQueryList) => setIsPortrait(e.matches)
     handler(mql)
-    mql.addEventListener('change', handler as (e: MediaQueryListEvent) => void)
-    return () => mql.removeEventListener('change', handler as (e: MediaQueryListEvent) => void)
+    if (typeof mql.addEventListener === 'function') {
+      mql.addEventListener('change', handler as (e: MediaQueryListEvent) => void)
+      return () => mql.removeEventListener('change', handler as (e: MediaQueryListEvent) => void)
+    }
+    mql.addListener(handler as (e: MediaQueryListEvent) => void)
+    return () => mql.removeListener(handler as (e: MediaQueryListEvent) => void)
   }, [])
 
   // ── Chat unread tracking ──
