@@ -55,8 +55,10 @@ import {
   useTeamChat,
 } from '@/lib/hooks/control-surface'
 import type {
+  CommandCenterSnapshot,
   CommandCenterDecisionItem,
   DecisionTraceRawRecord,
+  LiveSystemSnapshot,
   ReplayBundle,
 } from '@/types/control-surface'
 import { analyzeFleet, type IntelligenceReport } from './intelligence'
@@ -191,6 +193,62 @@ function buildDecisionView(
     trace,
     replay,
     metrics: buildDecisionMetrics(frame, trace, replay),
+  }
+}
+
+function buildFallbackLiveSnapshot(
+  snapshot: CommandCenterSnapshot,
+): LiveSystemSnapshot {
+  return {
+    generatedAt: snapshot.generatedAt,
+    recentDecisions: {
+      available: false,
+      error: snapshot.runtime.degradedReason ?? 'Live decision feed unavailable.',
+      items: snapshot.decisionCore.recentDecisions.map((decision) => ({
+        decisionFrameId: decision.decisionFrameId,
+        createdAt: decision.createdAt,
+        action: decision.action,
+        reasonCode: decision.reasonCode,
+        selectedRegion: decision.selectedRegion,
+        proofHash: decision.proofHash,
+        traceAvailable: decision.traceAvailable,
+        governanceSource: decision.governanceSource,
+      })),
+    },
+    traceLedger: {
+      available: Boolean(snapshot.decisionCore.selectedTrace),
+      error:
+        snapshot.decisionCore.selectedTrace == null
+          ? 'Live trace unavailable in degraded mode.'
+          : null,
+      traceAvailable: Boolean(snapshot.decisionCore.selectedTrace),
+      traceHash: snapshot.decisionCore.selectedTrace?.traceHash ?? null,
+      inputSignalHash:
+        snapshot.decisionCore.selectedTrace?.inputSignalHash ?? null,
+      sequenceNumber:
+        snapshot.decisionCore.selectedTrace?.sequenceNumber ?? null,
+      proofAvailable: Boolean(snapshot.decisionCore.selectedDecision?.proofHash),
+      replayConsistent:
+        snapshot.decisionCore.selectedReplay?.deterministicMatch ??
+        snapshot.decisionCore.selectedReplay?.consistent ??
+        null,
+    },
+    governance: {
+      available: snapshot.governance.source != null,
+      error: snapshot.runtime.degradedReason,
+      frameworkLabel: 'SAIQ',
+      active: snapshot.governance.active,
+      policyState: snapshot.governance.enforcementMode,
+      latestDecisionAction: snapshot.decisionCore.selectedDecision?.action ?? null,
+      latestReasonCode:
+        snapshot.decisionCore.selectedDecision?.reasonCode ?? null,
+    },
+    providers: {
+      available: true,
+      error: snapshot.health.provenance.error,
+      datasets: snapshot.health.provenance.datasets,
+    },
+    latency: snapshot.health.latency,
   }
 }
 
@@ -733,6 +791,11 @@ export function HaloGridShell() {
 
   const snapshot = snapshotQuery.data
   const live = liveQuery.data
+  const effectiveLive = useMemo(() => {
+    if (live) return live
+    if (snapshot) return buildFallbackLiveSnapshot(snapshot)
+    return null
+  }, [live, snapshot])
   const chatQuery = useTeamChat(chatTeamId)
   const sendChatMessage = useSendTeamChatMessage()
 
@@ -790,16 +853,16 @@ export function HaloGridShell() {
   }, [chatOpen, chatQuery.data?.messages.length])
 
   const vm = useMemo(() => {
-    if (!snapshot || !live) return null
+    if (!snapshot || !effectiveLive) return null
     return buildHalogridViewModel({
       snapshot,
-      live,
+      live: effectiveLive,
       selectedFrameId,
       trace: traceQuery.data ?? null,
       replay: replayQuery.data ?? null,
       tier,
     })
-  }, [snapshot, live, selectedFrameId, traceQuery.data, replayQuery.data, tier])
+  }, [effectiveLive, snapshot, selectedFrameId, traceQuery.data, replayQuery.data, tier])
 
   const aiReport = useMemo<IntelligenceReport | null>(() => {
     if (!vm) return null
