@@ -697,10 +697,10 @@ export function HaloGridShell() {
   const [chatOpen, setChatOpen] = useState(false)
   const [policyOpen, setPolicyOpen] = useState(false)
   const [welcomeOpen, setWelcomeOpen] = useState(true)
-  const [leftCollapsed, setLeftCollapsed] = useState(false)
-  const [rightCollapsed, setRightCollapsed] = useState(false)
+  const [leftCollapsed, setLeftCollapsed] = useState(true)
+  const [rightCollapsed, setRightCollapsed] = useState(true)
   const [topCollapsed, setTopCollapsed] = useState(false)
-  const [dockCollapsed, setDockCollapsed] = useState(false)
+  const [dockCollapsed, setDockCollapsed] = useState(true)
   const [showArcs, setShowArcs] = useState(true)
   const [showNodes, setShowNodes] = useState(true)
   const [showRadar, setShowRadar] = useState(true)
@@ -1483,7 +1483,7 @@ export function HaloGridShell() {
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: -28, opacity: 0 }}
               transition={{ duration: 0.22, ease: 'easeOut' }}
-              className="relative z-20 w-[260px] shrink-0"
+              className="relative z-20 w-[232px] shrink-0"
             >
               <div className="flex h-full flex-col gap-3 overflow-y-auto rounded-[32px] p-4" style={glassStyle(theme)}>
                 <div className="flex items-start justify-between gap-2">
@@ -1700,7 +1700,7 @@ export function HaloGridShell() {
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: 28, opacity: 0 }}
               transition={{ duration: 0.22, ease: 'easeOut' }}
-              className="relative z-20 w-[380px] shrink-0"
+              className="relative z-20 w-[320px] shrink-0"
             >
               <div className="flex h-full flex-col gap-3 rounded-[32px] p-4" style={glassStyle(theme)}>
                 <div className="flex items-start justify-between gap-3">
@@ -2563,12 +2563,6 @@ export function HaloGridShell() {
             ) : null}
           </span>
         </ControlButton>
-        <ControlButton theme={theme} compact active={legendOpen} onClick={() => setLegendOpen((v) => !v)}>
-          <Radar className="h-4 w-4" />
-        </ControlButton>
-        <ControlButton theme={theme} compact active={policyOpen} onClick={() => setPolicyOpen((v) => !v)}>
-          <Settings2 className="h-4 w-4" />
-        </ControlButton>
         <ControlButton
           theme={theme}
           compact
@@ -2581,22 +2575,6 @@ export function HaloGridShell() {
               <span className="absolute -right-1.5 -top-1.5 rounded-full bg-sky-500 px-1.5 text-[9px] font-bold text-white">
                 {chatUnreadCount}
               </span>
-            ) : null}
-          </span>
-        </ControlButton>
-        <ControlButton
-          theme={theme}
-          compact
-          active={advisorOpen || advisorPulse}
-          onClick={() => {
-            setAdvisorOpen((value) => !value)
-            setAdvisorPulse(false)
-          }}
-        >
-          <span className="relative flex items-center justify-center">
-            <Brain className="h-4 w-4" />
-            {advisorPulse ? (
-              <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-amber-400" />
             ) : null}
           </span>
         </ControlButton>

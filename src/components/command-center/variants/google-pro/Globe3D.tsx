@@ -27,11 +27,11 @@ type GeoJsonFeature = {
 }
 
 const ZOOM_DISTANCE: Record<ZoomLevel, number> = {
-  1: 3.15,
-  2: 2.58,
-  3: 1.96,
+  1: 2.82,
+  2: 2.34,
+  3: 1.9,
 }
-const GLOBE_WORLD_SCALE = 0.01
+const GLOBE_WORLD_SCALE = 0.0108
 
 function latLngToVector3(lat: number, lng: number, radius: number) {
   const phi = (90 - lat) * (Math.PI / 180)
@@ -69,7 +69,7 @@ function NodeMarker({
   const hitRef = useRef<THREE.Mesh>(null)
 
   const position = useMemo(
-    () => latLngToVector3(region.lat, region.lng, 1.03),
+    () => latLngToVector3(region.lat, region.lng, 1.008),
     [region.lat, region.lng],
   )
   const tone = stateTone(theme, region.state)
@@ -105,13 +105,13 @@ function NodeMarker({
   return (
     <group position={position}>
       <mesh ref={markerRef}>
-        <sphereGeometry args={[selected ? 0.03 : hovered ? 0.025 : 0.02, 24, 24]} />
+        <sphereGeometry args={[selected ? 0.025 : hovered ? 0.021 : 0.017, 20, 20]} />
         <meshBasicMaterial color={toneColor} />
       </mesh>
-      <pointLight color={toneColor} intensity={selected ? 3 : hovered ? 1.8 : 1} distance={0.46} />
+      <pointLight color={toneColor} intensity={selected ? 2 : hovered ? 1.2 : 0.7} distance={0.34} />
       <mesh ref={haloRef} rotation={[Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[0.032, 0.05, 64]} />
-        <meshBasicMaterial color={toneColor} transparent opacity={0.4} side={THREE.DoubleSide} />
+        <ringGeometry args={[0.022, 0.036, 48]} />
+        <meshBasicMaterial color={toneColor} transparent opacity={0.26} side={THREE.DoubleSide} />
       </mesh>
       <mesh
         ref={hitRef}
@@ -159,8 +159,8 @@ function GlobeRig({
 
   useEffect(() => {
     const distance =
-      ZOOM_DISTANCE[zoomLevel] - (mode === 'presentation' ? 0.18 : 0)
-    const defaultPosition = new THREE.Vector3(0.8, 0.36, distance)
+      ZOOM_DISTANCE[zoomLevel] - (mode === 'presentation' ? 0.12 : 0)
+    const defaultPosition = new THREE.Vector3(0.02, 0.12, distance)
       .normalize()
       .multiplyScalar(distance)
 
@@ -295,16 +295,16 @@ function GlobeScene({
       .bumpImageUrl(theme.globeBump)
       .showAtmosphere(true)
       .atmosphereColor(theme.globeAtmosphere)
-      .atmosphereAltitude(mode === 'presentation' ? 0.21 : 0.17)
+      .atmosphereAltitude(mode === 'presentation' ? 0.16 : 0.13)
       .hexPolygonsData(countries)
       .hexPolygonGeoJsonGeometry((feature: object) =>
         (feature as GeoJsonFeature).geometry as never,
       )
       .hexPolygonResolution(() => 3)
-      .hexPolygonMargin(() => 0.28)
+      .hexPolygonMargin(() => 0.18)
       .hexPolygonUseDots(() => false)
       .hexPolygonCurvatureResolution(() => 5)
-      .hexPolygonAltitude(() => (mode === 'presentation' ? 0.015 : 0.011))
+      .hexPolygonAltitude(() => (mode === 'presentation' ? 0.012 : 0.009))
       .hexPolygonColor(() => theme.globeCountry)
       .arcsData(arcData)
       .arcStartLat((item: object) => (item as { startLat: number }).startLat)
@@ -398,11 +398,11 @@ function GlobeScene({
         ref={controlsRef as never}
         enablePan={false}
         enableZoom={false}
-        rotateSpeed={0.48}
+        rotateSpeed={0.36}
         enableDamping
-        dampingFactor={0.07}
+        dampingFactor={0.08}
         autoRotate={controlsAutoRotate}
-        autoRotateSpeed={mode === 'presentation' ? 0.48 : 0.36}
+        autoRotateSpeed={mode === 'presentation' ? 0.2 : 0.16}
       />
       <GlobeRig
         controlsRef={controlsRef}
@@ -476,7 +476,7 @@ export function Globe3D({
       }}
     >
       <Canvas
-        camera={{ position: [0.8, 0.36, ZOOM_DISTANCE[zoomLevel]], fov: mode === 'presentation' ? 33 : 38 }}
+        camera={{ position: [0.02, 0.12, ZOOM_DISTANCE[zoomLevel]], fov: mode === 'presentation' ? 30 : 34 }}
         dpr={[1, 1.7]}
         gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
       >

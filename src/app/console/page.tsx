@@ -20,9 +20,7 @@ export const metadata: Metadata = createPageMetadata({
 export const dynamic = 'force-dynamic'
 
 function resolveDefaultVariant(hostname: string | null): 'opus' | 'google-pro' {
-  const normalizedHost = (hostname ?? '').trim().toLowerCase()
-  if (normalizedHost.includes('co2router.tech')) return 'google-pro'
-  return 'opus'
+  return 'google-pro'
 }
 
 export default async function ConsolePage(props: {

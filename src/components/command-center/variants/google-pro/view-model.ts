@@ -255,11 +255,11 @@ function buildFlows(
     from: byId.get(flow.fromRegion) ?? null,
     to: byId.get(flow.toRegion) ?? null,
     mode: flow.mode,
-    stroke: flow.mode === 'blocked' ? 0.7 : 1.1,
-    altitude: flow.mode === 'blocked' ? 0.13 : 0.2,
-    dashLength: flow.mode === 'blocked' ? 0.16 : 0.46,
-    dashGap: flow.mode === 'blocked' ? 0.12 : 0.18,
-    dashAnimateTime: flow.mode === 'blocked' ? 4200 : 2600,
+    stroke: flow.mode === 'blocked' ? 0.55 : 0.9,
+    altitude: flow.mode === 'blocked' ? 0.09 : 0.14,
+    dashLength: flow.mode === 'blocked' ? 0.13 : 0.34,
+    dashGap: flow.mode === 'blocked' ? 0.1 : 0.14,
+    dashAnimateTime: flow.mode === 'blocked' ? 4600 : 3200,
   }))
 }
 
