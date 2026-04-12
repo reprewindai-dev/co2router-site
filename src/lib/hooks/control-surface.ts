@@ -8,6 +8,7 @@ import type {
   ControlSurfaceOverview,
   DecisionTraceRawRecord,
   EngineDiagnosticsSnapshot,
+  LiveSystemReplayResponse,
   LiveSystemSnapshot,
   ReplayBundle,
   SimulationMode,
@@ -148,5 +149,43 @@ export function useSendTeamChatMessage() {
         exact: false,
       })
     },
+  })
+}
+
+// HallOGrid Pro API — enhanced control plane hooks
+export function useHallOGridSnapshot() {
+  return useQuery<CommandCenterSnapshot>({
+    queryKey: ['hallogrid-snapshot'],
+    queryFn: () => getJson<CommandCenterSnapshot>('/api/control-surface/command-center'),
+    staleTime: 15_000,
+    refetchInterval: 15_000,
+    retry: 1,
+    retryDelay: 2_000,
+  })
+}
+
+export function useHallOGridFrame(
+  decisionFrameId: string | null,
+  options?: { enabled?: boolean; refetchInterval?: number | false }
+) {
+  return useQuery<{
+    trace: DecisionTraceRawRecord | null
+    replay: LiveSystemReplayResponse | null
+  }>({
+    queryKey: ['hallogrid-frame', decisionFrameId],
+    queryFn: async () => {
+      const [trace, replay] = await Promise.all([
+        decisionFrameId
+          ? getJson<DecisionTraceRawRecord>(`/api/control-surface/trace/${decisionFrameId}`)
+          : Promise.resolve(null),
+        decisionFrameId
+          ? getJson<LiveSystemReplayResponse>(`/api/control-surface/replay/${decisionFrameId}`)
+          : Promise.resolve(null),
+      ])
+      return { trace, replay }
+    },
+    enabled: Boolean(decisionFrameId) && (options?.enabled ?? true),
+    staleTime: 30_000,
+    refetchInterval: options?.refetchInterval,
   })
 }
