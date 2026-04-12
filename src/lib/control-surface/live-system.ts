@@ -60,6 +60,7 @@ type SloResponse = {
 }
 
 const REQUIRED_DATASETS = ['aqueduct', 'aware', 'wwf', 'nrel'] as const
+const FAST_DECISION_FEED_TIMEOUT_MS = 2_500
 
 function unavailableTraceLedger(error: string): LiveSystemTraceLedger {
   return {
@@ -76,7 +77,9 @@ function unavailableTraceLedger(error: string): LiveSystemTraceLedger {
 
 export async function getLiveSystemSnapshot(): Promise<LiveSystemSnapshot> {
   const [decisionsResult, provenanceResult, sloResult] = await Promise.allSettled([
-    fetchEngineJson<DecisionFeedResponse>('/ci/decisions?limit=5'),
+    fetchEngineJson<DecisionFeedResponse>('/ci/decisions?limit=5', undefined, {
+      timeoutMs: FAST_DECISION_FEED_TIMEOUT_MS,
+    }),
     fetchEngineJson<WaterProvenanceResponse>('/water/provenance'),
     fetchEngineJson<SloResponse>('/ci/slo'),
   ])

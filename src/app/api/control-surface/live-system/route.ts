@@ -18,7 +18,7 @@ export async function GET() {
     const { value: snapshot, cacheStatus } = await getCachedSnapshot(
       'live-system',
       LIVE_SYSTEM_CACHE_TTL_MS,
-      getLiveSystemSnapshot
+      () => getLiveSystemSnapshot()
     )
     const serialized = JSON.stringify(snapshot)
     const totalMs = performance.now() - startedAt

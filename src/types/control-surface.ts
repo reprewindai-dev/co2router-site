@@ -797,8 +797,17 @@ export interface SystemHealthSnapshot {
   providers: ControlSurfaceProviderNode[]
 }
 
+export interface CommandCenterRuntimePosture {
+  mode: 'live' | 'read_only_degraded'
+  stale: boolean
+  lastSuccessfulAt: string | null
+  degradedReason: string | null
+  mutationsAllowed: boolean
+}
+
 export interface CommandCenterSnapshot {
   generatedAt: string
+  runtime: CommandCenterRuntimePosture
   selectedDecisionFrameId: string | null
   header: CommandCenterHeader
   impact: ControlSurfaceOverview['impact'] | null
@@ -832,4 +841,20 @@ export interface TeamChatSnapshot {
   teamId: string
   messages: TeamChatMessage[]
   generatedAt: string
+}
+
+export interface EngineDiagnosticsProbe {
+  path: string
+  ok: boolean
+  status: number | null
+  durationMs: number
+  bytes: number | null
+  error: string | null
+}
+
+export interface EngineDiagnosticsSnapshot {
+  generatedAt: string
+  engineBaseUrl: string
+  internalAccessConfigured: boolean
+  probes: EngineDiagnosticsProbe[]
 }

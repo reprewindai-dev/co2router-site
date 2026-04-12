@@ -136,6 +136,7 @@ const REGION_ANCHORS: Record<string, { label: string; x: number; y: number }> = 
 }
 
 const STATIC_WATER_BUNDLE_TTL_SEC = 30 * 24 * 60 * 60
+const FAST_DECISION_FEED_TIMEOUT_MS = 2_500
 const LIVE_PROVIDER_TTL_SEC: Record<string, number> = {
   WATTTIME_MOER: 600,
   GRIDSTATUS: 1800,
@@ -613,13 +614,53 @@ function extractWeights(
     : null
 }
 
-export async function getCommandCenterSnapshot(): Promise<CommandCenterSnapshot> {
+function buildEmptyGovernance(): CommandCenterSnapshot['governance'] {
+  return {
+    frameworkLabel: 'SAIQ',
+    source: null,
+    active: null,
+    strict: null,
+    enforcementMode: null,
+    selectedScore: null,
+    thresholds: null,
+    weights: null,
+    impact: {
+      carbonReductionPct: null,
+      waterImpactDeltaLiters: null,
+      signalConfidence: null,
+      constraintsApplied: 0,
+      cacheHit: null,
+    },
+  }
+}
+
+function buildCommandCenterDetail(input: {
+  slo: CiSloSnapshot
+  sloError: string | null
+  providers: ControlSurfaceProviderNode[]
+  provenance: WaterProvenanceResponse
+  fallbackRateText: string
+}) {
+  const sloText = input.sloError ? 'slo degraded | ' : ''
+  return `${sloText}p95 ${input.slo.p95.totalMs.toFixed(0)}ms | ${input.fallbackRateText}${
+    input.providers.length
+  } providers | ${
+    input.provenance.datasets.filter((dataset) => dataset.verificationStatus === 'verified').length
+  } verified water datasets`
+}
+
+export async function getCommandCenterSnapshot(
+  previousSnapshot?: CommandCenterSnapshot
+): Promise<CommandCenterSnapshot> {
   const describeFailure = (error: unknown) => (error instanceof Error ? error.message : 'Unknown engine failure.')
+  const generatedAt = new Date().toISOString()
 
   const [healthSettled, sloSettled, decisionsSettled, provenanceSettled] = await Promise.allSettled([
     fetchEngineJson<CiHealthSnapshot>('/ci/health'),
     fetchEngineJson<CiSloSnapshot>('/ci/slo'),
-    fetchEngineJson<DecisionFeed>('/ci/decisions?limit=8'),
+    fetchEngineJson<DecisionFeed>('/ci/decisions?limit=8', undefined, {
+      timeoutMs: FAST_DECISION_FEED_TIMEOUT_MS,
+    }),
     fetchEngineJson<WaterProvenanceResponse>('/water/provenance'),
   ])
 
@@ -633,12 +674,6 @@ export async function getCommandCenterSnapshot(): Promise<CommandCenterSnapshot>
     })),
   ])
 
-  if (decisionsSettled.status === 'rejected') {
-    throw new Error(`Decision feed unavailable: ${describeFailure(decisionsSettled.reason)}`)
-  }
-
-  const decisionFeed = decisionsSettled.value
-
   const fallbackSlo: CiSloSnapshot = {
     samples: 0,
     p50: { totalMs: 0, computeMs: 0 },
@@ -651,10 +686,12 @@ export async function getCommandCenterSnapshot(): Promise<CommandCenterSnapshot>
 
   const sloError = sloSettled.status === 'rejected' ? describeFailure(sloSettled.reason) : null
   const slo = sloSettled.status === 'fulfilled' ? sloSettled.value : fallbackSlo
+  const provenanceError =
+    provenanceSettled.status === 'rejected' ? describeFailure(provenanceSettled.reason) : null
 
   const fallbackHealth: CiHealthSnapshot = {
     status: 'degraded',
-    timestamp: new Date().toISOString(),
+    timestamp: generatedAt,
     checks: {
       database: false,
       waterArtifacts: {
@@ -689,161 +726,256 @@ export async function getCommandCenterSnapshot(): Promise<CommandCenterSnapshot>
           datasets: [],
         }
 
-  const recentDecisions = decisionFeed.decisions.map(buildCommandCenterDecisionItem)
-  const defaultSelected =
-    recentDecisions.find((decision) => decision.traceAvailable) ?? recentDecisions[0] ?? null
-
-  const [selectedTrace, selectedReplay] =
-    defaultSelected && hasInternalApiKey()
-      ? await Promise.all([
-          fetchEngineJson<DecisionTraceRawRecord>(
-            `/ci/decisions/${encodeURIComponent(defaultSelected.decisionFrameId)}/trace/raw`,
-            undefined,
-            { internal: true }
-          ).catch(() => null),
-          fetchEngineJson<LiveSystemReplayResponse>(
-            `/ci/decisions/${encodeURIComponent(defaultSelected.decisionFrameId)}/replay`,
-            undefined,
-            { internal: true }
-          ).catch(() => null),
-        ])
-      : [null, null]
-
   const providers = buildProviders(providerTrust, provenance)
-  const worldNodes = buildWorldNodes(recentDecisions, selectedTrace, selectedReplay)
-  const worldFlows = buildWorldFlows(selectedReplay)
-  const waterShiftedLiters = decisionFeed.decisions.reduce(
-    (sum, decision) =>
-      sum +
-      Math.max(
-        0,
-        Number(
-          (
-            (decision.waterBaselineLiters ?? decision.waterImpactLiters ?? 0) -
-            (decision.waterImpactLiters ?? 0)
-          ).toFixed(3)
-        )
-      ),
-    0
-  )
-  const delayedDecisions = recentDecisions.filter((decision) => decision.action === 'delay').length
-  const selectedScore =
-    selectedTrace?.payload.normalizedSignals.candidates.find(
-      (candidate) => candidate.region === selectedTrace.payload.decisionPath.selectedRegion
-    )?.score ?? null
   const fallbackRateText = metricsResult != null ? `fallback ${(metricsResult.fallbackRate * 100).toFixed(1)}% | ` : ''
-  const sloText = sloError ? `slo degraded | ` : ''
+  const headerDetail = buildCommandCenterDetail({
+    slo,
+    sloError,
+    providers,
+    provenance,
+    fallbackRateText,
+  })
+
+  const baseHealth: CommandCenterSnapshot['health'] = {
+    service: {
+      status: health.status,
+      proofPosture: 'Trace-backed proof live',
+      detail: `DB ${health.checks.database ? 'ok' : 'degraded'} | Water artifacts ${
+        health.checks.waterArtifacts.schemaCompatible ? 'verified' : 'degraded'
+      } | Rolling p95 ${slo.p95.totalMs.toFixed(0)}ms`,
+    },
+    latency: {
+      available: sloSettled.status === 'fulfilled',
+      error: sloError,
+      samples: slo.samples,
+      p95TotalMs: slo.p95.totalMs,
+      p95ComputeMs: slo.p95.computeMs,
+      budgetTotalP95Ms: slo.budget.totalP95Ms,
+      budgetComputeP95Ms: slo.budget.computeP95Ms,
+      withinBudget: {
+        total: slo.withinBudget.total,
+        compute: slo.withinBudget.compute,
+      },
+    },
+    provenance: {
+      available: provenanceSettled.status === 'fulfilled',
+      error: provenanceError,
+      datasets: provenance.datasets
+        .filter((dataset) => ['aqueduct', 'aware', 'wwf', 'nrel'].includes(dataset.name.toLowerCase()))
+        .map((dataset) => ({
+          name: dataset.name.toLowerCase() as 'aqueduct' | 'aware' | 'wwf' | 'nrel',
+          verificationStatus: dataset.verificationStatus,
+          datasetVersion: dataset.datasetVersion,
+          manifestHash: dataset.manifestHash,
+          computedHash: dataset.computedHash,
+        })),
+    },
+    providers,
+  }
+
+  if (decisionsSettled.status === 'fulfilled') {
+    const decisionFeed = decisionsSettled.value
+    const recentDecisions = decisionFeed.decisions.map(buildCommandCenterDecisionItem)
+    const defaultSelected =
+      recentDecisions.find((decision) => decision.traceAvailable) ?? recentDecisions[0] ?? null
+
+    const [selectedTrace, selectedReplay] =
+      defaultSelected && hasInternalApiKey()
+        ? await Promise.all([
+            fetchEngineJson<DecisionTraceRawRecord>(
+              `/ci/decisions/${encodeURIComponent(defaultSelected.decisionFrameId)}/trace/raw`,
+              undefined,
+              { internal: true }
+            ).catch(() => null),
+            fetchEngineJson<LiveSystemReplayResponse>(
+              `/ci/decisions/${encodeURIComponent(defaultSelected.decisionFrameId)}/replay`,
+              undefined,
+              { internal: true }
+            ).catch(() => null),
+          ])
+        : [null, null]
+
+    const worldNodes = buildWorldNodes(recentDecisions, selectedTrace, selectedReplay)
+    const worldFlows = buildWorldFlows(selectedReplay)
+    const waterShiftedLiters = decisionFeed.decisions.reduce(
+      (sum, decision) =>
+        sum +
+        Math.max(
+          0,
+          Number(
+            (
+              (decision.waterBaselineLiters ?? decision.waterImpactLiters ?? 0) -
+              (decision.waterImpactLiters ?? 0)
+            ).toFixed(3)
+          )
+        ),
+      0
+    )
+    const delayedDecisions = recentDecisions.filter((decision) => decision.action === 'delay').length
+    const selectedScore =
+      selectedTrace?.payload.normalizedSignals.candidates.find(
+        (candidate) => candidate.region === selectedTrace.payload.decisionPath.selectedRegion
+      )?.score ?? null
+    const impact =
+      ledgerResult != null
+        ? {
+            totalDecisions: ledgerResult.totalJobsRouted,
+            carbonAvoidedKg: ledgerResult.carbonAvoidedPeriodKg,
+            carbonReductionMultiplier: ledgerResult.carbonReductionMultiplier,
+            waterShiftedLiters,
+            costOptimizedUsd: Number((ledgerResult.carbonAvoidedPeriodKg * 0.42).toFixed(2)),
+            delayedDecisions,
+          }
+        : null
+
+    return {
+      generatedAt,
+      runtime: {
+        mode: 'live',
+        stale: false,
+        lastSuccessfulAt: generatedAt,
+        degradedReason: null,
+        mutationsAllowed: true,
+      },
+      selectedDecisionFrameId: defaultSelected?.decisionFrameId ?? null,
+      header: {
+        systemActive: health.status === 'healthy',
+        systemStatus: health.status,
+        saiqEnforced: selectedTrace ? selectedTrace.payload.governance.source !== 'NONE' : null,
+        traceLocked: selectedTrace ? Boolean(selectedTrace.traceHash) : null,
+        replayVerified: selectedReplay?.deterministicMatch ?? null,
+        detail: headerDetail,
+      },
+      impact,
+      world: {
+        nodes: worldNodes,
+        flows: worldFlows,
+      },
+      decisionCore: {
+        recentDecisions,
+        selectedDecision: defaultSelected,
+        selectedTrace,
+        selectedReplay,
+      },
+      governance: {
+        frameworkLabel: 'SAIQ',
+        source: selectedTrace?.payload.governance.source ?? null,
+        active: selectedTrace ? selectedTrace.payload.governance.source !== 'NONE' : null,
+        strict: selectedTrace?.payload.governance.strict ?? null,
+        enforcementMode: selectedTrace?.payload.decisionPath.operatingMode ?? null,
+        selectedScore: selectedTrace?.payload.governance.score ?? selectedScore,
+        thresholds: extractThresholds(selectedTrace, selectedReplay),
+        weights: extractWeights(selectedTrace),
+        impact: {
+          carbonReductionPct:
+            selectedReplay?.persisted?.savings.carbonReductionPct ??
+            selectedReplay?.replay.savings.carbonReductionPct ??
+            null,
+          waterImpactDeltaLiters:
+            selectedReplay?.persisted?.savings.waterImpactDeltaLiters ??
+            selectedReplay?.replay.savings.waterImpactDeltaLiters ??
+            null,
+          signalConfidence:
+            selectedReplay?.persisted?.signalConfidence ??
+            selectedReplay?.replay.signalConfidence ??
+            null,
+          constraintsApplied: selectedTrace?.payload.governance.constraintsApplied.length ?? 0,
+          cacheHit: selectedTrace?.payload.performance.cacheHit ?? null,
+        },
+      },
+      traceStream: {
+        items: recentDecisions.map((decision) => ({
+          decisionFrameId: decision.decisionFrameId,
+          createdAt: decision.createdAt,
+          action: decision.action,
+          region: decision.selectedRegion,
+          reasonCode: decision.reasonCode,
+          proofAvailable: Boolean(decision.proofHash),
+          traceAvailable: decision.traceAvailable,
+          governanceSource: decision.governanceSource,
+          replayVerified:
+            decision.decisionFrameId === defaultSelected?.decisionFrameId
+              ? selectedReplay?.deterministicMatch ?? null
+              : null,
+        })),
+      },
+      health: {
+        ...baseHealth,
+        service: {
+          ...baseHealth.service,
+          proofPosture: selectedReplay?.deterministicMatch
+            ? 'Replay verified'
+            : 'Trace-backed proof live',
+        },
+      },
+    }
+  }
+
+  const degradedReason = `Decision feed unavailable: ${describeFailure(decisionsSettled.reason)}`
+  const lastSuccessfulAt =
+    previousSnapshot?.runtime.lastSuccessfulAt ?? previousSnapshot?.generatedAt ?? null
+  const staleDecisionData =
+    previousSnapshot?.decisionCore.recentDecisions.length
+      ? previousSnapshot.decisionCore
+      : {
+          recentDecisions: [],
+          selectedDecision: null,
+          selectedTrace: null,
+          selectedReplay: null,
+        }
   const impact =
     ledgerResult != null
       ? {
           totalDecisions: ledgerResult.totalJobsRouted,
           carbonAvoidedKg: ledgerResult.carbonAvoidedPeriodKg,
           carbonReductionMultiplier: ledgerResult.carbonReductionMultiplier,
-          waterShiftedLiters,
+          waterShiftedLiters: previousSnapshot?.impact?.waterShiftedLiters ?? 0,
           costOptimizedUsd: Number((ledgerResult.carbonAvoidedPeriodKg * 0.42).toFixed(2)),
-          delayedDecisions,
+          delayedDecisions: previousSnapshot?.impact?.delayedDecisions ?? 0,
         }
-      : null
+      : previousSnapshot?.impact ?? null
 
   return {
-    generatedAt: new Date().toISOString(),
-    selectedDecisionFrameId: defaultSelected?.decisionFrameId ?? null,
+    generatedAt,
+    runtime: {
+      mode: 'read_only_degraded',
+      stale: Boolean(previousSnapshot?.decisionCore.recentDecisions.length),
+      lastSuccessfulAt,
+      degradedReason,
+      mutationsAllowed: false,
+    },
+    selectedDecisionFrameId:
+      staleDecisionData.selectedDecision?.decisionFrameId ??
+      previousSnapshot?.selectedDecisionFrameId ??
+      null,
     header: {
       systemActive: health.status === 'healthy',
-      systemStatus: health.status,
-      saiqEnforced: selectedTrace ? selectedTrace.payload.governance.source !== 'NONE' : null,
-      traceLocked: selectedTrace ? Boolean(selectedTrace.traceHash) : null,
-      replayVerified: selectedReplay?.deterministicMatch ?? null,
-      detail: `${sloText}p95 ${slo.p95.totalMs.toFixed(0)}ms | ${fallbackRateText}${providers.length} providers | ${
-        provenance.datasets.filter((dataset) => dataset.verificationStatus === 'verified').length
-      } verified water datasets`,
+      systemStatus: 'read_only_degraded',
+      saiqEnforced: previousSnapshot?.header.saiqEnforced ?? null,
+      traceLocked: previousSnapshot?.header.traceLocked ?? null,
+      replayVerified: previousSnapshot?.header.replayVerified ?? null,
+      detail: `Read-only degraded mode | ${headerDetail}`,
     },
     impact,
-    world: {
-      nodes: worldNodes,
-      flows: worldFlows,
+    world: previousSnapshot?.world ?? {
+      nodes: [],
+      flows: [],
     },
-    decisionCore: {
-      recentDecisions,
-      selectedDecision: defaultSelected,
-      selectedTrace,
-      selectedReplay,
-    },
-    governance: {
-      frameworkLabel: 'SAIQ',
-      source: selectedTrace?.payload.governance.source ?? null,
-      active: selectedTrace ? selectedTrace.payload.governance.source !== 'NONE' : null,
-      strict: selectedTrace?.payload.governance.strict ?? null,
-      enforcementMode: selectedTrace?.payload.decisionPath.operatingMode ?? null,
-      selectedScore: selectedTrace?.payload.governance.score ?? selectedScore,
-      thresholds: extractThresholds(selectedTrace, selectedReplay),
-      weights: extractWeights(selectedTrace),
-      impact: {
-        carbonReductionPct:
-          selectedReplay?.persisted?.savings.carbonReductionPct ??
-          selectedReplay?.replay.savings.carbonReductionPct ??
-          null,
-        waterImpactDeltaLiters:
-          selectedReplay?.persisted?.savings.waterImpactDeltaLiters ??
-          selectedReplay?.replay.savings.waterImpactDeltaLiters ??
-          null,
-        signalConfidence:
-          selectedReplay?.persisted?.signalConfidence ?? selectedReplay?.replay.signalConfidence ?? null,
-        constraintsApplied: selectedTrace?.payload.governance.constraintsApplied.length ?? 0,
-        cacheHit: selectedTrace?.payload.performance.cacheHit ?? null,
-      },
-    },
-    traceStream: {
-      items: recentDecisions.map((decision) => ({
-        decisionFrameId: decision.decisionFrameId,
-        createdAt: decision.createdAt,
-        action: decision.action,
-        region: decision.selectedRegion,
-        reasonCode: decision.reasonCode,
-        proofAvailable: Boolean(decision.proofHash),
-        traceAvailable: decision.traceAvailable,
-        governanceSource: decision.governanceSource,
-        replayVerified:
-          decision.decisionFrameId === defaultSelected?.decisionFrameId
-            ? selectedReplay?.deterministicMatch ?? null
-            : null,
-      })),
+    decisionCore: staleDecisionData,
+    governance: previousSnapshot?.governance ?? buildEmptyGovernance(),
+    traceStream: previousSnapshot?.traceStream ?? {
+      items: [],
     },
     health: {
+      ...baseHealth,
       service: {
-        status: health.status,
-        proofPosture: selectedReplay?.deterministicMatch ? 'Replay verified' : 'Trace-backed proof live',
-        detail: `DB ${health.checks.database ? 'ok' : 'degraded'} | Water artifacts ${
-          health.checks.waterArtifacts.schemaCompatible ? 'verified' : 'degraded'
-        } | Rolling p95 ${slo.p95.totalMs.toFixed(0)}ms`,
+        ...baseHealth.service,
+        status: 'read_only_degraded',
+        proofPosture: previousSnapshot?.decisionCore.selectedReplay?.deterministicMatch
+          ? 'Replay verified (stale frame)'
+          : 'Read-only degraded snapshot',
+        detail: `${baseHealth.service.detail} | ${degradedReason}`,
       },
-      latency: {
-        available: true,
-        error: null,
-        samples: slo.samples,
-        p95TotalMs: slo.p95.totalMs,
-        p95ComputeMs: slo.p95.computeMs,
-        budgetTotalP95Ms: slo.budget.totalP95Ms,
-        budgetComputeP95Ms: slo.budget.computeP95Ms,
-        withinBudget: {
-          total: slo.withinBudget.total,
-          compute: slo.withinBudget.compute,
-        },
-      },
-      provenance: {
-        available: true,
-        error: null,
-        datasets: provenance.datasets
-          .filter((dataset) => ['aqueduct', 'aware', 'wwf', 'nrel'].includes(dataset.name.toLowerCase()))
-          .map((dataset) => ({
-            name: dataset.name.toLowerCase() as 'aqueduct' | 'aware' | 'wwf' | 'nrel',
-            verificationStatus: dataset.verificationStatus,
-            datasetVersion: dataset.datasetVersion,
-            manifestHash: dataset.manifestHash,
-            computedHash: dataset.computedHash,
-          })),
-      },
-      providers,
     },
   }
 }
