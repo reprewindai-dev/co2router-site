@@ -1,14 +1,14 @@
 'use client'
 
 import { useState, useCallback, useEffect } from 'react'
-import './styles.css'
+import './styles-v2.css'
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 
 // Zones
 import { GlobeZone } from './zones/GlobeZone'
-import { DecisionFeed } from './zones/DecisionFeed'
+import { DecisionFeed } from './zones/DecisionFeed-v2'
 import { DoctrinePanel } from './zones/DoctrinePanel'
 import { SmartVisor } from './zones/SmartVisor'
 import { ProofWorkspace } from './zones/ProofWorkspace'
@@ -253,7 +253,7 @@ function CO2ControlPanelInner() {
   
   return (
     <div className="co2-control-panel">
-      {/* Header */}
+      {/* Premium Header */}
       <header className="control-header">
         <div className="header-brand">
           <div className="brand-icon">🌍</div>
@@ -264,12 +264,28 @@ function CO2ControlPanelInner() {
         </div>
         
         <div className="header-status">
-          <div className={`status-indicator ${visorStatus.posture}`}>
+          <div className={`status-pill ${visorStatus.posture === 'green' ? 'enforcing' : visorStatus.posture === 'amber' ? 'caution' : ''}`}>
             <span className="status-dot" />
-            <span className="status-text">
-              {visorStatus.posture === 'green' ? 'EARTH APPROVES' : 
-               visorStatus.posture === 'amber' ? 'EARTH CAUTIONS' : 'EARTH REJECTS'}
-            </span>
+            <span>ENFORCING</span>
+          </div>
+          
+          <div className="live-strip">
+            <div className="strip-item">
+              <span className="strip-label">Decisions</span>
+              <span className="strip-value accent">{visorStatus.activeDecisions.toLocaleString()}</span>
+            </div>
+            <div className="strip-item">
+              <span className="strip-label">P95</span>
+              <span className="strip-value">{visorStatus.currentLatency}ms</span>
+            </div>
+            <div className="strip-item">
+              <span className="strip-label">CO₂</span>
+              <span className="strip-value accent">{(visorStatus.carbonSavedToday / 1000).toFixed(1)}kg</span>
+            </div>
+            <div className="strip-item">
+              <span className="strip-label">H₂O</span>
+              <span className="strip-value accent">{(visorStatus.waterSavedToday / 1000).toFixed(1)}kL</span>
+            </div>
           </div>
         </div>
         
@@ -301,28 +317,32 @@ function CO2ControlPanelInner() {
           {/* Zone tabs */}
           <div className="zone-tabs">
             <button 
-              className={activeZone === 'globe' ? 'active' : ''}
+              className={`zone-tab ${activeZone === 'globe' ? 'active' : ''}`}
               onClick={() => setActiveZone('globe')}
             >
-              🌍 Globe
+              <span className="zone-icon">🌍</span>
+              Globe
             </button>
             <button 
-              className={activeZone === 'doctrine' ? 'active' : ''}
+              className={`zone-tab ${activeZone === 'doctrine' ? 'active' : ''}`}
               onClick={() => setActiveZone('doctrine')}
             >
-              ⚖️ Doctrine
+              <span className="zone-icon">⚖️</span>
+              Doctrine
             </button>
             <button 
-              className={activeZone === 'visor' ? 'active' : ''}
+              className={`zone-tab ${activeZone === 'visor' ? 'active' : ''}`}
               onClick={() => setActiveZone('visor')}
             >
-              👁️ Visor
+              <span className="zone-icon">👁️</span>
+              Visor
             </button>
             <button 
-              className={activeZone === 'proof' ? 'active' : ''}
+              className={`zone-tab ${activeZone === 'proof' ? 'active' : ''}`}
               onClick={() => setActiveZone('proof')}
             >
-              📊 Proof
+              <span className="zone-icon">📊</span>
+              Proof
             </button>
           </div>
           
@@ -429,6 +449,63 @@ function CO2ControlPanelInner() {
             </div>
           )}
         </aside>
+        
+        {/* Bottom metrics bar */}
+        <div className="metrics-bar">
+          <div className="metric-card">
+            <div className="metric-info">
+              <span className="metric-label">Decisions / min</span>
+              <span className="metric-value-large">248</span>
+              <span className="metric-delta positive">↑ 12%</span>
+            </div>
+            <div className="sparkline" />
+          </div>
+          
+          <div className="metric-card">
+            <div className="metric-info">
+              <span className="metric-label">Carbon Saved</span>
+              <span className="metric-value-large">{(visorStatus.carbonSavedToday).toFixed(0)} <span style={{fontSize:'14px',color:'var(--text-muted)'}}>kg</span></span>
+              <span className="metric-delta positive">↑ 6.2%</span>
+            </div>
+            <div className="sparkline" style={{background:'linear-gradient(90deg,transparent 0%,rgba(0,255,157,0.2) 50%,transparent 100%)'}} />
+          </div>
+          
+          <div className="metric-card">
+            <div className="metric-info">
+              <span className="metric-label">Reroute Rate</span>
+              <span className="metric-value-large amber">41%</span>
+              <span className="metric-delta negative">↓ 3%</span>
+            </div>
+            <div className="sparkline" style={{background:'linear-gradient(90deg,transparent 0%,rgba(255,184,0,0.2) 50%,transparent 100%)'}} />
+          </div>
+          
+          <div className="metric-card">
+            <div className="metric-info">
+              <span className="metric-label">Delay Rate</span>
+              <span className="metric-value-large">18%</span>
+              <span className="metric-delta positive">↓ 1%</span>
+            </div>
+            <div className="sparkline" style={{background:'linear-gradient(90deg,transparent 0%,rgba(0,212,255,0.2) 50%,transparent 100%)'}} />
+          </div>
+          
+          <div className="metric-card">
+            <div className="metric-info">
+              <span className="metric-label">Deny Rate</span>
+              <span className="metric-value-large red">3%</span>
+              <span className="metric-delta positive">↓ 0.5%</span>
+            </div>
+            <div className="sparkline" style={{background:'linear-gradient(90deg,transparent 0%,rgba(255,71,87,0.2) 50%,transparent 100%)'}} />
+          </div>
+          
+          <div className="metric-card">
+            <div className="metric-info">
+              <span className="metric-label">P95 Latency</span>
+              <span className="metric-value-large">{visorStatus.currentLatency} <span style={{fontSize:'14px',color:'var(--text-muted)'}}>ms</span></span>
+              <span className="metric-delta negative">↓ 4ms</span>
+            </div>
+            <div className="sparkline" style={{background:'linear-gradient(90deg,transparent 0%,rgba(139,92,246,0.2) 50%,transparent 100%)'}} />
+          </div>
+        </div>
       </div>
     </div>
   )
