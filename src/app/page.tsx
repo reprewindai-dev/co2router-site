@@ -1,5 +1,5 @@
-import { redirect } from 'next/navigation'
+import CO2ControlPanel from '@/components/command-center/co2-control-panel'
 
 export default function HomePage() {
-  redirect('/console')
+  return <CO2ControlPanel />
 }
