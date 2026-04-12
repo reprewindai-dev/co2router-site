@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+import { peekCachedSnapshot } from '@/lib/control-surface/snapshot-cache'
 import { recordDashboardMetric } from '@/lib/observability/telemetry'
 import { appendTeamMessage, listTeamMessages } from '@/lib/team-chat-store'
+import type { CommandCenterSnapshot } from '@/types/control-surface'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,8 +22,17 @@ function sanitizeLooseText(value: unknown, max = 48) {
   return value.trim().replace(/\s+/g, ' ').slice(0, max)
 }
 
+function pruneExpiredBuckets(now: number) {
+  chatBuckets.forEach((bucket, key) => {
+    if (bucket.resetAt <= now) {
+      chatBuckets.delete(key)
+    }
+  })
+}
+
 function takeChatRateLimitToken(key: string) {
   const now = Date.now()
+  pruneExpiredBuckets(now)
   const current = chatBuckets.get(key)
 
   if (!current || current.resetAt <= now) {
@@ -85,6 +96,27 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const startedAt = performance.now()
   try {
+    const cachedCommandCenter = peekCachedSnapshot<CommandCenterSnapshot>('command-center')
+    if (cachedCommandCenter?.value.runtime.mode === 'read_only_degraded') {
+      return NextResponse.json(
+        {
+          error: 'Team chat is read-only while the command center is degraded.',
+          degradedReason: cachedCommandCenter.value.runtime.degradedReason,
+          lastSuccessfulAt:
+            cachedCommandCenter.lastSuccessfulAt ??
+            cachedCommandCenter.value.runtime.lastSuccessfulAt ??
+            null,
+        },
+        {
+          status: 503,
+          headers: {
+            'Retry-After': '15',
+            'Cache-Control': 'no-store',
+          },
+        },
+      )
+    }
+
     const body = (await request.json()) as Record<string, unknown>
     const teamId = sanitizeLooseText(body.teamId)
     const operatorId = sanitizeLooseText(body.operatorId)

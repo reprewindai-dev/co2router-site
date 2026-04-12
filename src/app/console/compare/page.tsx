@@ -15,9 +15,15 @@ export const metadata: Metadata = createPageMetadata({
 export default async function HaloGridComparePage(props: {
   searchParams?: Promise<Record<string, string | string[] | undefined>>
 }) {
+  const normalizeVariant = (value: string | undefined) => {
+    const normalized = (value ?? '').trim().toLowerCase()
+    if (normalized === 'google-pro' || normalized === 'google' || normalized === 'pro') return 'google-pro'
+    return 'opus'
+  }
+
   const searchParams = (await props.searchParams) ?? {}
   const variantValue = searchParams.variant
-  const variant = Array.isArray(variantValue) ? variantValue[0] : variantValue ?? 'opus'
+  const variant = normalizeVariant(Array.isArray(variantValue) ? variantValue[0] : variantValue)
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
@@ -59,4 +65,3 @@ export default async function HaloGridComparePage(props: {
     </div>
   )
 }
-

@@ -59,6 +59,13 @@ export const FALLBACK_LIVE_SYSTEM_SNAPSHOT: LiveSystemSnapshot = {
 
 export const FALLBACK_COMMAND_CENTER_SNAPSHOT: CommandCenterSnapshot = {
   generatedAt: 'Shell ready',
+  runtime: {
+    mode: 'read_only_degraded',
+    stale: false,
+    lastSuccessfulAt: null,
+    degradedReason: 'Command-center data is hydrating.',
+    mutationsAllowed: false,
+  },
   selectedDecisionFrameId: null,
   header: {
     systemActive: null,

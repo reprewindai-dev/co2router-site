@@ -7,6 +7,7 @@ import type {
   CommandCenterSnapshot,
   ControlSurfaceOverview,
   DecisionTraceRawRecord,
+  EngineDiagnosticsSnapshot,
   LiveSystemSnapshot,
   ReplayBundle,
   SimulationMode,
@@ -87,6 +88,18 @@ export function useLiveSystemSnapshot() {
     queryFn: () => getJson<LiveSystemSnapshot>('/api/control-surface/live-system'),
     staleTime: REFRESH_INTERVAL_MS,
     refetchInterval: REFRESH_INTERVAL_MS,
+    retry: 1,
+    retryDelay: 2_000,
+  })
+}
+
+export function useEngineDiagnostics(enabled = true) {
+  return useQuery<EngineDiagnosticsSnapshot>({
+    queryKey: ['control-surface-engine-diagnostics'],
+    queryFn: () => getJson<EngineDiagnosticsSnapshot>('/api/control-surface/engine-diagnostics'),
+    enabled,
+    staleTime: 15_000,
+    refetchInterval: enabled ? 15_000 : false,
     retry: 1,
     retryDelay: 2_000,
   })

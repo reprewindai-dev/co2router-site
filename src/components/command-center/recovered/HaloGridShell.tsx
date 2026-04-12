@@ -49,14 +49,17 @@ import { ACTION_META } from '@/components/control-surface/action-styles'
 import {
   useCommandCenterSnapshot,
   useDecisionTrace,
+  useEngineDiagnostics,
   useLiveSystemSnapshot,
   useReplayBundle,
   useSendTeamChatMessage,
   useTeamChat,
 } from '@/lib/hooks/control-surface'
 import type {
+  CommandCenterSnapshot,
   CommandCenterDecisionItem,
   DecisionTraceRawRecord,
+  LiveSystemSnapshot,
   ReplayBundle,
 } from '@/types/control-surface'
 import { analyzeFleet, type IntelligenceReport } from './intelligence'
@@ -104,6 +107,17 @@ function formatActionLabel(action: string | null | undefined) {
 
 function formatTimeLabel(iso: string) {
   return new Date(iso).toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  })
+}
+
+function formatDateTimeLabel(iso: string | null) {
+  if (!iso) return 'No prior live snapshot'
+  return new Date(iso).toLocaleString([], {
+    month: 'short',
+    day: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
@@ -167,6 +181,62 @@ function buildDecisionView(
     trace,
     replay,
     metrics: buildDecisionMetrics(frame, trace, replay),
+  }
+}
+
+function buildFallbackLiveSnapshot(
+  snapshot: CommandCenterSnapshot,
+): LiveSystemSnapshot {
+  return {
+    generatedAt: snapshot.generatedAt,
+    recentDecisions: {
+      available: false,
+      error: snapshot.runtime.degradedReason ?? 'Live decision feed unavailable.',
+      items: snapshot.decisionCore.recentDecisions.map((decision) => ({
+        decisionFrameId: decision.decisionFrameId,
+        createdAt: decision.createdAt,
+        action: decision.action,
+        reasonCode: decision.reasonCode,
+        selectedRegion: decision.selectedRegion,
+        proofHash: decision.proofHash,
+        traceAvailable: decision.traceAvailable,
+        governanceSource: decision.governanceSource,
+      })),
+    },
+    traceLedger: {
+      available: Boolean(snapshot.decisionCore.selectedTrace),
+      error:
+        snapshot.decisionCore.selectedTrace == null
+          ? 'Live trace unavailable in degraded mode.'
+          : null,
+      traceAvailable: Boolean(snapshot.decisionCore.selectedTrace),
+      traceHash: snapshot.decisionCore.selectedTrace?.traceHash ?? null,
+      inputSignalHash:
+        snapshot.decisionCore.selectedTrace?.inputSignalHash ?? null,
+      sequenceNumber:
+        snapshot.decisionCore.selectedTrace?.sequenceNumber ?? null,
+      proofAvailable: Boolean(snapshot.decisionCore.selectedDecision?.proofHash),
+      replayConsistent:
+        snapshot.decisionCore.selectedReplay?.deterministicMatch ??
+        snapshot.decisionCore.selectedReplay?.consistent ??
+        null,
+    },
+    governance: {
+      available: snapshot.governance.source != null,
+      error: snapshot.runtime.degradedReason,
+      frameworkLabel: 'SAIQ',
+      active: snapshot.governance.active,
+      policyState: snapshot.governance.enforcementMode,
+      latestDecisionAction: snapshot.decisionCore.selectedDecision?.action ?? null,
+      latestReasonCode:
+        snapshot.decisionCore.selectedDecision?.reasonCode ?? null,
+    },
+    providers: {
+      available: true,
+      error: snapshot.health.provenance.error,
+      datasets: snapshot.health.provenance.datasets,
+    },
+    latency: snapshot.health.latency,
   }
 }
 
@@ -715,8 +785,18 @@ export function HaloGridShell() {
 
   const snapshot = snapshotQuery.data
   const live = liveQuery.data
+  const effectiveLive = useMemo(() => {
+    if (live) return live
+    if (snapshot) return buildFallbackLiveSnapshot(snapshot)
+    return null
+  }, [live, snapshot])
+  const diagnosticsQuery = useEngineDiagnostics(
+    snapshot?.runtime.mode === 'read_only_degraded',
+  )
   const chatQuery = useTeamChat(chatTeamId)
   const sendChatMessage = useSendTeamChatMessage()
+  const isReadOnlyDegraded = snapshot?.runtime.mode === 'read_only_degraded'
+  const mutationsLocked = isReadOnlyDegraded || snapshot?.runtime.mutationsAllowed === false
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -772,16 +852,16 @@ export function HaloGridShell() {
   }, [chatOpen, chatQuery.data?.messages.length])
 
   const vm = useMemo(() => {
-    if (!snapshot || !live) return null
+    if (!snapshot || !effectiveLive) return null
     return buildHalogridViewModel({
       snapshot,
-      live,
+      live: effectiveLive,
       selectedFrameId,
       trace: traceQuery.data ?? null,
       replay: replayQuery.data ?? null,
       tier,
     })
-  }, [snapshot, live, selectedFrameId, traceQuery.data, replayQuery.data, tier])
+  }, [effectiveLive, snapshot, selectedFrameId, traceQuery.data, replayQuery.data, tier])
 
   const aiReport = useMemo<IntelligenceReport | null>(() => {
     if (!vm) return null
@@ -846,10 +926,10 @@ export function HaloGridShell() {
         enforcementMode: snapshot.governance.enforcementMode,
         selectedScore: snapshot.governance.selectedScore,
       } : undefined,
-      latencySlo: live ? {
-        p95TotalMs: live.latency.p95TotalMs,
-        budgetTotalP95Ms: live.latency.budgetTotalP95Ms,
-        withinBudget: live.latency.withinBudget?.total ?? null,
+      latencySlo: effectiveLive ? {
+        p95TotalMs: effectiveLive.latency.p95TotalMs,
+        budgetTotalP95Ms: effectiveLive.latency.budgetTotalP95Ms,
+        withinBudget: effectiveLive.latency.withinBudget?.total ?? null,
       } : undefined,
       impact: snapshot?.impact ? {
         totalDecisions: snapshot.impact.totalDecisions,
@@ -859,7 +939,7 @@ export function HaloGridShell() {
         delayedDecisions: snapshot.impact.delayedDecisions,
       } : null,
     })
-  }, [vm, snapshot, live])
+  }, [vm, snapshot, effectiveLive])
 
   useEffect(() => {
     if (aiReport?.insights.length && !advisorOpen) {
@@ -867,7 +947,24 @@ export function HaloGridShell() {
     }
   }, [advisorOpen, aiReport])
 
+  const retryControlSurface = useCallback(() => {
+    void snapshotQuery.refetch()
+    void liveQuery.refetch()
+    if (isReadOnlyDegraded || diagnosticsQuery.data) {
+      void diagnosticsQuery.refetch()
+    }
+  }, [
+    diagnosticsQuery,
+    isReadOnlyDegraded,
+    liveQuery,
+    snapshotQuery,
+  ])
+
   const handleSendChat = useCallback(() => {
+    if (mutationsLocked) {
+      return
+    }
+
     const payload = {
       teamId: chatTeamId.trim(),
       operatorId: chatOperatorId.trim(),
@@ -889,6 +986,7 @@ export function HaloGridShell() {
     chatOperatorId,
     chatOperatorName,
     chatTeamId,
+    mutationsLocked,
     sendChatMessage,
   ])
 
@@ -1086,7 +1184,7 @@ export function HaloGridShell() {
     }
   }, [])
 
-  if (snapshotQuery.error || liveQuery.error) {
+  if (!vm && (snapshotQuery.error || liveQuery.error)) {
     const snapshotError = snapshotQuery.error instanceof Error ? snapshotQuery.error.message : null
     const liveError = liveQuery.error instanceof Error ? liveQuery.error.message : null
     const isEngineDown =
@@ -1137,10 +1235,7 @@ export function HaloGridShell() {
           </div>
           <button
             type="button"
-            onClick={() => {
-              void snapshotQuery.refetch()
-              void liveQuery.refetch()
-            }}
+            onClick={retryControlSurface}
             className="mt-5 rounded-full px-6 py-2.5 text-[11px] font-semibold tracking-[0.2em]"
             style={{ background: `${theme.sky}16`, border: `1px solid ${theme.sky}44`, color: theme.sky }}
           >
@@ -1276,15 +1371,27 @@ export function HaloGridShell() {
   const govWeights = snapshot?.governance.weights
   const govImpact = snapshot?.governance.impact
   const cumulativeImpact = snapshot?.impact
-  const waterDatasets = live?.providers.datasets ?? []
+  const waterDatasets = effectiveLive?.providers.datasets ?? []
   const verifiedDatasets = waterDatasets.filter(
     (dataset) => dataset.verificationStatus === 'verified',
   ).length
+  const failingDiagnostics =
+    diagnosticsQuery.data?.probes.filter((probe) => !probe.ok).slice(0, 3) ?? []
+  const runtimeStatusLabel = isReadOnlyDegraded ? 'READ-ONLY' : 'LIVE'
 
   const visibleAlarms = vm.alarms.filter((a) => !dismissedAlarms.has(a.id))
-  const handleAckAlarm = (id: string) => setAckedAlarms((prev) => new Set(prev).add(id))
-  const handleDismissAlarm = (id: string) => setDismissedAlarms((prev) => new Set(prev).add(id))
-  const handleAckAll = () => setAckedAlarms(new Set(visibleAlarms.map((a) => a.id)))
+  const handleAckAlarm = (id: string) => {
+    if (mutationsLocked) return
+    setAckedAlarms((prev) => new Set(prev).add(id))
+  }
+  const handleDismissAlarm = (id: string) => {
+    if (mutationsLocked) return
+    setDismissedAlarms((prev) => new Set(prev).add(id))
+  }
+  const handleAckAll = () => {
+    if (mutationsLocked) return
+    setAckedAlarms(new Set(visibleAlarms.map((a) => a.id)))
+  }
 
   return (
     <div
@@ -1303,6 +1410,96 @@ export function HaloGridShell() {
           maskImage: 'linear-gradient(180deg, rgba(0,0,0,0.9), rgba(0,0,0,0.18))',
         }}
       />
+
+      {isReadOnlyDegraded ? (
+        <div
+          className="pointer-events-none fixed inset-x-4 z-40"
+          style={{ top: topVisible ? 92 : 16 }}
+        >
+          <div
+            className="pointer-events-auto rounded-[26px] p-4"
+            style={{
+              ...glassStyle(theme),
+              border: `1px solid ${theme.amber}33`,
+              boxShadow: `0 20px 48px ${theme.amber}14`,
+            }}
+          >
+            <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span
+                    className="rounded-full px-3 py-1 text-[10px] font-semibold tracking-[0.2em]"
+                    style={{
+                      background: `${theme.amber}16`,
+                      border: `1px solid ${theme.amber}33`,
+                      color: theme.amber,
+                    }}
+                  >
+                    READ-ONLY DEGRADED MODE
+                  </span>
+                  <span className="text-[10px] tracking-[0.16em]" style={{ color: theme.dim }}>
+                    LAST LIVE {formatDateTimeLabel(snapshot.runtime.lastSuccessfulAt)}
+                  </span>
+                  <span className="text-[10px] tracking-[0.16em]" style={{ color: theme.sky }}>
+                    CHAT {runtimeStatusLabel}
+                  </span>
+                </div>
+                <div className="text-[13px] leading-6" style={{ color: theme.textStrong }}>
+                  {snapshot.runtime.degradedReason ?? 'The decision feed is degraded. Last-known-good frames remain visible in read-only mode.'}
+                </div>
+                <div className="flex flex-wrap gap-2 text-[11px]" style={{ color: theme.muted }}>
+                  <span>Engine: <span style={{ color: theme.textStrong }}>{diagnosticsQuery.data?.engineBaseUrl ?? 'diagnostics pending'}</span></span>
+                  <span>Mutations: <span style={{ color: theme.amber }}>disabled</span></span>
+                  {diagnosticsQuery.data ? (
+                    <span>
+                      Probes:{' '}
+                      <span style={{ color: failingDiagnostics.length ? theme.rose : theme.green }}>
+                        {diagnosticsQuery.data.probes.length - failingDiagnostics.length}/{diagnosticsQuery.data.probes.length} healthy
+                      </span>
+                    </span>
+                  ) : null}
+                </div>
+                {failingDiagnostics.length ? (
+                  <div className="flex flex-wrap gap-2">
+                    {failingDiagnostics.map((probe) => (
+                      <div
+                        key={probe.path}
+                        className="rounded-full px-3 py-1 text-[10px]"
+                        style={{
+                          background: `${theme.rose}14`,
+                          border: `1px solid ${theme.rose}22`,
+                          color: theme.rose,
+                        }}
+                      >
+                        {probe.path} {probe.error ? `· ${probe.error}` : probe.status ? `· HTTP ${probe.status}` : ''}
+                      </div>
+                    ))}
+                  </div>
+                ) : diagnosticsQuery.isError ? (
+                  <div className="text-[11px]" style={{ color: theme.rose }}>
+                    {(diagnosticsQuery.error as Error).message}
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="flex items-center gap-2 xl:pl-4">
+                <button
+                  type="button"
+                  onClick={retryControlSurface}
+                  className="rounded-full px-4 py-2 text-[11px] font-semibold tracking-[0.18em]"
+                  style={{
+                    background: `${theme.sky}16`,
+                    border: `1px solid ${theme.sky}33`,
+                    color: theme.sky,
+                  }}
+                >
+                  RETRY LIVE FEED
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <AnimatePresence>
         {topVisible ? (
@@ -1637,8 +1834,8 @@ export function HaloGridShell() {
                   <ControlButton theme={theme} compact active={showRadar} onClick={() => setShowRadar((v) => !v)}>RADAR</ControlButton>
                   <ControlButton theme={theme} compact active={showHeat} onClick={() => setShowHeat((v) => !v)}>HEAT</ControlButton>
                   <div className="mx-1 h-5 w-px" style={{ background: theme.border }} />
-                  <ControlButton theme={theme} compact onClick={() => setZoomLevel((z) => Math.min(3, z + 1) as 1 | 2 | 3)}>
-                    <Plus className="h-3.5 w-3.5" />
+                  <ControlButton theme={theme} compact onClick={() => setZoomLevel((z) => Math.max(1, z - 1) as 1 | 2 | 3)}>
+                    <Minus className="h-3.5 w-3.5" />
                   </ControlButton>
                   <div className="flex gap-1">
                     {([1, 2, 3] as const).map((level) => (
@@ -1651,8 +1848,8 @@ export function HaloGridShell() {
                       />
                     ))}
                   </div>
-                  <ControlButton theme={theme} compact onClick={() => setZoomLevel((z) => Math.max(1, z - 1) as 1 | 2 | 3)}>
-                    <Minus className="h-3.5 w-3.5" />
+                  <ControlButton theme={theme} compact onClick={() => setZoomLevel((z) => Math.min(3, z + 1) as 1 | 2 | 3)}>
+                    <Plus className="h-3.5 w-3.5" />
                   </ControlButton>
                   <div className="mx-1 h-5 w-px" style={{ background: theme.border }} />
                   <button
@@ -2008,8 +2205,14 @@ export function HaloGridShell() {
                     <button
                       type="button"
                       onClick={handleAckAll}
+                      disabled={mutationsLocked}
                       className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] font-semibold tracking-[0.16em]"
-                      style={{ background: `${theme.sky}14`, border: `1px solid ${theme.sky}33`, color: theme.sky }}
+                      style={{
+                        background: `${theme.sky}14`,
+                        border: `1px solid ${theme.sky}33`,
+                        color: mutationsLocked ? theme.dim : theme.sky,
+                        opacity: mutationsLocked ? 0.45 : 1,
+                      }}
                     >
                       <CheckCheck className="h-3 w-3" />
                       ACK ALL
@@ -2058,8 +2261,14 @@ export function HaloGridShell() {
                               <button
                                 type="button"
                                 onClick={() => handleAckAlarm(alarm.id)}
+                                disabled={mutationsLocked}
                                 className="flex items-center gap-1 rounded-full px-2 py-1 text-[9px] font-semibold tracking-[0.14em]"
-                                style={{ background: `${theme.sky}14`, border: `1px solid ${theme.sky}33`, color: theme.sky }}
+                                style={{
+                                  background: `${theme.sky}14`,
+                                  border: `1px solid ${theme.sky}33`,
+                                  color: mutationsLocked ? theme.dim : theme.sky,
+                                  opacity: mutationsLocked ? 0.45 : 1,
+                                }}
                               >
                                 <Check className="h-3 w-3" />
                                 ACK
@@ -2068,8 +2277,14 @@ export function HaloGridShell() {
                             <button
                               type="button"
                               onClick={() => handleDismissAlarm(alarm.id)}
+                              disabled={mutationsLocked}
                               className="flex items-center gap-1 rounded-full px-2 py-1 text-[9px] font-semibold tracking-[0.14em]"
-                              style={{ background: `${theme.rose}14`, border: `1px solid ${theme.rose}33`, color: theme.rose }}
+                              style={{
+                                background: `${theme.rose}14`,
+                                border: `1px solid ${theme.rose}33`,
+                                color: mutationsLocked ? theme.dim : theme.rose,
+                                opacity: mutationsLocked ? 0.45 : 1,
+                              }}
                             >
                               <XCircle className="h-3 w-3" />
                               DISMISS
@@ -2091,6 +2306,11 @@ export function HaloGridShell() {
                     No live alarms are currently derived from the snapshot.
                   </div>
                 )}
+                {mutationsLocked ? (
+                  <div className="text-[11px]" style={{ color: theme.amber }}>
+                    Alarm acknowledgements are disabled while the command center is serving a degraded snapshot.
+                  </div>
+                ) : null}
               </div>
             </DrawerFrame>
           </motion.div>
@@ -2203,8 +2423,20 @@ export function HaloGridShell() {
                         Live channel: <span style={{ color: theme.textStrong }}>#{chatQuery.data?.teamId ?? chatTeamId}</span>
                       </span>
                     </div>
-                    <span style={{ color: sendChatMessage.isPending ? theme.amber : theme.green }}>
-                      {sendChatMessage.isPending ? 'Sending' : 'Live'}
+                    <span
+                      style={{
+                        color: mutationsLocked
+                          ? theme.amber
+                          : sendChatMessage.isPending
+                            ? theme.amber
+                            : theme.green,
+                      }}
+                    >
+                      {mutationsLocked
+                        ? 'Read-only'
+                        : sendChatMessage.isPending
+                          ? 'Sending'
+                          : 'Live'}
                     </span>
                   </div>
                 </div>
@@ -2270,6 +2502,7 @@ export function HaloGridShell() {
                   <textarea
                     value={chatDraft}
                     onChange={(event) => setChatDraft(event.target.value.slice(0, 600))}
+                    disabled={mutationsLocked}
                     onKeyDown={(event) => {
                       if (event.key === 'Enter' && !event.shiftKey) {
                         event.preventDefault()
@@ -2287,7 +2520,9 @@ export function HaloGridShell() {
                   />
                   <div className="flex items-center justify-between gap-3">
                     <div className="text-[10px]" style={{ color: theme.dim }}>
-                      Shared on this deployment for the selected team channel.
+                      {mutationsLocked
+                        ? 'Writes are disabled until the live decision feed recovers.'
+                        : 'Shared on this deployment for the selected team channel.'}
                     </div>
                     <div className="flex items-center gap-1.5">
                       <button
@@ -2303,6 +2538,7 @@ export function HaloGridShell() {
                         type="button"
                         onClick={handleSendChat}
                         disabled={
+                          mutationsLocked ||
                           sendChatMessage.isPending ||
                           !chatDraft.trim() ||
                           !chatOperatorName.trim() ||
@@ -2311,9 +2547,19 @@ export function HaloGridShell() {
                         }
                         className="rounded-full px-4 py-2 text-[11px] font-semibold tracking-[0.2em] disabled:cursor-not-allowed"
                         style={{
-                          background: sendChatMessage.isPending ? 'rgba(255,255,255,0.06)' : `${theme.sky}16`,
-                          border: `1px solid ${sendChatMessage.isPending ? theme.border : `${theme.sky}44`}`,
-                          color: sendChatMessage.isPending ? theme.dim : theme.sky,
+                          background:
+                            sendChatMessage.isPending || mutationsLocked
+                              ? 'rgba(255,255,255,0.06)'
+                              : `${theme.sky}16`,
+                          border: `1px solid ${
+                            sendChatMessage.isPending || mutationsLocked
+                              ? theme.border
+                              : `${theme.sky}44`
+                          }`,
+                          color:
+                            sendChatMessage.isPending || mutationsLocked
+                              ? theme.dim
+                              : theme.sky,
                         }}
                       >
                         SEND

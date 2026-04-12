@@ -1637,8 +1637,8 @@ export function HaloGridShell() {
                   <ControlButton theme={theme} compact active={showRadar} onClick={() => setShowRadar((v) => !v)}>RADAR</ControlButton>
                   <ControlButton theme={theme} compact active={showHeat} onClick={() => setShowHeat((v) => !v)}>HEAT</ControlButton>
                   <div className="mx-1 h-5 w-px" style={{ background: theme.border }} />
-                  <ControlButton theme={theme} compact onClick={() => setZoomLevel((z) => Math.min(3, z + 1) as 1 | 2 | 3)}>
-                    <Plus className="h-3.5 w-3.5" />
+                  <ControlButton theme={theme} compact onClick={() => setZoomLevel((z) => Math.max(1, z - 1) as 1 | 2 | 3)}>
+                    <Minus className="h-3.5 w-3.5" />
                   </ControlButton>
                   <div className="flex gap-1">
                     {([1, 2, 3] as const).map((level) => (
@@ -1651,8 +1651,8 @@ export function HaloGridShell() {
                       />
                     ))}
                   </div>
-                  <ControlButton theme={theme} compact onClick={() => setZoomLevel((z) => Math.max(1, z - 1) as 1 | 2 | 3)}>
-                    <Minus className="h-3.5 w-3.5" />
+                  <ControlButton theme={theme} compact onClick={() => setZoomLevel((z) => Math.min(3, z + 1) as 1 | 2 | 3)}>
+                    <Plus className="h-3.5 w-3.5" />
                   </ControlButton>
                   <div className="mx-1 h-5 w-px" style={{ background: theme.border }} />
                   <button

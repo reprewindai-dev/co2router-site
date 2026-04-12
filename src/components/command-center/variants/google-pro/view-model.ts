@@ -426,12 +426,13 @@ export function buildHalogridViewModel(args: {
   const flows = buildFlows(snapshot, regions)
 
   const degradedReason = !live.recentDecisions.available
-    ? live.recentDecisions.error
-    : !live.providers.available
-      ? live.providers.error
-      : live.governance.active === false
-        ? 'Governance is inactive in the live engine.'
-        : null
+    ? snapshot.runtime.degradedReason ?? live.recentDecisions.error
+    : snapshot.runtime.degradedReason ??
+      (!live.providers.available
+        ? live.providers.error
+        : live.governance.active === false
+          ? 'Governance is inactive in the live engine.'
+          : null)
 
   const hud = buildHud(snapshot, live)
 
@@ -454,6 +455,8 @@ export function buildHalogridViewModel(args: {
     selectedDecision: pickSelectedDecision(snapshot, selectedFrameId, trace, replay),
     alarms: buildAlarms(snapshot, live),
     stale:
+      snapshot.runtime.stale ||
+      snapshot.runtime.mode === 'read_only_degraded' ||
       Boolean(degradedReason) ||
       live.providers.datasets.some(
         (dataset) => dataset.verificationStatus === 'mismatch',
@@ -461,7 +464,8 @@ export function buildHalogridViewModel(args: {
     degradedReason: degradedReason ?? null,
     globe: {
       stormMode: hud.blocked >= 4 || hud.threatPercentage >= 45,
-      healthy: Boolean(snapshot.header.systemActive),
+      healthy:
+        snapshot.runtime.mode === 'live' && Boolean(snapshot.header.systemActive),
       degradedReason: degradedReason ?? null,
     },
   }

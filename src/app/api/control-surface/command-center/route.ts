@@ -15,11 +15,33 @@ const SNAPSHOT_CACHE_CONTROL = 'public, max-age=0, s-maxage=5, stale-while-reval
 export async function GET() {
   const startedAt = performance.now()
   try {
-    const { value: snapshot, cacheStatus } = await getCachedSnapshot(
+    const { value: cachedSnapshot, cacheStatus, lastSuccessfulAt, errorMessage } = await getCachedSnapshot(
       'command-center',
       COMMAND_CENTER_CACHE_TTL_MS,
       getCommandCenterSnapshot
     )
+    const snapshot =
+      cacheStatus === 'stale'
+        ? {
+            ...cachedSnapshot,
+            generatedAt: new Date().toISOString(),
+            runtime: {
+              ...cachedSnapshot.runtime,
+              mode: 'read_only_degraded' as const,
+              stale: true,
+              lastSuccessfulAt: lastSuccessfulAt ?? cachedSnapshot.runtime.lastSuccessfulAt,
+              degradedReason:
+                errorMessage ??
+                cachedSnapshot.runtime.degradedReason ??
+                'Command-center refresh failed while serving the last good snapshot.',
+              mutationsAllowed: false,
+            },
+            header: {
+              ...cachedSnapshot.header,
+              systemStatus: 'read_only_degraded',
+            },
+          }
+        : cachedSnapshot
     const serialized = JSON.stringify(snapshot)
     const totalMs = performance.now() - startedAt
     const responseBytes = Buffer.byteLength(serialized)
@@ -44,6 +66,7 @@ export async function GET() {
       },
     })
     response.headers.set('x-co2router-snapshot-cache', cacheStatus)
+    response.headers.set('x-co2router-command-mode', snapshot.runtime.mode)
     response.headers.set('x-co2router-response-bytes', String(responseBytes))
     response.headers.set('Cache-Control', SNAPSHOT_CACHE_CONTROL)
     response.headers.set('Server-Timing', `total;dur=${totalMs.toFixed(1)}`)

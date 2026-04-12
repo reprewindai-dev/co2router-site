@@ -63,7 +63,7 @@ function mergeAbortSignals(signals: Array<AbortSignal | null | undefined>) {
 export async function fetchEngineJson<T>(
   path: string,
   init: RequestInit = {},
-  options: { internal?: boolean } = {}
+  options: { internal?: boolean; timeoutMs?: number } = {}
 ) {
   const headers = new Headers(init.headers)
   headers.set('content-type', 'application/json')
@@ -87,7 +87,10 @@ export async function fetchEngineJson<T>(
     }
   }
 
-  const timeoutMs = getEngineTimeoutMs()
+  const timeoutMs =
+    options.timeoutMs != null
+      ? Math.max(1_000, Math.min(60_000, Math.round(options.timeoutMs)))
+      : getEngineTimeoutMs()
   const timeoutController = new AbortController()
   const timeout = setTimeout(() => timeoutController.abort(), timeoutMs)
   const mergedSignal = mergeAbortSignals([init.signal, timeoutController.signal])
