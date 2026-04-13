@@ -280,9 +280,15 @@ export async function GET() {
   }
 
   if (decisions.length === 0) {
-    const fallback = await fetchEngineJson<{ decisions: BaselineDecision[] }>('/ci/decisions?limit=200')
-    if (fallback?.decisions?.length) {
-      decisions.push(...fallback.decisions)
+    const legacyPageSize = 200
+    for (let offset = 0; offset < maxRecords; offset += legacyPageSize) {
+      const fallback = await fetchEngineJson<{ decisions: BaselineDecision[] }>(
+        `/ci/decisions?limit=${legacyPageSize}&offset=${offset}`
+      )
+      const page = fallback?.decisions ?? []
+      if (page.length === 0) break
+      decisions.push(...page)
+      if (decisions.length >= maxRecords) break
     }
   }
 

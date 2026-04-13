@@ -7,6 +7,17 @@ import { getClientIp, RateLimiter } from '@/lib/rate-limit'
 const DEFAULT_ENGINE_URL = 'https://ecobe-engineclaude-co2router.onrender.com'
 const FORWARDED_HEADERS = ['accept', 'content-type', 'authorization', 'x-request-id', 'x-ecobe-signature'] as const
 const SIGNED_DECISION_PATHS = new Set(['ci/route', 'ci/authorize', 'ci/carbon-route'])
+const HOP_BY_HOP_HEADERS = [
+  'connection',
+  'keep-alive',
+  'proxy-authenticate',
+  'proxy-authorization',
+  'te',
+  'trailer',
+  'transfer-encoding',
+  'upgrade',
+  'content-length',
+]
 
 const engineLimiter = new RateLimiter({
   // 240 req/min/IP burst, refills at 4 req/sec
@@ -188,9 +199,15 @@ async function proxy(request: Request, ctx: { params: Promise<{ path?: string[] 
     }
   }
 
-  const response = new NextResponse(upstream.data, {
+  const responseHeaders = new Headers(upstream.headers as HeadersInit)
+  for (const header of HOP_BY_HOP_HEADERS) {
+    responseHeaders.delete(header)
+  }
+
+  const responseBody = Buffer.isBuffer(upstream.data) ? upstream.data : Buffer.from(upstream.data)
+  const response = new NextResponse(responseBody, {
     status: upstream.status,
-    headers: upstream.headers as HeadersInit,
+    headers: responseHeaders,
   })
   response.headers.set('x-ecobe-proxy-mode', useInternalKey ? 'internal' : 'forwarded')
   return response

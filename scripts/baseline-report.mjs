@@ -138,6 +138,59 @@ async function fetchDecisions() {
   const decisions = []
   let cursor = null
 
+  async function fetchLegacyPage(limit, offset) {
+    const legacy = new URL('/api/ecobe/ci/decisions', ORIGIN)
+    legacy.searchParams.set('limit', String(limit))
+    legacy.searchParams.set('offset', String(offset))
+    const legacyRes = await fetchWithTimeout(legacy, { headers: { accept: 'application/json' } })
+    if (!legacyRes.ok) {
+      const text = await legacyRes.text().catch(() => '')
+      throw new Error(`Legacy fetch failed (${legacyRes.status}): ${text.slice(0, 200)}`)
+    }
+    const legacyJson = await legacyRes.json()
+    const legacyDecisions = Array.isArray(legacyJson?.decisions) ? legacyJson.decisions : []
+    return { decisions: legacyDecisions, raw: legacyJson }
+  }
+
+  async function fetchLegacyDecisionsPaged() {
+    const tryLimits = [Math.min(MAX_RECORDS, 200), 200, 100, 50, 25, 10, 1]
+    let limit = null
+    let firstError = null
+
+    for (const tryLimit of tryLimits) {
+      try {
+        const first = await fetchLegacyPage(tryLimit, 0)
+        if (first.decisions.length === 0) {
+          limit = tryLimit
+          decisions.push(...first.decisions)
+          return { decisions, raw: first.raw }
+        }
+        limit = tryLimit
+        decisions.push(...first.decisions)
+        break
+      } catch (err) {
+        firstError = err
+      }
+    }
+
+    if (!limit) {
+      throw firstError ?? new Error('Legacy decisions endpoint failed.')
+    }
+
+    for (let offset = decisions.length; offset < MAX_RECORDS; offset += limit) {
+      const page = await fetchLegacyPage(limit, offset)
+      decisions.push(...page.decisions)
+      if (decisions.length >= MAX_RECORDS) {
+        return { decisions: decisions.slice(0, MAX_RECORDS), raw: page.raw }
+      }
+      if (page.decisions.length === 0 || page.decisions.length < limit) {
+        return { decisions, raw: page.raw }
+      }
+    }
+
+    return { decisions, raw: { truncated: true } }
+  }
+
   for (let pageIndex = 0; pageIndex < 1000; pageIndex += 1) {
     const url = new URL('/api/ecobe/ci/decisions/export', ORIGIN)
     url.searchParams.set('limit', String(PAGE_SIZE))
@@ -147,26 +200,7 @@ async function fetchDecisions() {
     if (!res.ok) {
       if (pageIndex === 0) {
         // Fallback when engine export isn't deployed yet.
-        const tryLimits = [Math.min(MAX_RECORDS, 500), 200, 100, 50, 25, 10, 1]
-        for (const tryLimit of tryLimits) {
-          const legacy = new URL('/api/ecobe/ci/decisions', ORIGIN)
-          legacy.searchParams.set('limit', String(tryLimit))
-          legacy.searchParams.set('offset', '0')
-          const legacyRes = await fetchWithTimeout(legacy, { headers: { accept: 'application/json' } })
-          if (!legacyRes.ok) {
-            continue
-          }
-          const legacyJson = await legacyRes.json()
-          const legacyDecisions = Array.isArray(legacyJson?.decisions) ? legacyJson.decisions : []
-          return { decisions: legacyDecisions, raw: legacyJson }
-        }
-
-        const legacy = new URL('/api/ecobe/ci/decisions', ORIGIN)
-        legacy.searchParams.set('limit', '1')
-        legacy.searchParams.set('offset', '0')
-        const legacyRes = await fetchWithTimeout(legacy, { headers: { accept: 'application/json' } })
-        const legacyText = await legacyRes.text().catch(() => '')
-        throw new Error(`Fetch failed (${legacyRes.status}): ${legacyText.slice(0, 200)}`)
+        return await fetchLegacyDecisionsPaged()
       }
 
       const text = await res.text().catch(() => '')
