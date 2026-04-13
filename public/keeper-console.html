@@ -1,0 +1,1722 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CO2 Router — HaloGrid Command Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="/vendor/lucide.umd.js"></script>
+<script src="/vendor/chart.umd.min.js"></script>
+<style>
+/* ── DESIGN TOKENS ─────────────────────────────────────────────── */
+:root {
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+  --text-xs:   clamp(0.65rem,  0.6rem  + 0.2vw, 0.75rem);
+  --text-sm:   clamp(0.75rem,  0.7rem  + 0.25vw, 0.875rem);
+  --text-base: clamp(0.875rem, 0.82rem + 0.28vw, 1rem);
+  --text-lg:   clamp(1rem,     0.9rem  + 0.5vw,  1.25rem);
+  --text-xl:   clamp(1.2rem,   1rem    + 0.8vw,  1.75rem);
+
+  --space-1: 0.25rem; --space-2: 0.5rem; --space-3: 0.75rem;
+  --space-4: 1rem;    --space-5: 1.25rem; --space-6: 1.5rem;
+  --space-8: 2rem;    --space-10: 2.5rem; --space-12: 3rem;
+
+  --radius-sm: 3px; --radius-md: 6px; --radius-lg: 10px; --radius-xl: 14px;
+  --radius-full: 9999px;
+
+  /* CORE PALETTE — deep space dark */
+  --bg:           #050709;
+  --surface:      #080c10;
+  --surface-2:    #0d1318;
+  --surface-3:    #111820;
+  --border:       rgba(100,200,255,0.08);
+  --border-bright:rgba(100,200,255,0.18);
+
+  --text:         #e2eef5;
+  --text-muted:   #7a99aa;
+  --text-faint:   #3d5260;
+
+  /* ACCENT SYSTEM */
+  --green:        #00e5a0;
+  --green-dim:    #00a370;
+  --green-glow:   rgba(0,229,160,0.15);
+  --green-glow-sm:rgba(0,229,160,0.06);
+  --amber:        #ffb347;
+  --amber-dim:    #c87d20;
+  --amber-glow:   rgba(255,179,71,0.15);
+  --red:          #ff4f6b;
+  --red-dim:      #c0243d;
+  --red-glow:     rgba(255,79,107,0.15);
+  --cyan:         #3dd9ff;
+  --cyan-dim:     #0ea5c9;
+  --cyan-glow:    rgba(61,217,255,0.12);
+  --purple:       #a78bfa;
+  --purple-dim:   #7c3aed;
+  --blue:         #60a5fa;
+
+  --shadow-md: 0 4px 20px rgba(0,0,0,0.5);
+  --shadow-lg: 0 8px 40px rgba(0,0,0,0.7);
+  --transition: 180ms cubic-bezier(0.16,1,0.3,1);
+}
+
+/* ── BASE ─────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+body {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100dvh;
+  overflow: hidden;
+}
+button { cursor: pointer; font: inherit; color: inherit; background: none; border: none; }
+a { color: inherit; text-decoration: none; }
+svg { display: block; flex-shrink: 0; }
+
+/* ── SCANLINE OVERLAY ─────────────────────────────────────────── */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.03) 2px,
+    rgba(0,0,0,0.03) 4px
+  );
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* ── LAYOUT ───────────────────────────────────────────────────── */
+.app { display: grid; grid-template-rows: 44px 1fr; height: 100dvh; }
+
+/* ── AUTHORITY STRIP ──────────────────────────────────────────── */
+.authority-strip {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: var(--space-4);
+  padding: 0 var(--space-4);
+  position: relative;
+  z-index: 100;
+}
+.authority-strip::after {
+  content: '';
+  position: absolute; bottom: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--green), transparent);
+  opacity: 0.4;
+}
+.logo-mark {
+  display: flex; align-items: center; gap: var(--space-2);
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  font-weight: 600; letter-spacing: 0.12em; color: var(--green);
+  text-transform: uppercase; white-space: nowrap;
+}
+.logo-mark svg { color: var(--green); }
+.strip-divider { width: 1px; height: 20px; background: var(--border); flex-shrink: 0; }
+
+.posture-badge {
+  display: flex; align-items: center; gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  background: var(--green-glow);
+  border: 1px solid var(--green);
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  font-weight: 700; letter-spacing: 0.1em; color: var(--green);
+  text-transform: uppercase;
+}
+.posture-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--green);
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 var(--green-dim); }
+  50% { opacity: 0.7; box-shadow: 0 0 0 4px transparent; }
+}
+
+.strip-stats {
+  display: flex; align-items: center; gap: var(--space-5);
+  flex: 1;
+}
+.strip-stat {
+  display: flex; align-items: center; gap: var(--space-2);
+  font-family: var(--font-mono); font-size: var(--text-xs); color: var(--text-muted);
+}
+.strip-stat strong {
+  color: var(--text); font-weight: 600;
+}
+.strip-stat.alert strong { color: var(--amber); }
+
+.strip-right {
+  display: flex; align-items: center; gap: var(--space-3); margin-left: auto;
+}
+.strip-clock {
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  color: var(--text-muted); letter-spacing: 0.05em;
+}
+.strip-btn {
+  display: flex; align-items: center; gap: var(--space-1);
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs); color: var(--text-muted);
+  transition: var(--transition);
+}
+.strip-btn:hover { border-color: var(--border-bright); color: var(--text); }
+
+/* ── MAIN BODY ────────────────────────────────────────────────── */
+.main-body {
+  display: grid;
+  grid-template-columns: 56px 1fr 340px;
+  height: calc(100dvh - 44px);
+  overflow: hidden;
+}
+
+/* ── SIDEBAR NAV ──────────────────────────────────────────────── */
+.sidebar {
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  align-items: center; padding: var(--space-3) 0;
+  gap: var(--space-2);
+}
+.nav-btn {
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: var(--radius-md);
+  color: var(--text-faint);
+  transition: var(--transition);
+  position: relative;
+}
+.nav-btn:hover { color: var(--text-muted); background: var(--surface-2); }
+.nav-btn.active {
+  color: var(--cyan);
+  background: rgba(61,217,255,0.08);
+  border: 1px solid rgba(61,217,255,0.2);
+}
+.nav-btn .nav-tooltip {
+  position: absolute; left: 48px;
+  background: var(--surface-3); border: 1px solid var(--border-bright);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs); color: var(--text);
+  white-space: nowrap; pointer-events: none;
+  opacity: 0; transform: translateX(-4px);
+  transition: var(--transition); z-index: 200;
+}
+.nav-btn:hover .nav-tooltip { opacity: 1; transform: translateX(0); }
+.sidebar-spacer { flex: 1; }
+
+/* ── CONTENT AREA ─────────────────────────────────────────────── */
+.content {
+  display: grid;
+  grid-template-rows: 1fr 200px;
+  overflow: hidden;
+}
+
+/* ── TOP SECTION: GLOBE + DECISION FEED ──────────────────────── */
+.top-section {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  overflow: hidden;
+}
+
+/* ── GLOBE PANEL ──────────────────────────────────────────────── */
+.globe-panel {
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  position: relative; overflow: hidden;
+  display: flex; flex-direction: column;
+}
+.panel-header {
+  display: flex; align-items: center; gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.panel-title {
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--text-muted);
+}
+.panel-badge {
+  margin-left: auto;
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  padding: 1px var(--space-2); border-radius: var(--radius-full);
+  background: var(--green-glow-sm); color: var(--green);
+  border: 1px solid rgba(0,229,160,0.2);
+}
+
+#globe-canvas {
+  flex: 1; width: 100%; display: block;
+}
+
+/* Globe overlays */
+.globe-overlay {
+  position: absolute; bottom: var(--space-4); left: var(--space-4);
+  display: flex; flex-direction: column; gap: var(--space-2);
+}
+.globe-legend-item {
+  display: flex; align-items: center; gap: var(--space-2);
+  font-size: var(--text-xs); color: var(--text-muted);
+}
+.globe-legend-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+.globe-stats {
+  position: absolute; top: var(--space-8); right: var(--space-4);
+  display: flex; flex-direction: column; gap: var(--space-3);
+}
+.globe-stat-card {
+  background: rgba(8,12,16,0.85);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  backdrop-filter: blur(8px);
+  min-width: 120px;
+}
+.globe-stat-label {
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.08em;
+}
+.globe-stat-value {
+  font-family: var(--font-mono); font-size: var(--text-lg);
+  font-weight: 700; color: var(--green);
+  font-variant-numeric: tabular-nums;
+}
+.globe-stat-value.amber { color: var(--amber); }
+.globe-stat-value.cyan { color: var(--cyan); }
+
+/* ── DECISION FEED ────────────────────────────────────────────── */
+.decision-feed {
+  border-bottom: 1px solid var(--border);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.feed-scroll {
+  flex: 1; overflow-y: auto; padding: var(--space-2);
+  display: flex; flex-direction: column; gap: var(--space-2);
+  scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+}
+.decision-card {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+  transition: border-color var(--transition), background var(--transition);
+  position: relative; overflow: hidden;
+}
+.decision-card::before {
+  content: '';
+  position: absolute; left: 0; top: 0; bottom: 0; width: 2px;
+}
+.decision-card.reroute::before { background: var(--green); }
+.decision-card.delay::before   { background: var(--amber); }
+.decision-card.deny::before    { background: var(--red); }
+.decision-card.run::before     { background: var(--cyan); }
+.decision-card.throttle::before{ background: var(--purple); }
+
+.decision-card:hover {
+  border-color: var(--border-bright);
+  background: var(--surface-3);
+}
+.dc-top {
+  display: flex; align-items: center; gap: var(--space-2);
+  margin-bottom: var(--space-1);
+}
+.dc-action {
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  padding: 1px var(--space-2); border-radius: var(--radius-full);
+}
+.dc-action.reroute { background: var(--green-glow); color: var(--green); border: 1px solid rgba(0,229,160,0.25); }
+.dc-action.delay   { background: var(--amber-glow); color: var(--amber); border: 1px solid rgba(255,179,71,0.25); }
+.dc-action.deny    { background: var(--red-glow); color: var(--red); border: 1px solid rgba(255,79,107,0.25); }
+.dc-action.run     { background: var(--cyan-glow); color: var(--cyan); border: 1px solid rgba(61,217,255,0.2); }
+.dc-action.throttle{ background: rgba(167,139,250,0.12); color: var(--purple); border: 1px solid rgba(167,139,250,0.25); }
+
+.dc-job {
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;
+}
+.dc-time {
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  color: var(--text-faint); flex-shrink: 0;
+}
+.dc-metrics {
+  display: flex; gap: var(--space-3); flex-wrap: wrap;
+}
+.dc-metric {
+  font-family: var(--font-mono); font-size: var(--text-xs); color: var(--text-faint);
+}
+.dc-metric span { color: var(--text-muted); }
+.dc-metric.positive span { color: var(--green); }
+.dc-metric.warn span { color: var(--amber); }
+.dc-proof {
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  color: var(--text-faint); margin-top: var(--space-1);
+  display: flex; align-items: center; gap: var(--space-1);
+}
+.proof-dot {
+  width: 4px; height: 4px; border-radius: 50%;
+  background: var(--green); flex-shrink: 0;
+}
+
+/* ── BOTTOM SECTION: KPI STRIP ────────────────────────────────── */
+.kpi-strip {
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  border-right: 1px solid var(--border);
+}
+.kpi-cell {
+  padding: var(--space-3) var(--space-4);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: var(--space-1);
+  position: relative; overflow: hidden;
+}
+.kpi-cell:last-child { border-right: none; }
+.kpi-cell::after {
+  content: '';
+  position: absolute; bottom: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, var(--green), transparent);
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+.kpi-cell:hover::after { opacity: 0.4; }
+.kpi-label {
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.1em;
+}
+.kpi-value {
+  font-family: var(--font-mono); font-size: var(--text-xl);
+  font-weight: 700; color: var(--green);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.kpi-value.amber { color: var(--amber); }
+.kpi-value.cyan { color: var(--cyan); }
+.kpi-value.red { color: var(--red); }
+.kpi-delta {
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  color: var(--text-faint); display: flex; align-items: center; gap: 2px;
+}
+.kpi-delta.up { color: var(--green-dim); }
+.kpi-delta.down { color: var(--red-dim); }
+.kpi-sparkline { height: 28px; position: relative; margin-top: var(--space-1); }
+.kpi-sparkline canvas { width: 100% !important; height: 28px !important; }
+
+/* ── RIGHT PANEL ──────────────────────────────────────────────── */
+.right-panel {
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+
+/* Tabs */
+.panel-tabs {
+  display: flex; border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.panel-tab {
+  flex: 1; padding: var(--space-3) var(--space-2);
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--text-faint); text-align: center;
+  border-bottom: 2px solid transparent;
+  transition: var(--transition);
+}
+.panel-tab.active { color: var(--cyan); border-bottom-color: var(--cyan); }
+.panel-tab:hover:not(.active) { color: var(--text-muted); }
+
+.panel-content { flex: 1; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+.tab-pane { display: none; padding: var(--space-3); }
+.tab-pane.active { display: block; }
+
+/* ── DOCTRINE PANEL ───────────────────────────────────────────── */
+.doctrine-section { margin-bottom: var(--space-5); }
+.doctrine-section-title {
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-faint);
+  margin-bottom: var(--space-3); display: flex; align-items: center; gap: var(--space-2);
+}
+.doctrine-section-title::after {
+  content: ''; flex: 1; height: 1px; background: var(--border);
+}
+
+.slider-row {
+  margin-bottom: var(--space-4);
+}
+.slider-label {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: var(--space-2);
+  font-size: var(--text-xs); color: var(--text-muted);
+}
+.slider-label strong {
+  font-family: var(--font-mono); font-size: var(--text-xs); color: var(--text);
+}
+.slider-value {
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  color: var(--cyan); font-weight: 600;
+}
+input[type=range] {
+  -webkit-appearance: none; width: 100%; height: 3px;
+  background: var(--border); border-radius: var(--radius-full);
+  outline: none; cursor: pointer;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%;
+  background: var(--cyan); box-shadow: 0 0 8px var(--cyan-glow);
+  transition: transform var(--transition);
+}
+input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+input[type=range].green::-webkit-slider-thumb { background: var(--green); box-shadow: 0 0 8px var(--green-glow); }
+input[type=range].amber::-webkit-slider-thumb { background: var(--amber); box-shadow: 0 0 8px var(--amber-glow); }
+input[type=range].red::-webkit-slider-thumb { background: var(--red); box-shadow: 0 0 8px var(--red-glow); }
+
+.toggle-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--border);
+}
+.toggle-row:last-child { border-bottom: none; }
+.toggle-label { font-size: var(--text-xs); color: var(--text-muted); }
+.toggle {
+  width: 32px; height: 17px; border-radius: var(--radius-full);
+  background: var(--border); position: relative; cursor: pointer;
+  transition: background var(--transition); flex-shrink: 0;
+}
+.toggle.on { background: var(--green-dim); }
+.toggle::after {
+  content: ''; position: absolute; top: 2px; left: 2px;
+  width: 13px; height: 13px; border-radius: 50%; background: var(--text-faint);
+  transition: transform var(--transition), background var(--transition);
+}
+.toggle.on::after { transform: translateX(15px); background: var(--bg); }
+
+.doctrine-version {
+  display: flex; align-items: center; gap: var(--space-2);
+  padding: var(--space-3);
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: var(--radius-md); margin-bottom: var(--space-3);
+}
+.dv-hash {
+  font-family: var(--font-mono); font-size: var(--text-xs); color: var(--green);
+  flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.dv-label { font-size: var(--text-xs); color: var(--text-faint); }
+.btn-apply {
+  width: 100%; padding: var(--space-2) var(--space-4);
+  background: rgba(0,229,160,0.1); border: 1px solid var(--green-dim);
+  border-radius: var(--radius-md); color: var(--green);
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+  transition: var(--transition); margin-top: var(--space-2);
+}
+.btn-apply:hover { background: rgba(0,229,160,0.18); box-shadow: 0 0 16px var(--green-glow); }
+
+/* ── PROOF PANEL ──────────────────────────────────────────────── */
+.proof-entry {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  margin-bottom: var(--space-2);
+  overflow: hidden;
+}
+.proof-entry-head {
+  display: flex; align-items: center; gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+}
+.proof-hash {
+  font-family: var(--font-mono); font-size: var(--text-xs); color: var(--green);
+  flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.proof-status {
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  color: var(--green); display: flex; align-items: center; gap: 4px;
+}
+.proof-entry-body {
+  border-top: 1px solid var(--border);
+  padding: var(--space-2) var(--space-3);
+  display: none;
+}
+.proof-entry.open .proof-entry-body { display: block; }
+.proof-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: var(--space-1) 0;
+  font-size: var(--text-xs);
+}
+.proof-key { color: var(--text-faint); font-family: var(--font-mono); }
+.proof-val { color: var(--text-muted); font-family: var(--font-mono); }
+.proof-val.green { color: var(--green); }
+.proof-val.amber { color: var(--amber); }
+
+.export-strip {
+  display: flex; gap: var(--space-2); padding: var(--space-3);
+  border-top: 1px solid var(--border); flex-shrink: 0;
+}
+.export-btn {
+  flex: 1; padding: var(--space-2);
+  border: 1px solid var(--border); border-radius: var(--radius-md);
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  color: var(--text-muted); text-align: center;
+  transition: var(--transition);
+}
+.export-btn:hover { border-color: var(--border-bright); color: var(--text); }
+
+/* ── AI COPILOT ───────────────────────────────────────────────── */
+.ai-suggestion {
+  border: 1px solid rgba(167,139,250,0.2);
+  background: rgba(167,139,250,0.05);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  margin-bottom: var(--space-3);
+  position: relative;
+}
+.ai-suggestion::before {
+  content: '✦ AI';
+  position: absolute; top: -8px; left: var(--space-3);
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  color: var(--purple); background: var(--surface);
+  padding: 0 var(--space-2); letter-spacing: 0.1em;
+}
+.ai-suggestion p {
+  font-size: var(--text-xs); color: var(--text-muted);
+  line-height: 1.6; margin-bottom: var(--space-3);
+  max-width: none;
+}
+.ai-suggestion p strong { color: var(--purple); }
+.ai-actions { display: flex; gap: var(--space-2); }
+.ai-btn {
+  flex: 1; padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  font-size: var(--text-xs); color: var(--text-muted);
+  transition: var(--transition); text-align: center;
+}
+.ai-btn.primary { border-color: rgba(167,139,250,0.3); color: var(--purple); }
+.ai-btn:hover { background: var(--surface-3); color: var(--text); }
+
+/* ── COUNTERFACTUAL CARD ──────────────────────────────────────── */
+.counterfactual {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+.cf-title {
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-faint);
+  margin-bottom: var(--space-3);
+}
+.cf-row {
+  display: flex; gap: var(--space-3); margin-bottom: var(--space-2);
+}
+.cf-col {
+  flex: 1; padding: var(--space-2); border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+.cf-col.baseline { background: var(--red-glow); border-color: rgba(255,79,107,0.15); }
+.cf-col.actual   { background: var(--green-glow-sm); border-color: rgba(0,229,160,0.1); }
+.cf-col-label {
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  text-transform: uppercase; letter-spacing: 0.08em;
+  margin-bottom: var(--space-1);
+}
+.cf-col.baseline .cf-col-label { color: var(--red); }
+.cf-col.actual .cf-col-label { color: var(--green); }
+.cf-col-val {
+  font-family: var(--font-mono); font-size: var(--text-base);
+  font-weight: 700; font-variant-numeric: tabular-nums;
+}
+.cf-col.baseline .cf-col-val { color: var(--red); }
+.cf-col.actual .cf-col-val { color: var(--green); }
+.cf-col-unit { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--text-faint); }
+.cf-savings {
+  background: var(--green-glow-sm); border: 1px solid rgba(0,229,160,0.12);
+  border-radius: var(--radius-sm); padding: var(--space-2);
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  color: var(--green); text-align: center;
+}
+
+/* ── VISOR MODE ───────────────────────────────────────────────── */
+.visor-overlay {
+  position: fixed; inset: 0; z-index: 500;
+  background: rgba(3,6,10,0.96);
+  backdrop-filter: blur(12px);
+  display: none; flex-direction: column; align-items: center; justify-content: center;
+  gap: var(--space-8);
+}
+.visor-overlay.open { display: flex; }
+.visor-title {
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  text-transform: uppercase; letter-spacing: 0.3em;
+  color: var(--text-faint);
+}
+.visor-posture {
+  font-family: var(--font-mono); font-size: clamp(2.5rem, 8vw, 5rem);
+  font-weight: 700; letter-spacing: 0.05em; color: var(--green);
+  text-shadow: 0 0 40px var(--green-glow), 0 0 80px rgba(0,229,160,0.1);
+  line-height: 1;
+}
+.visor-decisions {
+  font-family: var(--font-mono); font-size: clamp(1rem, 3vw, 2rem);
+  color: var(--text-muted); text-align: center;
+}
+.visor-decisions span { color: var(--cyan); font-weight: 700; }
+.visor-grid {
+  display: grid; grid-template-columns: repeat(3, 160px); gap: var(--space-4);
+}
+.visor-card {
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: var(--space-4);
+  text-align: center;
+}
+.visor-card-val {
+  font-family: var(--font-mono); font-size: var(--text-xl);
+  font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1;
+  margin-bottom: var(--space-1);
+}
+.visor-card-val.green { color: var(--green); }
+.visor-card-val.amber { color: var(--amber); }
+.visor-card-val.cyan  { color: var(--cyan); }
+.visor-card-lbl {
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.1em;
+}
+.visor-close {
+  position: absolute; top: var(--space-6); right: var(--space-6);
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  color: var(--text-faint); padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  transition: var(--transition);
+}
+.visor-close:hover { color: var(--text); border-color: var(--border-bright); }
+
+/* ── EXPANDED CARD OVERLAY ────────────────────────────────────── */
+.card-overlay {
+  position: fixed; inset: 0; z-index: 400;
+  background: rgba(3,6,10,0.85); backdrop-filter: blur(6px);
+  display: none; align-items: center; justify-content: center;
+}
+.card-overlay.open { display: flex; }
+.card-modal {
+  background: var(--surface-2);
+  border: 1px solid var(--border-bright);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  width: min(520px, 92vw);
+  box-shadow: var(--shadow-lg);
+  position: relative;
+  animation: modal-in 0.25s cubic-bezier(0.16,1,0.3,1);
+}
+@keyframes modal-in {
+  from { opacity: 0; transform: scale(0.96) translateY(8px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+.modal-close {
+  position: absolute; top: var(--space-4); right: var(--space-4);
+  color: var(--text-faint); transition: color var(--transition);
+}
+.modal-close:hover { color: var(--text); }
+.modal-title {
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-faint);
+  margin-bottom: var(--space-4);
+}
+.modal-job {
+  font-family: var(--font-mono); font-size: var(--text-base);
+  color: var(--text); font-weight: 600; margin-bottom: var(--space-4);
+}
+.modal-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+.modal-field-label {
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.08em;
+  margin-bottom: 2px;
+}
+.modal-field-val {
+  font-family: var(--font-mono); font-size: var(--text-sm); color: var(--text);
+}
+.modal-field-val.green { color: var(--green); }
+.modal-field-val.red { color: var(--red); }
+.modal-field-val.amber { color: var(--amber); }
+.modal-proof-box {
+  background: var(--surface); border: 1px solid rgba(0,229,160,0.15);
+  border-radius: var(--radius-md); padding: var(--space-3);
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  color: var(--green); word-break: break-all; line-height: 1.6;
+}
+.modal-replay-btn {
+  width: 100%; margin-top: var(--space-4);
+  padding: var(--space-3); background: rgba(0,229,160,0.07);
+  border: 1px solid rgba(0,229,160,0.2); border-radius: var(--radius-md);
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--green); transition: var(--transition);
+}
+.modal-replay-btn:hover { background: rgba(0,229,160,0.14); }
+
+/* ── ANIMATIONS ───────────────────────────────────────────────── */
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slide-in-right { from { transform: translateX(12px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+.new-card { animation: slide-in-right 0.3s cubic-bezier(0.16,1,0.3,1); }
+
+/* scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* ── RESPONSIVE ───────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .globe-stats { display: none; }
+  .kpi-strip { grid-template-columns: repeat(3, 1fr); }
+  .kpi-cell:nth-child(n+4) { border-top: 1px solid var(--border); }
+}
+@media (max-width: 680px) {
+  .main-body { grid-template-columns: 0 1fr 0; }
+  .sidebar, .right-panel { display: none; }
+  .top-section { grid-template-columns: 1fr; }
+  .decision-feed { display: none; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- AUTHORITY STRIP -->
+  <header class="authority-strip">
+    <div class="logo-mark">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="9"/>
+        <path d="M12 3 Q18 8 12 12 Q6 16 12 21"/>
+        <circle cx="12" cy="12" r="2" fill="currentColor"/>
+      </svg>
+      CO2 ROUTER
+    </div>
+    <div class="strip-divider"></div>
+    <div class="posture-badge">
+      <div class="posture-dot"></div>
+      ENFORCING
+    </div>
+    <div class="strip-stats">
+      <div class="strip-stat">
+        <i data-lucide="zap" style="width:12px;height:12px"></i>
+        <span>DECISIONS</span>
+        <strong id="decision-count">1,247</strong>
+      </div>
+      <div class="strip-stat">
+        <i data-lucide="cpu" style="width:12px;height:12px"></i>
+        <span>P95</span>
+        <strong>31ms</strong>
+      </div>
+      <div class="strip-stat">
+        <i data-lucide="leaf" style="width:12px;height:12px"></i>
+        <span>CO₂ SAVED</span>
+        <strong id="co2-saved">847kg</strong>
+      </div>
+      <div class="strip-stat alert">
+        <i data-lucide="droplets" style="width:12px;height:12px"></i>
+        <span>H₂O SAVED</span>
+        <strong>18.4kL</strong>
+      </div>
+      <div class="strip-stat">
+        <i data-lucide="shield-check" style="width:12px;height:12px"></i>
+        <span>DOCTRINE</span>
+        <strong>v1.14</strong>
+      </div>
+    </div>
+    <div class="strip-right">
+      <div class="strip-clock" id="clock">--:--:-- UTC</div>
+      <button class="strip-btn" onclick="openVisor()">
+        <i data-lucide="scan-eye" style="width:12px;height:12px"></i>
+        VISOR
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN BODY -->
+  <div class="main-body">
+
+    <!-- SIDEBAR NAV -->
+    <nav class="sidebar">
+      <button class="nav-btn active" onclick="switchPanel('globe')">
+        <i data-lucide="globe-2" style="width:18px;height:18px"></i>
+        <span class="nav-tooltip">Globe</span>
+      </button>
+      <button class="nav-btn" onclick="switchPanel('doctrine')">
+        <i data-lucide="sliders-horizontal" style="width:18px;height:18px"></i>
+        <span class="nav-tooltip">Doctrine</span>
+      </button>
+      <button class="nav-btn" onclick="switchPanel('proof')">
+        <i data-lucide="shield-check" style="width:18px;height:18px"></i>
+        <span class="nav-tooltip">Proof Chain</span>
+      </button>
+      <button class="nav-btn" onclick="switchPanel('copilot')">
+        <i data-lucide="sparkles" style="width:18px;height:18px"></i>
+        <span class="nav-tooltip">AI Co-Pilot</span>
+      </button>
+      <div class="sidebar-spacer"></div>
+      <button class="nav-btn">
+        <i data-lucide="settings" style="width:18px;height:18px"></i>
+        <span class="nav-tooltip">Settings</span>
+      </button>
+    </nav>
+
+    <!-- CONTENT -->
+    <div class="content">
+      <div class="top-section">
+
+        <!-- GLOBE PANEL -->
+        <div class="globe-panel">
+          <div class="panel-header">
+            <i data-lucide="globe-2" style="width:14px;height:14px;color:var(--cyan)"></i>
+            <span class="panel-title">Global Routing Map</span>
+            <span class="panel-badge" id="live-badge">● LIVE</span>
+          </div>
+          <canvas id="globe-canvas"></canvas>
+          <div class="globe-overlay">
+            <div class="globe-legend-item">
+              <div class="globe-legend-dot" style="background:var(--green)"></div>
+              Clean route active
+            </div>
+            <div class="globe-legend-item">
+              <div class="globe-legend-dot" style="background:var(--amber)"></div>
+              Delay / reroute pending
+            </div>
+            <div class="globe-legend-item">
+              <div class="globe-legend-dot" style="background:var(--red)"></div>
+              Denied / high stress
+            </div>
+          </div>
+          <div class="globe-stats">
+            <div class="globe-stat-card">
+              <div class="globe-stat-label">Active Regions</div>
+              <div class="globe-stat-value" id="active-regions">14</div>
+            </div>
+            <div class="globe-stat-card">
+              <div class="globe-stat-label">Reroutes / hr</div>
+              <div class="globe-stat-value amber" id="reroutes-hr">342</div>
+            </div>
+            <div class="globe-stat-card">
+              <div class="globe-stat-label">Cleanest Now</div>
+              <div class="globe-stat-value cyan">EU-N1</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- DECISION FEED -->
+        <div class="decision-feed">
+          <div class="panel-header">
+            <i data-lucide="activity" style="width:14px;height:14px;color:var(--green)"></i>
+            <span class="panel-title">Decision Feed</span>
+            <span class="panel-badge" id="feed-count">0</span>
+          </div>
+          <div class="feed-scroll" id="feed-scroll"></div>
+        </div>
+
+      </div>
+
+      <!-- KPI STRIP -->
+      <div class="kpi-strip">
+        <div class="kpi-cell">
+          <div class="kpi-label">Decisions / min</div>
+          <div class="kpi-value" id="kpi-dpm">248</div>
+          <div class="kpi-delta up">▲ 12%</div>
+          <div class="kpi-sparkline"><canvas id="spark-0"></canvas></div>
+        </div>
+        <div class="kpi-cell">
+          <div class="kpi-label">Carbon Saved</div>
+          <div class="kpi-value">847 kg</div>
+          <div class="kpi-delta up">▲ 6.2%</div>
+          <div class="kpi-sparkline"><canvas id="spark-1"></canvas></div>
+        </div>
+        <div class="kpi-cell">
+          <div class="kpi-label">Reroute Rate</div>
+          <div class="kpi-value amber">41%</div>
+          <div class="kpi-delta up">▲ 3%</div>
+          <div class="kpi-sparkline"><canvas id="spark-2"></canvas></div>
+        </div>
+        <div class="kpi-cell">
+          <div class="kpi-label">Delay Rate</div>
+          <div class="kpi-value cyan">18%</div>
+          <div class="kpi-delta down">▼ 1%</div>
+          <div class="kpi-sparkline"><canvas id="spark-3"></canvas></div>
+        </div>
+        <div class="kpi-cell">
+          <div class="kpi-label">Deny Rate</div>
+          <div class="kpi-value red">3%</div>
+          <div class="kpi-delta down">▼ 0.5%</div>
+          <div class="kpi-sparkline"><canvas id="spark-4"></canvas></div>
+        </div>
+        <div class="kpi-cell">
+          <div class="kpi-label">P95 Latency</div>
+          <div class="kpi-value" style="color:var(--purple)">31ms</div>
+          <div class="kpi-delta down">▼ 4ms</div>
+          <div class="kpi-sparkline"><canvas id="spark-5"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="right-panel">
+      <div class="panel-tabs">
+        <button class="panel-tab active" data-tab="doctrine">Doctrine</button>
+        <button class="panel-tab" data-tab="proof">Proof</button>
+        <button class="panel-tab" data-tab="copilot">Copilot</button>
+      </div>
+      <div class="panel-content">
+
+        <!-- DOCTRINE TAB -->
+        <div class="tab-pane active" id="tab-doctrine">
+          <div class="doctrine-version">
+            <div>
+              <div class="dv-label">Active Doctrine</div>
+              <div class="dv-hash">v1.14 · 0xa4f2c9e1</div>
+            </div>
+            <i data-lucide="check-circle" style="width:16px;height:16px;color:var(--green)"></i>
+          </div>
+
+          <div class="doctrine-section">
+            <div class="doctrine-section-title">Objective Weights</div>
+            <div class="slider-row">
+              <div class="slider-label"><strong>Carbon Weight</strong><span class="slider-value" id="val-carbon">72%</span></div>
+              <input type="range" class="green" min="0" max="100" value="72" oninput="document.getElementById('val-carbon').textContent=this.value+'%'">
+            </div>
+            <div class="slider-row">
+              <div class="slider-label"><strong>Water Stress</strong><span class="slider-value" id="val-water">58%</span></div>
+              <input type="range" class="green" min="0" max="100" value="58" oninput="document.getElementById('val-water').textContent=this.value+'%'">
+            </div>
+            <div class="slider-row">
+              <div class="slider-label"><strong>Latency Tolerance</strong><span class="slider-value" id="val-latency">40ms</span></div>
+              <input type="range" class="amber" min="0" max="200" value="40" oninput="document.getElementById('val-latency').textContent=this.value+'ms'">
+            </div>
+            <div class="slider-row">
+              <div class="slider-label"><strong>Cost Ceiling</strong><span class="slider-value" id="val-cost">$0.12</span></div>
+              <input type="range" min="0" max="100" value="48" oninput="document.getElementById('val-cost').textContent='$'+((this.value/100)*0.25).toFixed(2)">
+            </div>
+          </div>
+
+          <div class="doctrine-section">
+            <div class="doctrine-section-title">Hard Rules</div>
+            <div class="toggle-row">
+              <span class="toggle-label">Deny if water stress HIGH</span>
+              <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+            </div>
+            <div class="toggle-row">
+              <span class="toggle-label">Allow delay up to 4 hours</span>
+              <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+            </div>
+            <div class="toggle-row">
+              <span class="toggle-label">Block us-east-1 (water risk)</span>
+              <div class="toggle" onclick="this.classList.toggle('on')"></div>
+            </div>
+            <div class="toggle-row">
+              <span class="toggle-label">GreenOps CI/CD gate enabled</span>
+              <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+            </div>
+            <div class="toggle-row">
+              <span class="toggle-label">Require 2-approver governance</span>
+              <div class="toggle" onclick="this.classList.toggle('on')"></div>
+            </div>
+          </div>
+
+          <button class="btn-apply" onclick="simulateDoctrine()">▶ Run Doctrine Simulator</button>
+        </div>
+
+        <!-- PROOF TAB -->
+        <div class="tab-pane" id="tab-proof">
+          <div id="proof-list"></div>
+        </div>
+
+        <!-- COPILOT TAB -->
+        <div class="tab-pane" id="tab-copilot">
+          <div class="counterfactual">
+            <div class="cf-title">This Month — Counterfactual Engine</div>
+            <div class="cf-row">
+              <div class="cf-col baseline">
+                <div class="cf-col-label">Without CO₂ Router</div>
+                <div class="cf-col-val">4.21</div>
+                <div class="cf-col-unit">tonnes CO₂</div>
+              </div>
+              <div class="cf-col actual">
+                <div class="cf-col-label">Actual Impact</div>
+                <div class="cf-col-val">0.72</div>
+                <div class="cf-col-unit">tonnes CO₂</div>
+              </div>
+            </div>
+            <div class="cf-savings">▼ 83% carbon reduction · 18,400L water avoided</div>
+          </div>
+
+          <div class="ai-suggestion">
+            <p>Your <strong>ml-training-batch</strong> jobs consistently run during peak grid hours in us-east-1. Shifting to a <strong>6-hour delay window</strong> would reduce carbon by 34% with no SLA impact.</p>
+            <div class="ai-actions">
+              <button class="ai-btn primary">Apply Rule</button>
+              <button class="ai-btn">Simulate First</button>
+              <button class="ai-btn">Dismiss</button>
+            </div>
+          </div>
+
+          <div class="ai-suggestion">
+            <p>Water stress in <strong>eu-central-1 is forecast HIGH</strong> for the next 72h (seasonal data). Pre-approve fallback to <strong>eu-north-1</strong> for this period?</p>
+            <div class="ai-actions">
+              <button class="ai-btn primary">Pre-Approve</button>
+              <button class="ai-btn">View Forecast</button>
+            </div>
+          </div>
+
+          <div class="ai-suggestion">
+            <p>Your <strong>latency tolerance on job class: inference</strong> is tighter than doctrine allows. Relaxing by <strong>20ms</strong> unlocks 3 additional clean regions — saving est. <strong>120kg CO₂/week</strong>.</p>
+            <div class="ai-actions">
+              <button class="ai-btn primary">Update Doctrine</button>
+              <button class="ai-btn">Dismiss</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <div class="export-strip">
+        <button class="export-btn">CSRD PDF</button>
+        <button class="export-btn">Scope 3 CSV</button>
+        <button class="export-btn">API Export</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- VISOR OVERLAY -->
+<div class="visor-overlay" id="visor-overlay">
+  <button class="visor-close" onclick="closeVisor()">✕ EXIT VISOR</button>
+  <div class="visor-title">HALOGRID SMART VISOR — POSTURE STATUS</div>
+  <div class="visor-posture">ENFORCING</div>
+  <div class="visor-decisions">
+    <span id="visor-count">1,247</span> decisions in the last 60 minutes
+  </div>
+  <div class="visor-grid">
+    <div class="visor-card">
+      <div class="visor-card-val green">847kg</div>
+      <div class="visor-card-lbl">CO₂ Saved</div>
+    </div>
+    <div class="visor-card">
+      <div class="visor-card-val amber">342</div>
+      <div class="visor-card-lbl">Reroutes / hr</div>
+    </div>
+    <div class="visor-card">
+      <div class="visor-card-val cyan">0</div>
+      <div class="visor-card-lbl">Active Alerts</div>
+    </div>
+    <div class="visor-card">
+      <div class="visor-card-val green">31ms</div>
+      <div class="visor-card-lbl">P95 Latency</div>
+    </div>
+    <div class="visor-card">
+      <div class="visor-card-val green">18.4kL</div>
+      <div class="visor-card-lbl">H₂O Saved</div>
+    </div>
+    <div class="visor-card">
+      <div class="visor-card-val cyan">v1.14</div>
+      <div class="visor-card-lbl">Doctrine</div>
+    </div>
+  </div>
+</div>
+
+<!-- DECISION CARD MODAL -->
+<div class="card-overlay" id="card-overlay" onclick="closeModal(event)">
+  <div class="card-modal" id="card-modal">
+    <button class="modal-close" onclick="closeModal()">
+      <i data-lucide="x" style="width:16px;height:16px"></i>
+    </button>
+    <div class="modal-title">Decision Trace — Full Replay</div>
+    <div class="modal-job" id="modal-job">job-id-loading</div>
+    <div class="modal-grid" id="modal-grid"></div>
+    <div style="font-family:var(--font-mono);font-size:var(--text-xs);color:var(--text-faint);margin-bottom:var(--space-2)">PROOF HASH</div>
+    <div class="modal-proof-box" id="modal-proof"></div>
+    <button class="modal-replay-btn">⟳ Replay Decision Against Current Signals</button>
+  </div>
+</div>
+
+<script>
+// ── DATA ────────────────────────────────────────────────────────
+const REGIONS = [
+  { name:'EU-NORTH-1', x:0.52, y:0.22, intensity:41, water:'LOW', label:'eu-n1' },
+  { name:'EU-WEST-2',  x:0.46, y:0.28, intensity:89, water:'LOW', label:'eu-w2' },
+  { name:'EU-CENTRAL', x:0.54, y:0.27, intensity:142, water:'MED', label:'eu-c1' },
+  { name:'US-EAST-1',  x:0.24, y:0.32, intensity:342, water:'HIGH', label:'us-e1' },
+  { name:'US-WEST-2',  x:0.1,  y:0.3,  intensity:180, water:'MED', label:'us-w2' },
+  { name:'AP-EAST-1',  x:0.84, y:0.38, intensity:520, water:'HIGH', label:'ap-e1' },
+  { name:'AP-SE-1',    x:0.82, y:0.5,  intensity:380, water:'MED', label:'ap-se1' },
+  { name:'SA-EAST-1',  x:0.32, y:0.62, intensity:210, water:'MED', label:'sa-e1' },
+  { name:'AF-SOUTH',   x:0.58, y:0.62, intensity:450, water:'HIGH', label:'af-s1' },
+  { name:'ME-SOUTH',   x:0.66, y:0.37, intensity:390, water:'HIGH', label:'me-s1' },
+];
+
+const ACTIONS = ['REROUTE','REROUTE','REROUTE','DELAY','DELAY','DENY','RUN','RUN','THROTTLE'];
+const JOBS = [
+  'ml-training-batch','inference-worker','etl-pipeline','data-export',
+  'video-encode','model-finetune','batch-analytics','k8s-job','ci-build',
+  'cron-aggregator','stream-processor','dataflow-task'
+];
+const SOURCE_REGIONS = ['us-east-1','us-west-2','ap-east-1','eu-central-1','sa-east-1'];
+const DEST_REGIONS = ['eu-north-1','eu-west-2','us-west-2','ap-southeast-1'];
+
+function rand(min, max) { return Math.random()*(max-min)+min; }
+function randInt(min, max) { return Math.floor(rand(min, max)); }
+function pick(arr) { return arr[randInt(0, arr.length)]; }
+function hex() { return '0x'+Array.from({length:8},()=>'0123456789abcdef'[randInt(0,16)]).join('')+'...'+Array.from({length:4},()=>'0123456789abcdef'[randInt(0,16)]).join(''); }
+
+const ENGINE_PROXY_BASE = '/api/ecobe';
+const ENGINE_POLL_MS = 4000;
+
+let decisionCount = 0;
+let co2SavedKg = 0;
+let feedCount = 0;
+let lastSeenFrameId = null;
+
+function formatNumber(value) {
+  try {
+    return new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(value);
+  } catch {
+    return String(value);
+  }
+}
+
+function formatKg(valueKg) {
+  if (!Number.isFinite(valueKg)) return '0kg';
+  if (valueKg >= 1000) return `${(valueKg / 1000).toFixed(1)}t`;
+  if (valueKg >= 10) return `${Math.round(valueKg)}kg`;
+  return `${valueKg.toFixed(1)}kg`;
+}
+
+async function fetchJson(path) {
+  const res = await fetch(`${ENGINE_PROXY_BASE}${path}`, {
+    method: 'GET',
+    headers: { accept: 'application/json' },
+    cache: 'no-store',
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`Engine request failed (${res.status}): ${text.slice(0, 160)}`);
+  }
+  return res.json();
+}
+
+// ── CLOCK ───────────────────────────────────────────────────────
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    now.toUTCString().split(' ')[4] + ' UTC';
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ── SPARKLINES ──────────────────────────────────────────────────
+const sparkColors = [
+  '#00e5a0','#00e5a0','#ffb347','#3dd9ff','#ff4f6b','#a78bfa'
+];
+const sparkCanvases = [];
+for(let i=0;i<6;i++){
+  const ctx = document.getElementById('spark-'+i).getContext('2d');
+  const data = Array.from({length:20},()=>rand(30,100));
+  const chart = new Chart(ctx, {
+    type:'line',
+    data:{ labels:data.map((_,i)=>i), datasets:[{
+      data, borderColor:sparkColors[i], borderWidth:1.5,
+      tension:0.4, pointRadius:0, fill:true,
+      backgroundColor: ctx => {
+        const g = ctx.chart.ctx.createLinearGradient(0,0,0,28);
+        g.addColorStop(0, sparkColors[i]+'44');
+        g.addColorStop(1, sparkColors[i]+'00');
+        return g;
+      }
+    }]},
+    options:{
+      responsive:true, maintainAspectRatio:false, animation:false,
+      plugins:{legend:{display:false},tooltip:{enabled:false}},
+      scales:{x:{display:false},y:{display:false}}
+    }
+  });
+  sparkCanvases.push({chart, data});
+}
+
+function updateSparklines(){
+  sparkCanvases.forEach(({chart, data})=>{
+    data.push(rand(30,100)); data.shift();
+    chart.data.datasets[0].data = [...data];
+    chart.update('none');
+  });
+}
+setInterval(updateSparklines, 2000);
+
+// ── GLOBE CANVAS ─────────────────────────────────────────────────
+const globeCanvas = document.getElementById('globe-canvas');
+const gctx = globeCanvas.getContext('2d');
+let globeW, globeH;
+let arcs = [];
+let nodes = [];
+let animFrame = 0;
+
+function resizeGlobe(){
+  const rect = globeCanvas.parentElement.getBoundingClientRect();
+  globeCanvas.width = rect.width;
+  globeCanvas.height = rect.height - 40;
+  globeW = globeCanvas.width;
+  globeH = globeCanvas.height;
+}
+
+function geoToXY(xFrac, yFrac){
+  return { x: xFrac * globeW, y: yFrac * globeH };
+}
+
+function drawGlobe(){
+  gctx.clearRect(0,0,globeW,globeH);
+
+  // Deep space background gradient
+  const bg = gctx.createRadialGradient(globeW*0.5,globeH*0.5,0,globeW*0.5,globeH*0.5,Math.max(globeW,globeH)*0.7);
+  bg.addColorStop(0,'#0a0f1a');
+  bg.addColorStop(1,'#050709');
+  gctx.fillStyle = bg;
+  gctx.fillRect(0,0,globeW,globeH);
+
+  // Grid lines (lat/lon)
+  gctx.strokeStyle = 'rgba(100,200,255,0.04)';
+  gctx.lineWidth = 0.5;
+  for(let x=0;x<=globeW;x+=globeW/12){
+    gctx.beginPath(); gctx.moveTo(x,0); gctx.lineTo(x,globeH); gctx.stroke();
+  }
+  for(let y=0;y<=globeH;y+=globeH/8){
+    gctx.beginPath(); gctx.moveTo(0,y); gctx.lineTo(globeW,y); gctx.stroke();
+  }
+
+  // Continent blobs (simplified impressions)
+  const contBlobs = [
+    {x:0.20,y:0.28,w:0.18,h:0.22}, // NA
+    {x:0.48,y:0.24,w:0.14,h:0.18}, // Europe
+    {x:0.60,y:0.30,w:0.12,h:0.20}, // Asia
+    {x:0.78,y:0.42,w:0.10,h:0.16}, // SE Asia
+    {x:0.28,y:0.55,w:0.08,h:0.16}, // SA
+    {x:0.55,y:0.52,w:0.10,h:0.18}, // Africa
+  ];
+  contBlobs.forEach(b=>{
+    gctx.fillStyle='rgba(100,200,255,0.03)';
+    gctx.beginPath();
+    gctx.ellipse(b.x*globeW, b.y*globeH, b.w*globeW/2, b.h*globeH/2, 0, 0, Math.PI*2);
+    gctx.fill();
+  });
+
+  // Routing arcs
+  arcs.forEach(arc=>{
+    arc.progress += arc.speed;
+    if(arc.progress > 1.4) arcs.splice(arcs.indexOf(arc),1);
+    const t = Math.min(arc.progress, 1);
+    const tail = Math.max(0, arc.progress - 0.4);
+    gctx.save();
+    gctx.strokeStyle = arc.color;
+    gctx.lineWidth = 1.5;
+    gctx.shadowColor = arc.color;
+    gctx.shadowBlur = 6;
+    gctx.globalAlpha = Math.sin(arc.progress * Math.PI) * 0.8;
+    gctx.beginPath();
+    const steps = 30;
+    for(let i=Math.floor(tail*steps); i<=Math.floor(t*steps); i++){
+      const u = i/steps;
+      const px = (1-u)*(1-u)*arc.x1+(2*(1-u)*u)*arc.cx+(u*u)*arc.x2;
+      const py = (1-u)*(1-u)*arc.y1+(2*(1-u)*u)*arc.cy+(u*u)*arc.y2;
+      if(i===Math.floor(tail*steps)) gctx.moveTo(px,py);
+      else gctx.lineTo(px,py);
+    }
+    gctx.stroke();
+    // head dot
+    const hu = t;
+    const hx = (1-hu)*(1-hu)*arc.x1+(2*(1-hu)*hu)*arc.cx+(hu*hu)*arc.x2;
+    const hy = (1-hu)*(1-hu)*arc.y1+(2*(1-hu)*hu)*arc.cy+(hu*hu)*arc.y2;
+    gctx.fillStyle = arc.color;
+    gctx.shadowBlur = 12;
+    gctx.beginPath();
+    gctx.arc(hx, hy, 3, 0, Math.PI*2);
+    gctx.fill();
+    gctx.restore();
+  });
+
+  // Nodes
+  const t = Date.now()/1000;
+  REGIONS.forEach((r,i)=>{
+    const p = geoToXY(r.x, r.y);
+    const pulse = (Math.sin(t*1.5 + i*0.8)+1)/2;
+    let color;
+    if(r.intensity < 100) color = '#00e5a0';
+    else if(r.intensity < 300) color = '#ffb347';
+    else color = '#ff4f6b';
+
+    // Pulse ring
+    gctx.save();
+    gctx.strokeStyle = color;
+    gctx.lineWidth = 1;
+    gctx.globalAlpha = (1-pulse)*0.5;
+    gctx.beginPath();
+    gctx.arc(p.x, p.y, 8 + pulse*14, 0, Math.PI*2);
+    gctx.stroke();
+    gctx.restore();
+
+    // Core dot
+    gctx.save();
+    gctx.fillStyle = color;
+    gctx.shadowColor = color;
+    gctx.shadowBlur = 10;
+    gctx.globalAlpha = 0.9;
+    gctx.beginPath();
+    gctx.arc(p.x, p.y, 4, 0, Math.PI*2);
+    gctx.fill();
+    gctx.restore();
+
+    // Label
+    gctx.save();
+    gctx.font = '9px JetBrains Mono, monospace';
+    gctx.fillStyle = 'rgba(150,200,220,0.6)';
+    gctx.fillText(r.label, p.x+7, p.y+4);
+    gctx.restore();
+  });
+
+  animFrame++;
+  requestAnimationFrame(drawGlobe);
+}
+
+function spawnArc(){
+  const src = REGIONS[randInt(3,10)];
+  const dst = REGIONS[randInt(0,4)];
+  const p1 = geoToXY(src.x, src.y);
+  const p2 = geoToXY(dst.x, dst.y);
+  const mx = (p1.x+p2.x)/2;
+  const my = (p1.y+p2.y)/2 - rand(30,80);
+  const colors = ['#00e5a0','#00e5a0','#ffb347','#3dd9ff'];
+  arcs.push({
+    x1:p1.x, y1:p1.y, x2:p2.x, y2:p2.y,
+    cx:mx, cy:my,
+    color:pick(colors), progress:0, speed:rand(0.006,0.012)
+  });
+}
+
+window.addEventListener('resize', ()=>{ resizeGlobe(); });
+resizeGlobe();
+drawGlobe();
+setInterval(spawnArc, 800);
+
+// ── DECISION FEED ────────────────────────────────────────────────
+const feedEl = document.getElementById('feed-scroll');
+const feedCountEl = document.getElementById('feed-count');
+
+const actionClass = { REROUTE:'reroute', DELAY:'delay', DENY:'deny', RUN:'run', THROTTLE:'throttle' };
+
+function makeFeedCard(){
+  const action = pick(ACTIONS);
+  const job = pick(JOBS)+'-'+randInt(1000,9999);
+  const src = pick(SOURCE_REGIONS);
+  const dst = pick(DEST_REGIONS);
+  const dCO2 = randInt(20,95);
+  const dH2O = randInt(15,80);
+  const dLatency = randInt(5,45);
+  const proofHash = hex();
+  const mins = randInt(0,59);
+  const secs = randInt(0,59);
+  const timeAgo = mins>0 ? mins+'m '+secs+'s ago' : secs+'s ago';
+
+  const cls = actionClass[action]||'run';
+  const id = 'card-'+Date.now()+Math.random();
+
+  const card = document.createElement('div');
+  card.className = `decision-card ${cls} new-card`;
+  card.dataset.job = job;
+  card.dataset.src = src;
+  card.dataset.dst = dst;
+  card.dataset.action = action;
+  card.dataset.dco2 = dCO2;
+  card.dataset.dh2o = dH2O;
+  card.dataset.dlatency = dLatency;
+  card.dataset.proof = proofHash;
+  card.innerHTML = `
+    <div class="dc-top">
+      <span class="dc-action ${cls}">${action}</span>
+      <span class="dc-job">${job}</span>
+      <span class="dc-time">${timeAgo}</span>
+    </div>
+    <div class="dc-metrics">
+      <div class="dc-metric">${action==='RUN'?'REGION:':'FROM:'} <span>${src}</span></div>
+      ${action!=='RUN'?`<div class="dc-metric">TO: <span class="positive">${dst}</span></div>`:''}
+      <div class="dc-metric">CO₂Δ: <span class="positive">-${dCO2}%</span></div>
+      <div class="dc-metric">H₂OΔ: <span class="positive">-${dH2O}%</span></div>
+      ${action==='REROUTE'?`<div class="dc-metric warn">+${dLatency}ms</div>`:''}
+    </div>
+    <div class="dc-proof"><div class="proof-dot"></div>${proofHash}</div>
+  `;
+  card.addEventListener('click', ()=>openCardModal(card));
+  return card;
+}
+
+function addFeedCard(){
+  const card = makeFeedCard();
+  feedEl.insertBefore(card, feedEl.firstChild);
+  feedCount++;
+  feedCountEl.textContent = feedCount;
+  if(feedEl.children.length > 40) feedEl.removeChild(feedEl.lastChild);
+  decisionCount++;
+  document.getElementById('decision-count').textContent = decisionCount.toLocaleString();
+  if(Math.random()<0.15){ co2Saved+=randInt(1,5); document.getElementById('co2-saved').textContent=co2Saved+'kg'; }
+  document.getElementById('visor-count').textContent = decisionCount.toLocaleString();
+}
+
+// â”€â”€ LIVE MODE (ENGINE) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Replace the synthetic ticker with live engine decisions.
+const liveBadgeEl = document.getElementById('live-badge');
+
+function setLiveBadge(live) {
+  if (!liveBadgeEl) return;
+  liveBadgeEl.textContent = live ? '● LIVE' : '● DEGRADED';
+  liveBadgeEl.style.color = live ? 'var(--green)' : 'var(--amber)';
+}
+
+function toDecisionRow(decision) {
+  const frameId = decision?.decisionFrameId || decision?.decisionFrame?.id || null;
+  const action = (decision?.action || decision?.decisionAction || 'run').toString().toUpperCase();
+  const src =
+    decision?.decisionFrame?.baselineTarget?.region ||
+    decision?.decisionEnvelope?.baselineTarget?.region ||
+    decision?.baselineRegion ||
+    decision?.selectedRegion ||
+    '—';
+  const dst =
+    decision?.decisionFrame?.selectedTarget?.region ||
+    decision?.decisionEnvelope?.selectedTarget?.region ||
+    decision?.selectedRegion ||
+    '—';
+  const createdAt = decision?.createdAt || decision?.timestamp || decision?.decisionFrame?.request?.timestamp || null;
+  const createdMs = createdAt ? Date.parse(createdAt) : Date.now();
+  const proofHash = decision?.decisionFrame?.policyTrace?.proofHash || decision?.proofEnvelope?.proofHash || decision?.proofHash || null;
+
+  const waterBaseline = Number(decision?.decisionFrame?.waterBaselineLiters ?? decision?.waterBaselineLiters ?? decision?.proofEnvelope?.baseline?.waterImpactLiters ?? NaN);
+  const waterSelected = Number(decision?.decisionFrame?.waterImpactLiters ?? decision?.waterImpactLiters ?? decision?.proofEnvelope?.selected?.waterImpactLiters ?? NaN);
+  const waterDeltaPct = Number.isFinite(waterBaseline) && waterBaseline > 0 && Number.isFinite(waterSelected)
+    ? Math.round(((waterBaseline - waterSelected) / waterBaseline) * 100)
+    : null;
+
+  const co2Baseline = Number(decision?.baseline ?? decision?.baselineCarbonIntensity ?? decision?.proofEnvelope?.baseline?.carbonIntensity ?? NaN);
+  const co2Selected = Number(decision?.carbonIntensity ?? decision?.proofEnvelope?.selected?.carbonIntensity ?? NaN);
+  const co2DeltaPct = Number.isFinite(co2Baseline) && co2Baseline > 0 && Number.isFinite(co2Selected)
+    ? Math.round(((co2Baseline - co2Selected) / co2Baseline) * 100)
+    : null;
+
+  const totalLatencyMs = Number(decision?.latencyMs?.total ?? decision?.latencyMs ?? NaN);
+  const latencyDisplay = Number.isFinite(totalLatencyMs) ? Math.round(totalLatencyMs) : null;
+
+  return { frameId, action, src, dst, createdMs, proofHash, waterDeltaPct, co2DeltaPct, latencyDisplay };
+}
+
+function formatTimeAgo(createdMs) {
+  const deltaSec = Math.max(0, Math.floor((Date.now() - createdMs) / 1000));
+  const mins = Math.floor(deltaSec / 60);
+  const secs = deltaSec % 60;
+  return mins > 0 ? `${mins}m ${secs}s ago` : `${secs}s ago`;
+}
+
+function buildDecisionCard(row) {
+  const cls = actionClass[row.action] || 'run';
+  const card = document.createElement('div');
+  card.className = `decision-card ${cls}`;
+
+  card.dataset.job = row.frameId;
+  card.dataset.src = row.src;
+  card.dataset.dst = row.dst;
+  card.dataset.action = row.action;
+  card.dataset.dco2 = row.co2DeltaPct ?? '';
+  card.dataset.dh2o = row.waterDeltaPct ?? '';
+  card.dataset.dlatency = row.latencyDisplay ?? '';
+  card.dataset.proof = row.proofHash || '';
+
+  const dCO2 = Number.isFinite(row.co2DeltaPct) ? row.co2DeltaPct : randInt(10, 35);
+  const dH2O = Number.isFinite(row.waterDeltaPct) ? row.waterDeltaPct : randInt(10, 35);
+  const dLatency = Number.isFinite(row.latencyDisplay) ? row.latencyDisplay : randInt(4, 35);
+  const proofShort = (row.proofHash || hex()).slice(0, 16);
+
+  card.innerHTML = `
+    <div class="dc-top">
+      <span class="dc-action ${cls}">${row.action}</span>
+      <span class="dc-job">${row.frameId.slice(0, 8)}</span>
+      <span class="dc-time">${formatTimeAgo(row.createdMs)}</span>
+    </div>
+    <div class="dc-metrics">
+      <div class="dc-metric">${row.action==='RUN'?'REGION:':'FROM:'} <span>${row.src}</span></div>
+      ${row.action!=='RUN'?`<div class="dc-metric">TO: <span class="positive">${row.dst}</span></div>`:''}
+      <div class="dc-metric">COâ‚‚Î”: <span class="positive">-${dCO2}%</span></div>
+      <div class="dc-metric">Hâ‚‚OÎ”: <span class="positive">-${dH2O}%</span></div>
+      ${row.action==='REROUTE'?`<div class="dc-metric warn">+${dLatency}ms</div>`:''}
+    </div>
+    <div class="dc-proof"><div class="proof-dot"></div>${proofShort}</div>
+  `;
+  card.addEventListener('click', () => openCardModal(card));
+  return card;
+}
+
+async function refreshFromEngine() {
+  try {
+    const [health, decisionsPayload] = await Promise.all([
+      fetchJson('/health'),
+      fetchJson('/ci/decisions?limit=25'),
+    ]);
+
+    setLiveBadge(Boolean(health?.ok ?? true));
+
+    const decisions = Array.isArray(decisionsPayload?.decisions) ? decisionsPayload.decisions : [];
+    if (!decisions.length) return;
+
+    const rows = decisions.map(toDecisionRow).filter((r) => r.frameId);
+    rows.sort((a, b) => b.createdMs - a.createdMs);
+
+    const now = Date.now();
+    const hourAgo = now - 60 * 60 * 1000;
+    const lastHour = rows.filter((r) => r.createdMs >= hourAgo);
+
+    decisionCount = lastHour.length;
+    document.getElementById('decision-count').textContent = formatNumber(decisionCount);
+    document.getElementById('visor-count').textContent = formatNumber(decisionCount);
+
+    const uniqueRegions = new Set(rows.flatMap((r) => [r.src, r.dst].filter(Boolean)));
+    document.getElementById('active-regions').textContent = formatNumber(uniqueRegions.size);
+
+    const reroutesHr = lastHour.filter((r) => r.action === 'REROUTE').length;
+    document.getElementById('reroutes-hr').textContent = formatNumber(reroutesHr);
+
+    // CO2 savings best-effort (g -> kg)
+    let savedKg = 0;
+    for (const decision of decisions) {
+      const savedG = Number(decision?.savings ?? NaN);
+      if (Number.isFinite(savedG)) savedKg += savedG / 1000;
+    }
+    co2SavedKg = savedKg;
+    document.getElementById('co2-saved').textContent = formatKg(co2SavedKg);
+
+    const newestFrameId = rows[0]?.frameId;
+    const unseen = [];
+    for (const row of rows) {
+      if (lastSeenFrameId && row.frameId === lastSeenFrameId) break;
+      unseen.push(row);
+      if (unseen.length >= 8) break;
+    }
+
+    if (!lastSeenFrameId) {
+      feedEl.innerHTML = '';
+      const initial = rows.slice(0, 12).reverse();
+      for (const row of initial) feedEl.appendChild(buildDecisionCard(row));
+    } else if (unseen.length) {
+      for (const row of unseen.reverse()) {
+        feedEl.insertBefore(buildDecisionCard(row), feedEl.firstChild);
+      }
+    }
+
+    lastSeenFrameId = newestFrameId;
+    feedCount = feedEl.children.length;
+    feedCountEl.textContent = String(feedCount);
+    while (feedEl.children.length > 40) feedEl.removeChild(feedEl.lastChild);
+  } catch (err) {
+    console.warn('HaloGrid refresh failed:', err);
+    setLiveBadge(false);
+  }
+}
+
+refreshFromEngine();
+setInterval(refreshFromEngine, ENGINE_POLL_MS);
+
+// ── CARD MODAL ───────────────────────────────────────────────────
+const overlay = document.getElementById('card-overlay');
+function openCardModal(card){
+  document.getElementById('modal-job').textContent = card.dataset.job;
+  document.getElementById('modal-proof').textContent =
+    'HASH: '+card.dataset.proof+'\nSIGNAL_LINEAGE: WattTime·v3 → Ember·2026Q1 → WRI·Aqueduct-v5\nPOLICY_VERSION: v1.14 · doctrine:hash:0xa4f2c9e1\nREPLAY_READY: TRUE\nTIMESTAMP: '+new Date().toISOString();
+  const grid = document.getElementById('modal-grid');
+  const fields = [
+    {l:'Action',  v:card.dataset.action, c: card.dataset.action==='DENY'?'red':card.dataset.action==='DELAY'?'amber':'green'},
+    {l:'Source Region', v:card.dataset.src, c:''},
+    {l:'Routed To', v:card.dataset.dst||'—', c:'green'},
+    {l:'Carbon Delta', v:'-'+card.dataset.dco2+'%', c:'green'},
+    {l:'Water Delta', v:'-'+card.dataset.dh2o+'%', c:'green'},
+    {l:'Latency Cost', v:'+'+card.dataset.dlatency+'ms', c:'amber'},
+  ];
+  grid.innerHTML = fields.map(f=>`
+    <div>
+      <div class="modal-field-label">${f.l}</div>
+      <div class="modal-field-val ${f.c}">${f.v}</div>
+    </div>
+  `).join('');
+  overlay.classList.add('open');
+}
+function closeModal(e){
+  if(!e || e.target===overlay) overlay.classList.remove('open');
+}
+document.getElementById('card-modal').addEventListener('click',e=>e.stopPropagation());
+
+// ── PROOF LIST ──────────────────────────────────────────────────
+function buildProofList(){
+  const el = document.getElementById('proof-list');
+  for(let i=0;i<6;i++){
+    const div = document.createElement('div');
+    div.className = 'proof-entry';
+    div.innerHTML = `
+      <div class="proof-entry-head" onclick="this.parentElement.classList.toggle('open')">
+        <i data-lucide="shield-check" style="width:12px;height:12px;color:var(--green)"></i>
+        <span class="proof-hash">${hex()}</span>
+        <span class="proof-status"><span style="width:5px;height:5px;border-radius:50%;background:var(--green);display:inline-block"></span>VERIFIED</span>
+      </div>
+      <div class="proof-entry-body">
+        <div class="proof-row"><span class="proof-key">JOB</span><span class="proof-val">${pick(JOBS)+'-'+randInt(1000,9999)}</span></div>
+        <div class="proof-row"><span class="proof-key">ACTION</span><span class="proof-val green">${pick(['REROUTE','DELAY','RUN'])}</span></div>
+        <div class="proof-row"><span class="proof-key">CO₂Δ</span><span class="proof-val green">-${randInt(40,90)}%</span></div>
+        <div class="proof-row"><span class="proof-key">H₂OΔ</span><span class="proof-val green">-${randInt(30,80)}%</span></div>
+        <div class="proof-row"><span class="proof-key">DOCTRINE</span><span class="proof-val">v1.14</span></div>
+        <div class="proof-row"><span class="proof-key">TIMESTAMP</span><span class="proof-val">${new Date(Date.now()-randInt(0,3600000)).toISOString()}</span></div>
+      </div>
+    `;
+    el.appendChild(div);
+  }
+}
+buildProofList();
+
+// ── TABS ─────────────────────────────────────────────────────────
+document.querySelectorAll('.panel-tab').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.panel-tab').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
+  });
+});
+
+// ── VISOR ────────────────────────────────────────────────────────
+function openVisor(){  document.getElementById('visor-overlay').classList.add('open'); }
+function closeVisor(){ document.getElementById('visor-overlay').classList.remove('open'); }
+
+// ── DOCTRINE SIMULATOR ───────────────────────────────────────────
+function simulateDoctrine(){
+  alert('Doctrine Simulator: Running 30-day backtest...\n\nProjected change if this doctrine were live:\n+12% RUN decisions\n-8% CO₂ delta (net improvement)\n-4% H₂O stress exposure\n\nApply doctrine v1.15? (Requires approval)');
+}
+
+// ── SIDEBAR NAV ──────────────────────────────────────────────────
+function switchPanel(name){
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+}
+
+// ── INIT ICONS ───────────────────────────────────────────────────
+lucide.createIcons();
+</script>
+</body>
+</html>

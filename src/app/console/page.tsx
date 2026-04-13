@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
-import { headers } from 'next/headers'
 
-import { CommandCenterShellVariant } from '@/components/command-center/CommandCenterShellVariant'
+import KeeperConsoleFrame from '@/components/KeeperConsoleFrame'
 import { createPageMetadata } from '@/lib/seo'
 
 export const metadata: Metadata = createPageMetadata({
@@ -20,22 +19,6 @@ export const metadata: Metadata = createPageMetadata({
   ],
 })
 
-export const dynamic = 'force-dynamic'
-
-function resolveDefaultVariant(hostname: string | null): 'opus' | 'google-pro' | 'mission-control' {
-  // Default to the new CO2 Control Panel (mission-control)
-  return 'mission-control'
-}
-
-export default async function ConsolePage(props: {
-  searchParams?: Promise<Record<string, string | string[] | undefined>>
-}) {
-  const headerList = headers()
-  const rawHost = headerList.get('x-forwarded-host') ?? headerList.get('host')
-  const searchParams = (await props.searchParams) ?? {}
-  const variantValue = searchParams.variant
-  const requestedVariant = Array.isArray(variantValue) ? variantValue[0] : variantValue
-  const variant = requestedVariant ?? resolveDefaultVariant(rawHost)
-
-  return <CommandCenterShellVariant variant={variant} />
+export default function ConsolePage() {
+  return <KeeperConsoleFrame />
 }

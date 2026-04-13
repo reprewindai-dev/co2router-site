@@ -123,7 +123,7 @@ function mergeAbortSignals(signals: Array<AbortSignal | null | undefined>) {
   return controller.signal
 }
 
-async function fetchEngineJson<T>(
+export async function fetchEngineJson<T>(
   path: string,
   init?: RequestInit & {
     internal?: boolean

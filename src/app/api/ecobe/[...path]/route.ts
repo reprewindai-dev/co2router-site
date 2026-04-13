@@ -2,12 +2,27 @@ import crypto from 'crypto'
 import axios from 'axios'
 import { NextResponse } from 'next/server'
 
+import { getClientIp, RateLimiter } from '@/lib/rate-limit'
+
 const DEFAULT_ENGINE_URL = 'https://ecobe-engineclaude-co2router.onrender.com'
 const FORWARDED_HEADERS = ['accept', 'content-type', 'authorization', 'x-request-id', 'x-ecobe-signature'] as const
 const SIGNED_DECISION_PATHS = new Set(['ci/route', 'ci/authorize', 'ci/carbon-route'])
 
+const engineLimiter = new RateLimiter({
+  // 240 req/min/IP burst, refills at 4 req/sec
+  capacity: 240,
+  refillPerSecond: 4,
+})
+
 function getEngineBaseUrl() {
   return process.env.ECOBE_API_URL || DEFAULT_ENGINE_URL
+}
+
+function getEngineTimeoutMs() {
+  const raw = process.env.ECOBE_ENGINE_TIMEOUT_MS
+  const parsed = raw ? Number(raw) : NaN
+  if (!Number.isFinite(parsed) || parsed <= 0) return 12_000
+  return Math.min(Math.max(parsed, 2_000), 60_000)
 }
 
 function isCuratedProofInspectionPath(joined: string) {
@@ -21,6 +36,8 @@ function shouldUseInternalKey(path: string[]) {
     joined.startsWith('methodology/') ||
     joined.startsWith('disclosure/') ||
     joined.startsWith('system/') ||
+    joined === 'ci/decisions/export' ||
+    joined.startsWith('ci/decisions/export/') ||
     isCuratedProofInspectionPath(joined)
   )
 }
@@ -42,13 +59,55 @@ function signDecisionBody(body: Buffer) {
 async function proxy(request: Request, ctx: { params: Promise<{ path?: string[] }> }) {
   const { path = [] } = await ctx.params
 
+  const ip = getClientIp(request)
+  const limit = engineLimiter.consume(ip)
+  if (!limit.ok) {
+    return NextResponse.json(
+      { error: 'Rate limit exceeded.' },
+      {
+        status: 429,
+        headers: {
+          'retry-after': String(limit.retryAfterSeconds),
+        },
+      }
+    )
+  }
+
   const engineBaseUrl = getEngineBaseUrl().replace(/\/$/, '')
   const url = new URL(request.url)
   const useInternalKey = shouldUseInternalKey(path)
 
-  const targetUrl = new URL(
-    `${engineBaseUrl}/api/v1/${path.map(encodeURIComponent).join('/')}${url.search}`
-  )
+  const joinedPath = path.map((part) => encodeURIComponent(part)).join('/')
+  const targetUrl = new URL(`${engineBaseUrl}/api/v1/${joinedPath}${url.search}`)
+
+  // Engine quirk hardening:
+  // - `/ci/decisions?limit=<small>` intermittently fails upstream with 500
+  // - `/ci/decisions?limit=<n>` may fail when `limit` is the only query param
+  // Normalize to a safe request and slice response back down when needed.
+  const requestedDecisionLimitRaw =
+    request.method === 'GET' && path.join('/') === 'ci/decisions'
+      ? targetUrl.searchParams.get('limit')
+      : null
+  const requestedDecisionLimit = requestedDecisionLimitRaw ? Number(requestedDecisionLimitRaw) : null
+  const shouldSliceDecisions =
+    requestedDecisionLimit !== null &&
+    Number.isFinite(requestedDecisionLimit) &&
+    requestedDecisionLimit > 0 &&
+    requestedDecisionLimit < 100
+
+  if (requestedDecisionLimit !== null) {
+    // ensure we never send "limit-only" to upstream
+    if (targetUrl.searchParams.size === 1) {
+      targetUrl.searchParams.set('offset', '0')
+    }
+    // still add offset for stability even if other params exist
+    if (!targetUrl.searchParams.has('offset')) {
+      targetUrl.searchParams.set('offset', '0')
+    }
+    if (shouldSliceDecisions) {
+      targetUrl.searchParams.set('limit', '100')
+    }
+  }
 
   const headers: Record<string, string> = {}
   for (const header of FORWARDED_HEADERS) {
@@ -97,7 +156,37 @@ async function proxy(request: Request, ctx: { params: Promise<{ path?: string[] 
     responseType: 'arraybuffer',
     validateStatus: () => true,
     maxRedirects: 0,
+    timeout: getEngineTimeoutMs(),
   })
+
+  if (shouldSliceDecisions) {
+    const contentType = String((upstream.headers as Record<string, string>)['content-type'] ?? '')
+    if (contentType.includes('application/json')) {
+      try {
+        const decoded = Buffer.from(upstream.data).toString('utf8')
+        const json = JSON.parse(decoded) as { decisions?: unknown[]; total?: number; limit?: number }
+        const decisions = Array.isArray(json?.decisions) ? json.decisions : []
+        const sliced = decisions.slice(0, requestedDecisionLimit as number)
+        return NextResponse.json(
+          {
+            ...json,
+            decisions: sliced,
+            limit: sliced.length,
+            total: sliced.length,
+          },
+          {
+            status: upstream.status,
+            headers: {
+              'x-ecobe-proxy-mode': useInternalKey ? 'internal' : 'forwarded',
+              'x-ecobe-proxy-sliced': '1',
+            },
+          }
+        )
+      } catch {
+        // If slicing fails, fall through to raw upstream passthrough.
+      }
+    }
+  }
 
   const response = new NextResponse(upstream.data, {
     status: upstream.status,
