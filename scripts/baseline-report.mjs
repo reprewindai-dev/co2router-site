@@ -124,6 +124,16 @@ function sumNullable(acc, value) {
   return acc + value
 }
 
+async function fetchWithTimeout(url, { timeoutMs = 15000, ...init } = {}) {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    return await fetch(url, { ...init, signal: controller.signal })
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
 async function fetchDecisions() {
   const decisions = []
   let cursor = null
@@ -133,21 +143,30 @@ async function fetchDecisions() {
     url.searchParams.set('limit', String(PAGE_SIZE))
     if (cursor) url.searchParams.set('cursor', cursor)
 
-    const res = await fetch(url, { headers: { accept: 'application/json' } })
+    const res = await fetchWithTimeout(url, { headers: { accept: 'application/json' } })
     if (!res.ok) {
       if (pageIndex === 0) {
         // Fallback when engine export isn't deployed yet.
-        const legacy = new URL('/api/ecobe/ci/decisions', ORIGIN)
-        legacy.searchParams.set('limit', String(Math.min(MAX_RECORDS, 500)))
-        legacy.searchParams.set('offset', '0')
-        const legacyRes = await fetch(legacy, { headers: { accept: 'application/json' } })
-        if (!legacyRes.ok) {
-          const legacyText = await legacyRes.text().catch(() => '')
-          throw new Error(`Fetch failed (${legacyRes.status}): ${legacyText.slice(0, 200)}`)
+        const tryLimits = [Math.min(MAX_RECORDS, 500), 200, 100, 50, 25, 10, 1]
+        for (const tryLimit of tryLimits) {
+          const legacy = new URL('/api/ecobe/ci/decisions', ORIGIN)
+          legacy.searchParams.set('limit', String(tryLimit))
+          legacy.searchParams.set('offset', '0')
+          const legacyRes = await fetchWithTimeout(legacy, { headers: { accept: 'application/json' } })
+          if (!legacyRes.ok) {
+            continue
+          }
+          const legacyJson = await legacyRes.json()
+          const legacyDecisions = Array.isArray(legacyJson?.decisions) ? legacyJson.decisions : []
+          return { decisions: legacyDecisions, raw: legacyJson }
         }
-        const legacyJson = await legacyRes.json()
-        const legacyDecisions = Array.isArray(legacyJson?.decisions) ? legacyJson.decisions : []
-        return { decisions: legacyDecisions, raw: legacyJson }
+
+        const legacy = new URL('/api/ecobe/ci/decisions', ORIGIN)
+        legacy.searchParams.set('limit', '1')
+        legacy.searchParams.set('offset', '0')
+        const legacyRes = await fetchWithTimeout(legacy, { headers: { accept: 'application/json' } })
+        const legacyText = await legacyRes.text().catch(() => '')
+        throw new Error(`Fetch failed (${legacyRes.status}): ${legacyText.slice(0, 200)}`)
       }
 
       const text = await res.text().catch(() => '')
