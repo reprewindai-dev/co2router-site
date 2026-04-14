@@ -507,6 +507,7 @@ input[type=range].red::-webkit-slider-thumb { background: var(--red); box-shadow
   transition: transform var(--transition), background var(--transition);
 }
 .toggle.on::after { transform: translateX(15px); background: var(--bg); }
+.toggle.disabled { opacity: 0.45; pointer-events: none; }
 
 .doctrine-version {
   display: flex; align-items: center; gap: var(--space-2);
@@ -1060,19 +1061,76 @@ input[type=range].red::-webkit-slider-thumb { background: var(--red); box-shadow
             </div>
           </div>
 
+            <div class="doctrine-section">
+              <div class="doctrine-section-title">Authority</div>
+              <div class="slider-row">
+                <div class="slider-label"><strong>Operator JWT</strong><span class="slider-value" id="doctrine-auth-status">Required</span></div>
+                <input
+                  id="doctrine-token"
+                  type="password"
+                  autocomplete="off"
+                  placeholder="Paste JWT for doctrine routes"
+                  style="width:100%;background:var(--surface-2);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:var(--radius-md);font-family:var(--font-mono);font-size:var(--text-xs)"
+                >
+              </div>
+              <div class="slider-row">
+                <div class="slider-label"><strong>Change Summary</strong></div>
+                <input
+                  id="doctrine-change-summary"
+                  type="text"
+                  autocomplete="off"
+                  placeholder="Short summary for proposal"
+                  style="width:100%;background:var(--surface-2);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:var(--radius-md);font-size:var(--text-xs)"
+                >
+              </div>
+              <div class="slider-row">
+                <div class="slider-label"><strong>Justification</strong></div>
+                <textarea
+                  id="doctrine-justification"
+                  rows="3"
+                  placeholder="Why this doctrine change is required"
+                  style="width:100%;resize:vertical;background:var(--surface-2);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:var(--radius-md);font-size:var(--text-xs);font-family:var(--font-body)"
+                ></textarea>
+              </div>
+            </div>
+
             <button
               class="btn-apply"
               type="button"
               id="doctrine-save-btn"
-              title="Save the doctrine profile in this browser for the shipped console."
-            >Save In This Browser</button>
+              title="Create doctrine proposal in backend."
+            >Submit Proposal</button>
             <div class="btn-row">
               <button
                 class="btn-apply secondary"
                 type="button"
+                id="doctrine-approve-btn"
+                title="Approve selected pending proposal."
+              >Approve Pending</button>
+              <button
+                class="btn-apply secondary"
+                type="button"
                 id="doctrine-reset-btn"
-                title="Reset this browser back to the live doctrine snapshot from decision telemetry."
-              >Use Live Snapshot</button>
+                title="Reset draft to active backend doctrine."
+              >Reset Draft</button>
+            </div>
+            <div class="slider-row" style="margin-top:8px">
+              <div class="slider-label"><strong>Pending Proposal ID</strong><span class="slider-value" id="doctrine-pending-count">0</span></div>
+              <input
+                id="doctrine-pending-id"
+                type="text"
+                autocomplete="off"
+                placeholder="Optional: proposal id to approve"
+                style="width:100%;background:var(--surface-2);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:var(--radius-md);font-family:var(--font-mono);font-size:var(--text-xs)"
+              >
+            </div>
+            <div class="btn-row">
+              <button
+                class="btn-apply secondary"
+                type="button"
+                id="doctrine-refresh-btn"
+                title="Reload doctrine active and history from backend."
+              >Refresh</button>
               <button
                 class="btn-apply secondary"
                 type="button"
@@ -1294,6 +1352,7 @@ const ENGINE_PROXY_BASE = '/api/ecobe';
 const HEALTH_POLL_MS = 20_000;
 const DECISIONS_POLL_MS = 8_000;
 const ANALYTICS_POLL_MS = 60_000;
+const DOCTRINE_POLL_MS = 30_000;
 const HEALTH_STALE_MS = 45_000;
 const DECISIONS_STALE_MS = 20_000;
 const ANALYTICS_STALE_MS = 180_000;
@@ -1304,9 +1363,16 @@ const state = {
   analyticsSample: null,
   doctrine: {
     current: null,
+    draft: null,
     live: null,
+    history: { versions: [], proposals: [], auditEvents: [] },
+    pendingProposals: [],
+    authToken: null,
+    dirty: false,
+    mutationInFlight: false,
+    backendAvailable: false,
     saveStatus: 'Loading doctrine posture…',
-    hasLocalOverride: false,
+    error: null,
   },
   derived: {
     rows: [],
@@ -1334,7 +1400,7 @@ const state = {
 let feedCount = 0;
 let lastSeenFrameId = null;
 
-const DOCTRINE_STORAGE_KEY = 'co2router.operator-doctrine.v1';
+const DOCTRINE_TOKEN_STORAGE_KEY = 'co2router.doctrine.jwt.v1';
 const DEFAULT_DOCTRINE_RULES = {
   denyHighWaterStress: true,
   allowDelayUpTo4Hours: true,
@@ -1385,6 +1451,10 @@ function normalizeDoctrineWeights(weights){
 function doctrineFromLive(weights, version){
   return {
     version: version || 'co2_router_doctrine_v1',
+    versionId: null,
+    versionNumber: null,
+    status: 'snapshot',
+    activatedAt: null,
     weights: normalizeDoctrineWeights({
       carbon: safeNumber(weights?.carbon) == null ? DEFAULT_DOCTRINE_WEIGHTS.carbon : safeNumber(weights.carbon) * 100,
       water: safeNumber(weights?.water) == null ? DEFAULT_DOCTRINE_WEIGHTS.water : safeNumber(weights.water) * 100,
@@ -1397,81 +1467,274 @@ function doctrineFromLive(weights, version){
   };
 }
 
-function loadDoctrineOverride(){
+function loadDoctrineToken(){
   try {
-    const raw = window.localStorage.getItem(DOCTRINE_STORAGE_KEY);
+    const raw = window.localStorage.getItem(DOCTRINE_TOKEN_STORAGE_KEY);
     if(!raw) return null;
-    const parsed = JSON.parse(raw);
-    return {
-      version: String(parsed?.version || 'browser_override'),
-      weights: normalizeDoctrineWeights(parsed?.weights || DEFAULT_DOCTRINE_WEIGHTS),
-      rules: {
-        denyHighWaterStress: Boolean(parsed?.rules?.denyHighWaterStress),
-        allowDelayUpTo4Hours: Boolean(parsed?.rules?.allowDelayUpTo4Hours),
-        blockUsEast1: Boolean(parsed?.rules?.blockUsEast1),
-        greenOpsGate: Boolean(parsed?.rules?.greenOpsGate),
-        requireTwoApproverGovernance: Boolean(parsed?.rules?.requireTwoApproverGovernance),
-      },
-      source: 'browser',
-      updatedAt: typeof parsed?.updatedAt === 'string' ? parsed.updatedAt : null,
-    };
+    const token = String(raw).trim();
+    return token ? token : null;
   } catch {
     return null;
   }
 }
 
-function saveDoctrineOverride(){
-  if(!state.doctrine.current) return;
-  const payload = {
-    version: state.doctrine.current.version,
-    weights: state.doctrine.current.weights,
-    rules: state.doctrine.current.rules,
-    updatedAt: new Date().toISOString(),
-  };
-  window.localStorage.setItem(DOCTRINE_STORAGE_KEY, JSON.stringify(payload));
-  state.doctrine.current = {
-    ...cloneJson(state.doctrine.current),
-    source: 'browser',
-    updatedAt: payload.updatedAt,
-  };
-  state.doctrine.hasLocalOverride = true;
-  state.doctrine.saveStatus = `Saved in this browser at ${new Date(payload.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+function storeDoctrineToken(token){
+  state.doctrine.authToken = token || null;
+  const input = document.getElementById('doctrine-token');
+  if(input){
+    input.value = token || '';
+  }
+  try {
+    if(token){
+      window.localStorage.setItem(DOCTRINE_TOKEN_STORAGE_KEY, token);
+    } else {
+      window.localStorage.removeItem(DOCTRINE_TOKEN_STORAGE_KEY);
+    }
+  } catch {}
 }
 
-function clearDoctrineOverride(){
-  window.localStorage.removeItem(DOCTRINE_STORAGE_KEY);
-  state.doctrine.hasLocalOverride = false;
-  state.doctrine.current = state.doctrine.live ? cloneJson(state.doctrine.live) : {
-    version: 'co2_router_doctrine_v1',
-    weights: { ...DEFAULT_DOCTRINE_WEIGHTS },
-    rules: { ...DEFAULT_DOCTRINE_RULES },
-    source: 'live',
-    updatedAt: null,
+function doctrineHeaders(includeContentType = false){
+  const headers = { accept: 'application/json' };
+  if(includeContentType){
+    headers['content-type'] = 'application/json';
+  }
+  if(state.doctrine.authToken){
+    headers.authorization = `Bearer ${state.doctrine.authToken}`;
+  }
+  return headers;
+}
+
+async function fetchDoctrineJson(path, { method = 'GET', body = null } = {}){
+  const res = await fetch(`${ENGINE_PROXY_BASE}${path}`, {
+    method,
+    headers: doctrineHeaders(Boolean(body)),
+    body: body ? JSON.stringify(body) : undefined,
+    cache: 'no-store',
+  });
+  const text = await res.text().catch(() => '');
+  let payload = null;
+  try {
+    payload = text ? JSON.parse(text) : null;
+  } catch {
+    payload = text;
+  }
+  if(!res.ok){
+    const message =
+      payload?.error ||
+      payload?.message ||
+      `Doctrine request failed (${res.status})`;
+    const err = new Error(String(message));
+    err.status = res.status;
+    throw err;
+  }
+  return payload;
+}
+
+function doctrineFromBackend(record){
+  const settings = record?.settings || {};
+  return {
+    versionId: record?.versionId || null,
+    versionNumber: safeNumber(record?.versionNumber),
+    version: String(record?.version || `doctrine_v${safeNumber(record?.versionNumber) || 'unknown'}`),
+    status: String(record?.status || 'active'),
+    activatedAt: typeof record?.activatedAt === 'string' ? record.activatedAt : null,
+    sourceProposalId: typeof record?.sourceProposalId === 'string' ? record.sourceProposalId : null,
+    weights: normalizeDoctrineWeights({
+      carbon: settings?.weights?.carbon ?? DEFAULT_DOCTRINE_WEIGHTS.carbon,
+      water: settings?.weights?.water ?? DEFAULT_DOCTRINE_WEIGHTS.water,
+      latency: settings?.weights?.latency ?? DEFAULT_DOCTRINE_WEIGHTS.latency,
+      cost: settings?.weights?.cost ?? DEFAULT_DOCTRINE_WEIGHTS.cost,
+    }),
+    rules: {
+      denyHighWaterStress: Boolean(settings?.rules?.denyHighWaterStress ?? DEFAULT_DOCTRINE_RULES.denyHighWaterStress),
+      allowDelayUpTo4Hours: Boolean(settings?.rules?.allowDelayUpTo4Hours ?? DEFAULT_DOCTRINE_RULES.allowDelayUpTo4Hours),
+      blockUsEast1: Boolean(settings?.rules?.blockUsEast1 ?? DEFAULT_DOCTRINE_RULES.blockUsEast1),
+      greenOpsGate: Boolean(settings?.rules?.greenOpsGate ?? DEFAULT_DOCTRINE_RULES.greenOpsGate),
+      requireTwoApproverGovernance: Boolean(settings?.rules?.requireTwoApproverGovernance ?? DEFAULT_DOCTRINE_RULES.requireTwoApproverGovernance),
+    },
+    caps: {
+      maxDelayMinutes: safeNumber(settings?.caps?.maxDelayMinutes) ?? 240,
+    },
+    modes: {
+      waterPolicyProfile: settings?.modes?.waterPolicyProfile || 'default',
+    },
+    source: 'backend',
   };
-  state.doctrine.saveStatus = 'Using live doctrine snapshot from decision telemetry';
 }
 
 function ensureDoctrineState(liveWeights, liveVersion){
   const liveDoctrine = doctrineFromLive(liveWeights, liveVersion);
   state.doctrine.live = liveDoctrine;
   if(state.doctrine.current) return;
-  const stored = loadDoctrineOverride();
-  if(stored){
-    state.doctrine.current = stored;
-    state.doctrine.hasLocalOverride = true;
-    state.doctrine.saveStatus = stored.updatedAt
-      ? `Saved in this browser at ${new Date(stored.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-      : 'Using saved browser doctrine override';
+  state.doctrine.current = cloneJson(liveDoctrine);
+  state.doctrine.draft = cloneJson(liveDoctrine);
+  state.doctrine.backendAvailable = false;
+  state.doctrine.saveStatus = 'Backend doctrine not authenticated — displaying telemetry snapshot only';
+}
+
+function doctrineProposalPayloadFromDraft(draft){
+  return {
+    settings: {
+      weights: normalizeDoctrineWeights(draft?.weights || DEFAULT_DOCTRINE_WEIGHTS),
+      rules: {
+        denyHighWaterStress: Boolean(draft?.rules?.denyHighWaterStress),
+        allowDelayUpTo4Hours: Boolean(draft?.rules?.allowDelayUpTo4Hours),
+        blockUsEast1: Boolean(draft?.rules?.blockUsEast1),
+        greenOpsGate: Boolean(draft?.rules?.greenOpsGate),
+        requireTwoApproverGovernance: Boolean(draft?.rules?.requireTwoApproverGovernance),
+      },
+      caps: {
+        maxDelayMinutes: Math.max(0, Math.min(240, Math.round(safeNumber(draft?.caps?.maxDelayMinutes) ?? 240))),
+      },
+      modes: {
+        waterPolicyProfile: draft?.modes?.waterPolicyProfile || 'default',
+      },
+    },
+  };
+}
+
+function setDraftDirtyStatus(){
+  state.doctrine.dirty = true;
+  state.doctrine.saveStatus = 'Draft changed — submit proposal to mutate backend doctrine';
+}
+
+async function refreshDoctrineState(){
+  if(!state.doctrine.authToken){
+    state.doctrine.backendAvailable = false;
+    state.doctrine.error = 'Missing operator JWT for doctrine API access';
+    state.doctrine.saveStatus = 'Doctrine API locked — paste operator JWT to load and mutate backend state';
+    renderDoctrineControls();
     return;
   }
-  state.doctrine.current = cloneJson(liveDoctrine);
-  state.doctrine.hasLocalOverride = false;
-  state.doctrine.saveStatus = 'Using live doctrine snapshot from decision telemetry';
+
+  try {
+    const [activePayload, historyPayload] = await Promise.all([
+      fetchDoctrineJson('/doctrine/active'),
+      fetchDoctrineJson('/doctrine/history?limit=20&offset=0'),
+    ]);
+    const activeDoctrine = doctrineFromBackend(activePayload?.doctrine || {});
+    state.doctrine.current = activeDoctrine;
+    if(!state.doctrine.dirty || !state.doctrine.draft){
+      state.doctrine.draft = cloneJson(activeDoctrine);
+      state.doctrine.dirty = false;
+    }
+    state.doctrine.history = {
+      versions: Array.isArray(historyPayload?.versions) ? historyPayload.versions : [],
+      proposals: Array.isArray(historyPayload?.proposals) ? historyPayload.proposals : [],
+      auditEvents: Array.isArray(historyPayload?.auditEvents) ? historyPayload.auditEvents : [],
+    };
+    state.doctrine.pendingProposals = state.doctrine.history.proposals.filter((proposal)=>proposal.status === 'pending_approval');
+    state.doctrine.backendAvailable = true;
+    state.doctrine.error = null;
+    state.doctrine.saveStatus = `Active ${activeDoctrine.version} · ${state.doctrine.pendingProposals.length} pending proposal(s)`;
+  } catch (err){
+    state.doctrine.backendAvailable = false;
+    state.doctrine.error = String(err?.message || err);
+    state.doctrine.saveStatus = `Doctrine state unavailable — mutation not performed (${state.doctrine.error})`;
+  } finally {
+    renderDoctrineControls();
+  }
+}
+
+async function submitDoctrineProposal(){
+  if(!state.doctrine.authToken){
+    state.doctrine.saveStatus = 'Doctrine mutation blocked — paste operator JWT';
+    renderDoctrineControls();
+    return;
+  }
+  const draft = state.doctrine.draft;
+  if(!draft){
+    state.doctrine.saveStatus = 'Doctrine draft unavailable';
+    renderDoctrineControls();
+    return;
+  }
+
+  const summaryInput = document.getElementById('doctrine-change-summary');
+  const justificationInput = document.getElementById('doctrine-justification');
+  const changeSummary = String(summaryInput?.value || '').trim();
+  const justification = String(justificationInput?.value || '').trim();
+  if(changeSummary.length < 6 || justification.length < 12){
+    state.doctrine.saveStatus = 'Proposal blocked — change summary and justification are required';
+    renderDoctrineControls();
+    return;
+  }
+
+  state.doctrine.mutationInFlight = true;
+  state.doctrine.saveStatus = 'Submitting doctrine proposal…';
+  renderDoctrineControls();
+  try {
+    const payload = doctrineProposalPayloadFromDraft(draft);
+    const created = await fetchDoctrineJson('/doctrine/proposals', {
+      method: 'POST',
+      body: {
+        changeSummary,
+        justification,
+        settings: payload.settings,
+      },
+    });
+    const pendingInput = document.getElementById('doctrine-pending-id');
+    if(pendingInput && created?.proposal?.id){
+      pendingInput.value = created.proposal.id;
+    }
+    state.doctrine.dirty = false;
+    state.doctrine.saveStatus = `Proposal created: ${created?.proposal?.id || 'pending_approval'}`;
+    await refreshDoctrineState();
+  } catch (err){
+    state.doctrine.saveStatus = `Proposal failed — mutation not performed (${String(err?.message || err)})`;
+  } finally {
+    state.doctrine.mutationInFlight = false;
+    renderDoctrineControls();
+  }
+}
+
+async function approvePendingProposal(){
+  if(!state.doctrine.authToken){
+    state.doctrine.saveStatus = 'Approval blocked — paste approver/admin JWT';
+    renderDoctrineControls();
+    return;
+  }
+  const pendingInput = document.getElementById('doctrine-pending-id');
+  const chosenId = String(pendingInput?.value || '').trim() || state.doctrine.pendingProposals[0]?.id || '';
+  if(!chosenId){
+    state.doctrine.saveStatus = 'Approval blocked — no pending proposal id';
+    renderDoctrineControls();
+    return;
+  }
+
+  state.doctrine.mutationInFlight = true;
+  state.doctrine.saveStatus = `Approving ${chosenId}…`;
+  renderDoctrineControls();
+  try {
+    await fetchDoctrineJson(`/doctrine/proposals/${encodeURIComponent(chosenId)}/approve`, {
+      method: 'POST',
+      body: {},
+    });
+    state.doctrine.saveStatus = `Proposal approved: ${chosenId}`;
+    state.doctrine.dirty = false;
+    await refreshDoctrineState();
+  } catch (err){
+    state.doctrine.saveStatus = `Approval failed — mutation not performed (${String(err?.message || err)})`;
+  } finally {
+    state.doctrine.mutationInFlight = false;
+    renderDoctrineControls();
+  }
+}
+
+function resetDoctrineDraft(){
+  if(state.doctrine.current){
+    state.doctrine.draft = cloneJson(state.doctrine.current);
+    state.doctrine.dirty = false;
+    state.doctrine.saveStatus = 'Draft reset to active backend doctrine';
+  } else if(state.doctrine.live){
+    state.doctrine.draft = cloneJson(state.doctrine.live);
+    state.doctrine.dirty = false;
+    state.doctrine.saveStatus = 'Draft reset to telemetry snapshot';
+  }
 }
 
 function setDoctrineWeightValue(key, value){
-  if(!state.doctrine.current) return;
-  const current = state.doctrine.current.weights;
+  if(!state.doctrine.draft) return;
+  const current = state.doctrine.draft.weights;
   const keys = ['carbon', 'water', 'latency', 'cost'];
   const nextValue = clampDoctrineWeight(value);
   const otherKeys = keys.filter((item)=>item !== key);
@@ -1497,18 +1760,14 @@ function setDoctrineWeightValue(key, value){
     next[otherKeys[0]] = Math.max(0, next[otherKeys[0]] + drift);
   }
 
-  state.doctrine.current.weights = normalizeDoctrineWeights(next);
-  state.doctrine.saveStatus = state.doctrine.hasLocalOverride
-    ? 'Unsaved local changes'
-    : 'Editing live snapshot locally';
+  state.doctrine.draft.weights = normalizeDoctrineWeights(next);
+  setDraftDirtyStatus();
 }
 
 function setDoctrineRuleValue(key, value){
-  if(!state.doctrine.current) return;
-  state.doctrine.current.rules[key] = Boolean(value);
-  state.doctrine.saveStatus = state.doctrine.hasLocalOverride
-    ? 'Unsaved local changes'
-    : 'Editing live snapshot locally';
+  if(!state.doctrine.draft) return;
+  state.doctrine.draft.rules[key] = Boolean(value);
+  setDraftDirtyStatus();
 }
 
 function formatNumber(value) {
@@ -2384,15 +2643,20 @@ function renderSmartAdvisor(){
 }
 
 function renderDoctrineControls(){
-  const doctrine = state.doctrine.current;
-  if(!doctrine) return;
+  const activeDoctrine = state.doctrine.current;
+  const draftDoctrine = state.doctrine.draft || activeDoctrine;
+  if(!draftDoctrine) return;
 
-  setText('doctrine-hash', doctrine.version || 'co2_router_doctrine_v1');
+  const activeVersion = activeDoctrine?.version || 'co2_router_doctrine_v1';
+  setText('doctrine-hash', activeVersion);
+  setText('doctrine-version', activeVersion);
+  setText('doctrine-mode', state.doctrine.saveStatus || 'Doctrine status unavailable');
+  setText('doctrine-pending-count', String(state.doctrine.pendingProposals.length || 0));
   setText(
-    'doctrine-mode',
-    state.doctrine.hasLocalOverride
-      ? state.doctrine.saveStatus
-      : `${state.doctrine.saveStatus} · no engine write path`
+    'doctrine-auth-status',
+    state.doctrine.authToken
+      ? (state.doctrine.backendAvailable ? 'Authenticated' : 'Token set')
+      : 'Required'
   );
 
   function setWeight(spanId, sliderId, value){
@@ -2403,23 +2667,48 @@ function renderDoctrineControls(){
     if(slider) slider.value = String(pct);
   }
 
-  setWeight('val-carbon', 'slider-carbon', doctrine.weights.carbon);
-  setWeight('val-water', 'slider-water', doctrine.weights.water);
-  setWeight('val-latency', 'slider-latency', doctrine.weights.latency);
-  setWeight('val-cost', 'slider-cost', doctrine.weights.cost);
+  setWeight('val-carbon', 'slider-carbon', draftDoctrine.weights.carbon);
+  setWeight('val-water', 'slider-water', draftDoctrine.weights.water);
+  setWeight('val-latency', 'slider-latency', draftDoctrine.weights.latency);
+  setWeight('val-cost', 'slider-cost', draftDoctrine.weights.cost);
 
   const toggleMap = {
-    'toggle-water-stress': doctrine.rules.denyHighWaterStress,
-    'toggle-delay': doctrine.rules.allowDelayUpTo4Hours,
-    'toggle-us-east-1': doctrine.rules.blockUsEast1,
-    'toggle-greenops': doctrine.rules.greenOpsGate,
-    'toggle-approvers': doctrine.rules.requireTwoApproverGovernance,
+    'toggle-water-stress': draftDoctrine.rules.denyHighWaterStress,
+    'toggle-delay': draftDoctrine.rules.allowDelayUpTo4Hours,
+    'toggle-us-east-1': draftDoctrine.rules.blockUsEast1,
+    'toggle-greenops': draftDoctrine.rules.greenOpsGate,
+    'toggle-approvers': draftDoctrine.rules.requireTwoApproverGovernance,
   };
   for(const [id, enabled] of Object.entries(toggleMap)){
     const el = document.getElementById(id);
     if(!el) continue;
     el.classList.toggle('on', Boolean(enabled));
     el.setAttribute('aria-checked', enabled ? 'true' : 'false');
+  }
+
+  const controlsLocked = state.doctrine.mutationInFlight || !state.doctrine.authToken;
+  document.querySelectorAll('.doctrine-slider').forEach((el)=>{
+    el.disabled = controlsLocked;
+  });
+  document.querySelectorAll('.doctrine-toggle').forEach((el)=>{
+    el.classList.toggle('disabled', controlsLocked);
+    el.setAttribute('aria-disabled', controlsLocked ? 'true' : 'false');
+  });
+  const actionIds = [
+    'doctrine-save-btn',
+    'doctrine-approve-btn',
+    'doctrine-reset-btn',
+    'doctrine-refresh-btn',
+  ];
+  for(const id of actionIds){
+    const button = document.getElementById(id);
+    if(!button) continue;
+    const requiresAuth = id !== 'doctrine-export-btn';
+    if(id === 'doctrine-reset-btn' || id === 'doctrine-refresh-btn'){
+      button.disabled = state.doctrine.mutationInFlight;
+    } else {
+      button.disabled = state.doctrine.mutationInFlight || (requiresAuth && !state.doctrine.authToken);
+    }
   }
 }
 
@@ -2599,8 +2888,7 @@ function renderOperational(){
   setText('strip-p95', formatMs(state.derived.p95Latency));
   setText('visor-p95', formatMs(state.derived.p95Latency));
   setText('kpi-p95-latency', formatMs(state.derived.p95Latency));
-  setText('doctrine-version', String(state.derived.doctrineVersion));
-  setText('doctrine-hash', String(state.derived.doctrineVersion));
+  setText('doctrine-version', String(state.doctrine.current?.version || state.derived.doctrineVersion));
   setText('visor-status', state.ui.degraded ? 'DEGRADED' : 'HEALTHY');
   setText('visor-last-update-age', formatAge(now - Math.max(state.ui.lastSuccessAt.health, state.ui.lastSuccessAt.decisions)));
 
@@ -2825,10 +3113,12 @@ pollDashboardHealth();
 pollHealth();
 pollDecisions();
 pollAnalytics();
+refreshDoctrineState();
 setInterval(pollDashboardHealth, HEALTH_POLL_MS);
 setInterval(pollHealth, HEALTH_POLL_MS);
 setInterval(pollDecisions, DECISIONS_POLL_MS);
 setInterval(pollAnalytics, ANALYTICS_POLL_MS);
+setInterval(refreshDoctrineState, DOCTRINE_POLL_MS);
 const overlay = document.getElementById('card-overlay');
 const modalReplayBtn = document.getElementById('modal-replay-btn');
 let activeDecisionFrameId = null;
@@ -3044,9 +3334,10 @@ document.querySelectorAll('.panel-tab').forEach(btn=>{
 function openVisor(){  document.getElementById('visor-overlay').classList.add('open'); }
 function closeVisor(){ document.getElementById('visor-overlay').classList.remove('open'); }
 
-// -- DOCTRINE SIMULATOR -------------------------------------------
-function simulateDoctrine(){
-  renderDoctrineControls();
+// -- DOCTRINE CONTROL PLANE ---------------------------------------
+const initialDoctrineToken = loadDoctrineToken();
+if(initialDoctrineToken){
+  storeDoctrineToken(initialDoctrineToken);
 }
 
 const doctrineSliderMap = {
@@ -3061,7 +3352,7 @@ for(const [id, key] of Object.entries(doctrineSliderMap)){
   if(!input) continue;
   input.addEventListener('input', (event)=>{
     setDoctrineWeightValue(key, event.target.value);
-    simulateDoctrine();
+    renderDoctrineControls();
   });
 }
 
@@ -3077,9 +3368,14 @@ for(const [id, key] of Object.entries(doctrineToggleMap)){
   const toggle = document.getElementById(id);
   if(!toggle) continue;
   const flip = ()=>{
-    const current = Boolean(state.doctrine.current?.rules?.[key]);
+    if(!state.doctrine.authToken || state.doctrine.mutationInFlight){
+      state.doctrine.saveStatus = 'Doctrine mutation blocked — authenticate with JWT';
+      renderDoctrineControls();
+      return;
+    }
+    const current = Boolean(state.doctrine.draft?.rules?.[key]);
     setDoctrineRuleValue(key, !current);
-    simulateDoctrine();
+    renderDoctrineControls();
   };
   toggle.addEventListener('click', flip);
   toggle.addEventListener('keydown', (event)=>{
@@ -3090,24 +3386,45 @@ for(const [id, key] of Object.entries(doctrineToggleMap)){
   });
 }
 
-document.getElementById('doctrine-save-btn')?.addEventListener('click', ()=>{
-  saveDoctrineOverride();
+document.getElementById('doctrine-token')?.addEventListener('change', async (event)=>{
+  const token = String(event?.target?.value || '').trim();
+  storeDoctrineToken(token || null);
+  if(token){
+    state.doctrine.saveStatus = 'JWT stored — loading doctrine control plane…';
+  } else {
+    state.doctrine.saveStatus = 'Doctrine API locked — paste operator JWT';
+  }
   renderDoctrineControls();
+  await refreshDoctrineState();
+});
+
+document.getElementById('doctrine-save-btn')?.addEventListener('click', async ()=>{
+  await submitDoctrineProposal();
 });
 
 document.getElementById('doctrine-reset-btn')?.addEventListener('click', ()=>{
-  clearDoctrineOverride();
+  resetDoctrineDraft();
   renderDoctrineControls();
 });
 
+document.getElementById('doctrine-approve-btn')?.addEventListener('click', async ()=>{
+  await approvePendingProposal();
+});
+
+document.getElementById('doctrine-refresh-btn')?.addEventListener('click', async ()=>{
+  await refreshDoctrineState();
+});
+
 document.getElementById('doctrine-export-btn')?.addEventListener('click', ()=>{
-  const doctrine = state.doctrine.current || null;
+  const doctrine = state.doctrine.current || state.doctrine.draft || null;
   downloadBlob(
     `co2router-doctrine-${new Date().toISOString().replace(/[:.]/g, '-')}.json`,
     'application/json',
     JSON.stringify({
       generatedAt: new Date().toISOString(),
-      doctrine,
+      activeDoctrine: state.doctrine.current,
+      draftDoctrine: state.doctrine.draft,
+      pendingProposals: state.doctrine.pendingProposals,
       saveStatus: state.doctrine.saveStatus,
     }, null, 2)
   );
