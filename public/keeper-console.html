@@ -1090,6 +1090,42 @@ input[type=range].red::-webkit-slider-thumb { background: var(--red); box-shadow
         <!-- COPILOT TAB -->
         <div class="tab-pane" id="tab-copilot">
           <div class="counterfactual">
+            <div class="cf-title">Smart Advisor</div>
+            <div class="cf-row">
+              <div class="cf-col actual">
+                <div class="cf-col-label">Fleet Health</div>
+                <div class="cf-col-val" id="advisor-health">—</div>
+                <div class="cf-col-unit">score</div>
+              </div>
+              <div class="cf-col baseline">
+                <div class="cf-col-label">Risk Level</div>
+                <div class="cf-col-val" id="advisor-risk">—</div>
+                <div class="cf-col-unit" id="advisor-fallback">fallback —</div>
+              </div>
+            </div>
+            <div class="cf-savings" id="advisor-brief">Waiting for live routing data…</div>
+          </div>
+
+          <div class="ai-suggestion">
+            <p><strong>Priority Action</strong>: <span id="advisor-priority">No action yet.</span></p>
+            <p><strong>Live Window</strong>: <span id="advisor-window">Awaiting decisions</span></p>
+            <div class="ai-actions">
+              <button class="ai-btn" type="button" id="advisor-updated">Updated —</button>
+              <button class="ai-btn" type="button" id="advisor-surface">Live console intelligence</button>
+            </div>
+          </div>
+
+          <div class="ai-suggestion">
+            <p><strong>Ranked Alerts</strong>: highest-severity operator guidance from live health, decision, and analytics state.</p>
+            <div id="advisor-insights"></div>
+          </div>
+
+          <div class="ai-suggestion">
+            <p><strong>Confirmed Clear</strong>: signals the operator can trust right now.</p>
+            <div id="advisor-clear"></div>
+          </div>
+
+          <div class="counterfactual">
             <div class="cf-title">Sampled Production Window Baseline</div>
             <div class="cf-row">
               <div class="cf-col baseline">
@@ -1110,8 +1146,8 @@ input[type=range].red::-webkit-slider-thumb { background: var(--red); box-shadow
             <p><strong>Sample Size</strong>: <span id="sample-size">—</span> decisions</p>
             <p><strong>Action Mix</strong>: reroute <span id="sample-action-reroute">—</span>, throttle <span id="sample-action-throttle">—</span>, delay <span id="sample-action-delay">—</span></p>
             <div class="ai-actions">
-              <button class="ai-btn">Sampled production window</button>
-              <button class="ai-btn">Units shown on all metrics</button>
+              <button class="ai-btn" type="button">Sampled production window</button>
+              <button class="ai-btn" type="button">Units shown on all metrics</button>
             </div>
           </div>
 
@@ -1119,8 +1155,8 @@ input[type=range].red::-webkit-slider-thumb { background: var(--red); box-shadow
             <p><strong>Water Avoided in Sample Window</strong>: <span id="sample-water-avoided">—</span></p>
             <p><strong>Water Reduction</strong>: <span id="sample-water-reduction">—</span></p>
             <div class="ai-actions">
-              <button class="ai-btn">Freshness: <span id="sample-freshness">—</span></button>
-              <button class="ai-btn">Source: /api/analytics/baseline</button>
+              <button class="ai-btn" type="button">Freshness: <span id="sample-freshness">—</span></button>
+              <button class="ai-btn" type="button">Source: /api/analytics/baseline</button>
             </div>
           </div>
 
@@ -1128,17 +1164,17 @@ input[type=range].red::-webkit-slider-thumb { background: var(--red); box-shadow
             <p><strong>Water Scarcity Impact Avoided in Sample Window</strong>: <span id="sample-scarcity-avoided">—</span></p>
             <p><strong>Water Scarcity Reduction</strong>: <span id="sample-scarcity-reduction">—</span></p>
             <div class="ai-actions">
-              <button class="ai-btn">Sampled production window</button>
-              <button class="ai-btn">Unit: scarcity impact index</button>
+              <button class="ai-btn" type="button">Sampled production window</button>
+              <button class="ai-btn" type="button">Unit: scarcity impact index</button>
             </div>
           </div>
 
           <div class="ai-suggestion">
             <p><strong>Carbon Delta (Current Sample)</strong>: <span id="sample-carbon-delta">—</span></p>
-            <p><strong>Carbon Intensity Average</strong>: baseline <span id="sample-carbon-baseline-avg">—</span>, selected <span id="sample-carbon-selected-avg">—</span> (gCO₂‚e/kWh)</p>
+            <p><strong>Carbon Intensity Average</strong>: baseline <span id="sample-carbon-baseline-avg">—</span>, selected <span id="sample-carbon-selected-avg">—</span> (gCO2e/kWh)</p>
             <div class="ai-actions">
-              <button class="ai-btn">Not a lifetime/global metric</button>
-              <button class="ai-btn">Sample-window only</button>
+              <button class="ai-btn" type="button">Not a lifetime/global metric</button>
+              <button class="ai-btn" type="button">Sample-window only</button>
             </div>
           </div>
         </div>
@@ -2017,6 +2053,336 @@ function formatIsoShort(value){
   return d.toISOString().replace('.000Z', 'Z');
 }
 
+function escapeHtml(value){
+  return String(value ?? '')
+    .replaceAll('&','&amp;')
+    .replaceAll('<','&lt;')
+    .replaceAll('>','&gt;')
+    .replaceAll('"','&quot;')
+    .replaceAll("'","&#39;");
+}
+
+function severityRank(severity){
+  if(severity === 'critical') return 0;
+  if(severity === 'warning') return 1;
+  return 2;
+}
+
+function providerStatusList(){
+  const providers = state.health?.providers || {};
+  return Object.entries(providers).map(([name, value])=>{
+    if(value && typeof value === 'object'){
+      return {
+        name,
+        status: String(value.status || value.state || value.health || 'unknown').toLowerCase(),
+        freshnessSec: safeNumber(value.freshnessSec ?? value.ageSec ?? value.ageSeconds ?? value.lastUpdatedAgeSec),
+      };
+    }
+    return {
+      name,
+      status: value === true ? 'healthy' : value === false ? 'offline' : String(value || 'unknown').toLowerCase(),
+      freshnessSec: null,
+    };
+  });
+}
+
+function decisionField(decision, ...paths){
+  for(const path of paths){
+    let current = decision;
+    let failed = false;
+    for(const key of path){
+      if(current == null){
+        failed = true;
+        break;
+      }
+      current = current[key];
+    }
+    if(!failed && current != null) return current;
+  }
+  return null;
+}
+
+function buildAdvisorReport(){
+  const now = Date.now();
+  const rows = state.derived.displayRows || [];
+  const decisions = Array.isArray(state.decisions) ? state.decisions : [];
+  const providers = providerStatusList();
+  const insights = [];
+  const clear = [];
+  const actionCounts = new Map();
+
+  const addInsight = (id, severity, title, detail, action) => {
+    if(insights.some((item)=>item.id === id)) return;
+    insights.push({ id, severity, title, detail, action });
+  };
+
+  const total = Math.max(rows.length, 1);
+  const denyCount = rows.filter((row)=>row.action === 'DENY').length;
+  const delayCount = rows.filter((row)=>row.action === 'DELAY').length;
+  const rerouteCount = rows.filter((row)=>row.action === 'REROUTE').length;
+  const fallbackCount = decisions.filter((decision)=>{
+    const signalMode = String(decisionField(decision, ['signalMode']) || '').toLowerCase();
+    const authorityMode = String(decisionField(decision, ['waterAuthorityMode']) || '').toLowerCase();
+    const fallbackUsed = decisionField(decision, ['fallbackUsed']);
+    return fallbackUsed === true || signalMode === 'fallback' || authorityMode === 'fallback';
+  }).length;
+  const fallbackRate = decisions.length ? fallbackCount / decisions.length : 0;
+  const denyRate = rows.length ? denyCount / rows.length : 0;
+  const decisionFreshnessMs = state.derived.decisionFreshnessMs;
+  const p95Latency = state.derived.p95Latency;
+  const health = state.health || {};
+  const healthOk = health?.status === 'ok' && health?.engine === 'online' && Boolean(health?.router);
+  const degraded = Boolean(state.ui.degraded);
+  const stale = Boolean(state.ui.stale.health || state.ui.stale.decisions);
+  const doctrine = state.doctrine.current;
+  const governanceEnabled = Boolean(doctrine?.rules?.greenOpsGate || doctrine?.rules?.requireTwoApproverGovernance);
+
+  let healthScore = 100;
+  if(!healthOk) healthScore -= 24;
+  if(degraded) healthScore -= 18;
+  if(stale) healthScore -= 18;
+  healthScore -= Math.round(denyRate * 28);
+  healthScore -= Math.round(fallbackRate * 24);
+  if((state.derived.uniqueRegionCount || 0) <= 1 && rows.length >= 4) healthScore -= 10;
+  if(p95Latency != null && p95Latency > 900) healthScore -= 12;
+  else if(p95Latency != null && p95Latency > 600) healthScore -= 6;
+  healthScore = Math.max(0, Math.min(100, healthScore));
+
+  if(stale){
+    addInsight(
+      'stale-surface',
+      'critical',
+      'Console intelligence is stale',
+      `Health or decision data has aged out. Latest routing update is ${formatAge(decisionFreshnessMs)} old, so operator decisions risk acting on old posture.`,
+      'Recheck the live feed before approving overrides or reading the globe as current truth.'
+    );
+  }
+
+  if(!healthOk){
+    addInsight(
+      'engine-health',
+      'critical',
+      'Engine posture is degraded',
+      'The dashboard health path is not reporting a fully healthy engine/router pair. The control surface should be treated as defensive until the engine confirms healthy again.',
+      'Treat reroutes as temporary and verify upstream provider health before forcing more traffic.'
+    );
+  }
+
+  if(denyRate >= 0.25){
+    addInsight(
+      'deny-rate',
+      denyRate >= 0.5 ? 'critical' : 'warning',
+      `Denial rate elevated at ${Math.round(denyRate * 100)}%`,
+      `${denyCount}/${rows.length || 0} visible decisions are denies. That means the operator is hitting refusal loops instead of routing around the constraint.`,
+      'Inspect the dominant reason code and reopen a verified secondary lane before clearing more work.'
+    );
+  } else if(rows.length >= 4 && denyCount === 0){
+    clear.push('Zero denials in the current visible routing window.');
+  }
+
+  if(fallbackRate >= 0.2){
+    addInsight(
+      'fallback-rate',
+      fallbackRate >= 0.4 ? 'critical' : 'warning',
+      `Fallback posture on ${Math.round(fallbackRate * 100)}% of recent decisions`,
+      `${fallbackCount}/${decisions.length || 0} recent decisions leaned on fallback authority. The engine is still protecting integrity, but confidence and throughput are already degraded.`,
+      'Restore provider freshness and governance-backed authority before widening operator overrides.'
+    );
+  } else if(decisions.length >= 4 && fallbackCount === 0){
+    clear.push('No fallback authority usage in the current decision set.');
+  }
+
+  const unhealthyProviders = providers.filter((provider)=>!['healthy','ok','online','live','true'].includes(provider.status));
+  const staleProviders = providers.filter((provider)=>provider.freshnessSec != null && provider.freshnessSec > 300);
+
+  if(unhealthyProviders.length){
+    addInsight(
+      'provider-health',
+      unhealthyProviders.length >= 2 ? 'critical' : 'warning',
+      `${unhealthyProviders.length} provider${unhealthyProviders.length > 1 ? 's are' : ' is'} degraded`,
+      `${unhealthyProviders.map((provider)=>provider.name).join(', ')} ${unhealthyProviders.length > 1 ? 'are' : 'is'} not reporting healthy status. Losing authority signals forces more conservative routing.`,
+      'Repair degraded providers before interpreting marginal route wins as durable.'
+    );
+  }
+
+  if(staleProviders.length){
+    const worstFreshness = Math.max(...staleProviders.map((provider)=>provider.freshnessSec || 0));
+    addInsight(
+      'provider-stale',
+      worstFreshness > 900 ? 'critical' : 'warning',
+      `${staleProviders.length} provider${staleProviders.length > 1 ? 's are' : ' is'} stale`,
+      `Worst provider freshness is ${formatAge(worstFreshness * 1000)} across ${staleProviders.map((provider)=>provider.name).join(', ')}. Aging signals usually increase defensive scoring and unnecessary delay posture.`,
+      'Investigate ingestion freshness now, not after queue pressure compounds.'
+    );
+  } else if(providers.length){
+    clear.push('Provider freshness is inside the live posture window.');
+  }
+
+  if(p95Latency != null && p95Latency > 750){
+    addInsight(
+      'latency-slo',
+      p95Latency > 1000 ? 'critical' : 'warning',
+      `Decision latency is high at p95 ${Math.round(p95Latency)}ms`,
+      'Decision responsiveness is above the normal operator comfort zone. Slow proofs and slow confirms make the console look dead before it is actually dead.',
+      'Identify the slow stage in the decision path before queue depth turns into operator-visible stall.'
+    );
+  } else if(p95Latency != null){
+    clear.push(`Latency nominal at p95 ${Math.round(p95Latency)}ms.`);
+  }
+
+  if(rows.length >= 4){
+    const regionCounts = new Map();
+    for(const row of rows){
+      const region = row.dst || row.src || 'unknown';
+      regionCounts.set(region, (regionCounts.get(region) || 0) + 1);
+    }
+    const dominant = Array.from(regionCounts.entries()).sort((a,b)=>b[1]-a[1])[0] || null;
+    if(dominant){
+      const dominantShare = dominant[1] / rows.length;
+      if(dominantShare >= 0.6){
+        addInsight(
+          'lane-concentration',
+          dominantShare >= 0.8 ? 'warning' : 'info',
+          `${String(dominant[0]).toUpperCase()} is carrying ${Math.round(dominantShare * 100)}% of visible traffic`,
+          `${dominant[1]}/${rows.length} recent routes are concentrated in one lane. If that lane degrades, the console has no recent counterfactual proof on alternatives.`,
+          'Exercise a secondary verified lane before you need it under stress.'
+        );
+      }
+    }
+  }
+
+  for(const row of rows){
+    if(!row.reasonCode) continue;
+    actionCounts.set(row.reasonCode, (actionCounts.get(row.reasonCode) || 0) + 1);
+  }
+  const topReason = Array.from(actionCounts.entries()).sort((a,b)=>b[1]-a[1])[0] || null;
+  if(topReason && topReason[1] >= 2){
+    addInsight(
+      'repeat-reason',
+      topReason[1] >= 4 ? 'warning' : 'info',
+      `Recurring reason code: ${topReason[0]} x${topReason[1]}`,
+      'The same reason is appearing repeatedly, which means the operator is looking at a doctrine or dependency pattern, not a one-off decision glitch.',
+      'Fix the root condition once instead of clearing repeated single decisions.'
+    );
+  }
+
+  if((state.derived.uniqueRegionCount || 0) >= 3 && rerouteCount >= 3){
+    addInsight(
+      'reroute-pressure',
+      rerouteCount >= 5 ? 'warning' : 'info',
+      `${rerouteCount} reroutes in the visible window`,
+      'The engine is actively preserving service by redirecting work away from primary lanes. That is useful, but it usually means a primary path is degraded or policy-constrained.',
+      'Investigate why the preferred lane is being avoided before reroutes become your normal posture.'
+    );
+  }
+
+  if(delayCount >= 3){
+    addInsight(
+      'delay-cluster',
+      delayCount >= Math.ceil(rows.length * 0.5) ? 'warning' : 'info',
+      `${Math.round((delayCount / total) * 100)}% of visible decisions are delayed`,
+      'The router is preferring caution over throughput. That is safe in the short term, but it often signals that governance or signal quality is forcing excess conservatism.',
+      'Check whether a degraded provider or strict doctrine threshold is causing avoidable delay posture.'
+    );
+  }
+
+  if(!governanceEnabled){
+    addInsight(
+      'governance-thin',
+      'warning',
+      'Governance posture is thin',
+      'The current doctrine profile is not enforcing both GreenOps gate and two-approver governance. The console remains usable, but accountability is weaker than a full governed posture.',
+      'Tighten governance before using manual overrides as a steady-state operating mode.'
+    );
+  } else {
+    clear.push('Governance controls are enabled in the active doctrine snapshot.');
+  }
+
+  if(rows.length >= 6 && !stale && healthOk && fallbackRate < 0.15 && denyRate < 0.1){
+    addInsight(
+      'favorable-window',
+      'info',
+      'Favorable routing window open',
+      'The fleet is healthy, denial posture is low, and fallback usage is controlled. This is the right time to move discretionary or cost-sensitive workloads through the cleanest lanes.',
+      'Use the current clean window before signals tighten again.'
+    );
+  }
+
+  insights.sort((a,b)=>{
+    const severityDelta = severityRank(a.severity) - severityRank(b.severity);
+    if(severityDelta !== 0) return severityDelta;
+    return a.title.localeCompare(b.title);
+  });
+
+  const topInsight = insights[0] || null;
+  const criticalCount = insights.filter((item)=>item.severity === 'critical').length;
+  const warningCount = insights.filter((item)=>item.severity === 'warning').length;
+  const riskLevel = criticalCount > 0 ? 'critical' : warningCount > 0 ? 'elevated' : 'nominal';
+  const brief = topInsight
+    ? topInsight.detail
+    : clear.length
+      ? `Fleet nominal. ${clear.slice(0, 2).join(' ')}`
+      : 'Fleet nominal. No operator intervention stands out above the current routing posture.';
+
+  return {
+    healthScore,
+    riskLevel,
+    fallbackRate,
+    operatorBrief: brief,
+    priorityAction: topInsight?.action || 'No immediate operator intervention required.',
+    insights: insights.slice(0, 6),
+    confirmedClear: clear.slice(0, 4),
+    analyzedAt: new Date().toISOString(),
+  };
+}
+
+function renderSmartAdvisor(){
+  const report = buildAdvisorReport();
+  setText('advisor-health', `${report.healthScore}%`);
+  setText('advisor-risk', String(report.riskLevel).toUpperCase());
+  setText('advisor-fallback', `fallback ${Math.round(report.fallbackRate * 100)}%`);
+  setText('advisor-brief', report.operatorBrief);
+  setText('advisor-priority', report.priorityAction || 'No immediate operator intervention required.');
+  setText('advisor-window', state.derived.hasLiveWindow ? 'Last hour of live routing' : 'Visible decision feed window');
+  setText('advisor-updated', `Updated ${new Date(report.analyzedAt).toLocaleTimeString()}`);
+
+  const insightsEl = document.getElementById('advisor-insights');
+  if(insightsEl){
+    if(!report.insights.length){
+      insightsEl.innerHTML = `<div style="font-size:var(--text-xs);color:var(--green)">Fleet nominal. No ranked alerts right now.</div>`;
+    } else {
+      insightsEl.innerHTML = report.insights.map((insight)=>{
+        const tone = insight.severity === 'critical'
+          ? 'var(--red)'
+          : insight.severity === 'warning'
+            ? 'var(--amber)'
+            : 'var(--cyan)';
+        return `
+          <div style="border:1px solid var(--border);border-left:3px solid ${tone};border-radius:10px;padding:10px 12px;margin-bottom:10px;background:rgba(255,255,255,0.02)">
+            <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:6px">
+              <div style="font-size:var(--text-sm);font-weight:700;color:var(--text)">${escapeHtml(insight.title)}</div>
+              <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:0.08em;color:${tone}">${escapeHtml(insight.severity.toUpperCase())}</div>
+            </div>
+            <div style="font-size:var(--text-xs);line-height:1.6;color:var(--text-muted);margin-bottom:8px">${escapeHtml(insight.detail)}</div>
+            <div style="font-size:var(--text-xs);color:${tone};font-weight:700">> ${escapeHtml(insight.action)}</div>
+          </div>
+        `;
+      }).join('');
+    }
+  }
+
+  const clearEl = document.getElementById('advisor-clear');
+  if(clearEl){
+    if(!report.confirmedClear.length){
+      clearEl.innerHTML = `<div style="font-size:var(--text-xs);color:var(--text-faint)">No confirmed-clear signals yet.</div>`;
+    } else {
+      clearEl.innerHTML = report.confirmedClear
+        .map((item)=>`<div style="font-size:var(--text-xs);line-height:1.7;color:var(--green);margin-bottom:6px">+ ${escapeHtml(item)}</div>`)
+        .join('');
+    }
+  }
+}
+
 function renderDoctrineControls(){
   const doctrine = state.doctrine.current;
   if(!doctrine) return;
@@ -2351,6 +2717,7 @@ function renderAll(){
   updateDerivedFromState();
   renderOperational();
   renderAnalyticsSample();
+  renderSmartAdvisor();
 }
 
 function renderBuildMarker(){
