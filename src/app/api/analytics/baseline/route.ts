@@ -5,6 +5,7 @@ import { fetchEngineJson } from '@/lib/engine-fetch'
 type BaselineDecision = Record<string, any>
 
 const BASELINE_CACHE_TTL_MS = 5 * 60 * 1000
+const DEFAULT_SAMPLE_RECORDS = 500
 let baselineCache: { at: number; body: unknown } | null = null
 
 function baselineCacheHeaders() {
@@ -268,14 +269,18 @@ export async function GET(request: Request) {
   const url = new URL(request.url)
   const refresh = url.searchParams.get('refresh') === '1'
   const now = Date.now()
+  const requestedSample = Number(url.searchParams.get('sampleSize') ?? DEFAULT_SAMPLE_RECORDS)
+  const sampleSize = Number.isFinite(requestedSample)
+    ? Math.min(Math.max(Math.trunc(requestedSample), 1), DEFAULT_SAMPLE_RECORDS)
+    : DEFAULT_SAMPLE_RECORDS
 
   if (!refresh && baselineCache && now - baselineCache.at < BASELINE_CACHE_TTL_MS) {
     return NextResponse.json(baselineCache.body, { headers: baselineCacheHeaders() })
   }
 
-  const exportMaxRecords = 25_000
-  const legacyMaxRecords = 2_000
-  const pageSize = 2_000
+  const exportMaxRecords = sampleSize
+  const legacyMaxRecords = sampleSize
+  const pageSize = sampleSize
   const decisions: BaselineDecision[] = []
   let exportUsed = false
 
@@ -302,7 +307,7 @@ export async function GET(request: Request) {
     }
 
     if (decisions.length === 0) {
-      const legacyPageSize = 200
+      const legacyPageSize = Math.min(sampleSize, 200)
       for (let offset = 0; offset < legacyMaxRecords; offset += legacyPageSize) {
         const fallback = await fetchEngineJson<{ decisions: BaselineDecision[] }>(
           `/ci/decisions?limit=${legacyPageSize}&offset=${offset}`
@@ -322,14 +327,14 @@ export async function GET(request: Request) {
       generatedAt: new Date(now).toISOString(),
       source: {
         type:
-          exportUsed && decisions.length > 200
+          exportUsed && decisions.length > 0
             ? 'sampled-production-window'
             : 'export-backed-sample',
         sampleSize: decisions.length,
         note:
-          exportUsed && decisions.length > 200
-            ? 'Baseline computed from internal export pagination (cursor-based).'
-            : 'Baseline computed from public decisions endpoint (internal export unavailable).',
+          exportUsed && decisions.length > 0
+            ? `Baseline computed from the current ${decisions.length}-decision sampled production window.`
+            : `Baseline computed from the public decisions endpoint using the current ${decisions.length}-decision sampled window.`,
       },
     }
 

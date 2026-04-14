@@ -160,6 +160,12 @@ body::before {
   font-family: var(--font-mono); font-size: var(--text-xs);
   color: var(--text-muted); letter-spacing: 0.05em;
 }
+.strip-build {
+  font-family: var(--font-mono); font-size: 10px;
+  color: var(--text-faint); letter-spacing: 0.08em; text-transform: uppercase;
+  padding: 0 var(--space-1);
+  border-left: 1px solid var(--border);
+}
 .strip-btn {
   display: flex; align-items: center; gap: var(--space-1);
   padding: var(--space-1) var(--space-3);
@@ -830,6 +836,7 @@ input[type=range].red::-webkit-slider-thumb { background: var(--red); box-shadow
     </div>
     <div class="strip-right">
       <div class="strip-clock" id="clock">--:--:-- UTC</div>
+      <div class="strip-build" id="build-marker" title="Dashboard build">build —</div>
       <button class="strip-btn" onclick="openVisor()">
         <i data-lucide="scan-eye" style="width:12px;height:12px"></i>
         VISOR
@@ -1226,6 +1233,7 @@ const state = {
     degraded: false,
     errors: { health: null, decisions: null, analytics: null },
     lastSuccessAt: { health: 0, decisions: 0, analytics: 0 },
+    dashboard: { build: null, routing: null, error: null },
   },
 };
 
@@ -1256,6 +1264,19 @@ async function fetchJson(path) {
   if (!res.ok) {
     const text = await res.text().catch(() => '');
     throw new Error(`Engine request failed (${res.status}): ${text.slice(0, 160)}`);
+  }
+  return res.json();
+}
+
+async function fetchDashboardJson(path) {
+  const res = await fetch(path, {
+    method: 'GET',
+    headers: { accept: 'application/json' },
+    cache: 'no-store',
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`Dashboard request failed (${res.status}): ${text.slice(0, 160)}`);
   }
   return res.json();
 }
@@ -1946,6 +1967,18 @@ function renderAll(){
   renderAnalyticsSample();
 }
 
+function renderBuildMarker(){
+  const el = document.getElementById('build-marker');
+  if(!el) return;
+
+  const build = state.ui.dashboard.build || null;
+  const routing = state.ui.dashboard.routing || null;
+  const commit = build?.commit ? String(build.commit).slice(0, 7) : 'unknown';
+  const version = build?.version ? String(build.version) : 'unknown';
+  el.textContent = `build ${commit}`;
+  el.title = `Dashboard build ${commit} (${version})${routing?.engineHost ? ` • engine ${routing.engineHost}` : ''}`;
+}
+
 async function pollHealth(){
   try{
     const health = await fetchJson('/health');
@@ -1958,6 +1991,20 @@ async function pollHealth(){
   } finally {
     state.ui.loading.health = false;
     renderAll();
+  }
+}
+
+async function pollDashboardHealth(){
+  try{
+    const payload = await fetchDashboardJson('/api/health');
+    state.ui.dashboard.build = payload?.build || null;
+    state.ui.dashboard.routing = payload?.routing || null;
+    state.ui.dashboard.error = null;
+  } catch (err){
+    state.ui.dashboard.error = String(err?.message || err);
+    console.warn('HaloGrid dashboard health poll failed:', err);
+  } finally {
+    renderBuildMarker();
   }
 }
 
@@ -2020,9 +2067,12 @@ async function pollAnalytics(){
 }
 
 renderAll();
+renderBuildMarker();
+pollDashboardHealth();
 pollHealth();
 pollDecisions();
 pollAnalytics();
+setInterval(pollDashboardHealth, HEALTH_POLL_MS);
 setInterval(pollHealth, HEALTH_POLL_MS);
 setInterval(pollDecisions, DECISIONS_POLL_MS);
 setInterval(pollAnalytics, ANALYTICS_POLL_MS);
