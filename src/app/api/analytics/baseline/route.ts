@@ -4,6 +4,16 @@ import { fetchEngineJson } from '@/lib/engine-fetch'
 
 type BaselineDecision = Record<string, any>
 
+const BASELINE_CACHE_TTL_MS = 5 * 60 * 1000
+let baselineCache: { at: number; body: unknown } | null = null
+
+function baselineCacheHeaders() {
+  return {
+    // Cache at the Vercel edge to prevent expensive recompute timeouts.
+    'cache-control': 'public, max-age=0, s-maxage=300, stale-while-revalidate=600',
+  }
+}
+
 function safeNumber(value: unknown) {
   const num = typeof value === 'number' ? value : Number(value)
   return Number.isFinite(num) ? num : null
@@ -254,55 +264,86 @@ function computeBaseline(decisions: BaselineDecision[]) {
   }
 }
 
-export async function GET() {
-  const maxRecords = 25_000
+export async function GET(request: Request) {
+  const url = new URL(request.url)
+  const refresh = url.searchParams.get('refresh') === '1'
+  const now = Date.now()
+
+  if (!refresh && baselineCache && now - baselineCache.at < BASELINE_CACHE_TTL_MS) {
+    return NextResponse.json(baselineCache.body, { headers: baselineCacheHeaders() })
+  }
+
+  const exportMaxRecords = 25_000
+  const legacyMaxRecords = 2_000
   const pageSize = 2_000
   const decisions: BaselineDecision[] = []
+  let exportUsed = false
 
-  let cursor: string | null = null
-  for (let i = 0; i < 1000; i += 1) {
-    const qs = new URLSearchParams()
-    qs.set('limit', String(pageSize))
-    if (cursor) qs.set('cursor', cursor)
+  try {
+    let cursor: string | null = null
+    for (let i = 0; i < 1000; i += 1) {
+      const qs = new URLSearchParams()
+      qs.set('limit', String(pageSize))
+      if (cursor) qs.set('cursor', cursor)
 
-    const payload = await fetchEngineJson<{
-      decisions: BaselineDecision[]
-      hasMore: boolean
-      nextCursor: string | null
-    }>(`/ci/decisions/export?${qs.toString()}`, { internal: true })
+      const payload = await fetchEngineJson<{
+        decisions: BaselineDecision[]
+        hasMore: boolean
+        nextCursor: string | null
+      }>(`/ci/decisions/export?${qs.toString()}`, { internal: true })
 
-    const page = payload?.decisions ?? []
-    decisions.push(...page)
-
-    if (decisions.length >= maxRecords) break
-    cursor = payload?.nextCursor ?? null
-    if (!payload?.hasMore || !cursor || page.length === 0) break
-  }
-
-  if (decisions.length === 0) {
-    const legacyPageSize = 200
-    for (let offset = 0; offset < maxRecords; offset += legacyPageSize) {
-      const fallback = await fetchEngineJson<{ decisions: BaselineDecision[] }>(
-        `/ci/decisions?limit=${legacyPageSize}&offset=${offset}`
-      )
-      const page = fallback?.decisions ?? []
-      if (page.length === 0) break
+      const page = payload?.decisions ?? []
       decisions.push(...page)
-      if (decisions.length >= maxRecords) break
+
+      if (page.length > 0) exportUsed = true
+      if (decisions.length >= exportMaxRecords) break
+      cursor = payload?.nextCursor ?? null
+      if (!payload?.hasMore || !cursor || page.length === 0) break
     }
+
+    if (decisions.length === 0) {
+      const legacyPageSize = 200
+      for (let offset = 0; offset < legacyMaxRecords; offset += legacyPageSize) {
+        const fallback = await fetchEngineJson<{ decisions: BaselineDecision[] }>(
+          `/ci/decisions?limit=${legacyPageSize}&offset=${offset}`
+        )
+        const page = fallback?.decisions ?? []
+        if (page.length === 0) break
+        decisions.push(...page)
+        if (decisions.length >= legacyMaxRecords) break
+      }
+    }
+
+    const baseline = computeBaseline(decisions)
+
+    const body = {
+      ok: true,
+      baseline,
+      generatedAt: new Date(now).toISOString(),
+      source: {
+        type:
+          exportUsed && decisions.length > 200
+            ? 'sampled-production-window'
+            : 'export-backed-sample',
+        sampleSize: decisions.length,
+        note:
+          exportUsed && decisions.length > 200
+            ? 'Baseline computed from internal export pagination (cursor-based).'
+            : 'Baseline computed from public decisions endpoint (internal export unavailable).',
+      },
+    }
+
+    baselineCache = { at: now, body }
+    return NextResponse.json(body, { headers: baselineCacheHeaders() })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    return NextResponse.json(
+      {
+        ok: false,
+        error: 'Baseline computation failed.',
+        detail: message,
+      },
+      { status: 503 }
+    )
   }
-
-  const baseline = computeBaseline(decisions)
-
-  return NextResponse.json({
-    ok: true,
-    baseline,
-    source: {
-      sampleSize: decisions.length,
-      note:
-        decisions.length > 200
-          ? 'Baseline computed from internal export pagination (cursor-based).'
-          : 'Baseline computed from public decisions endpoint (internal export unavailable).',
-    },
-  })
 }

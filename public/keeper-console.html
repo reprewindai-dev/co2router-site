@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
@@ -10,7 +10,7 @@
 <script src="/vendor/lucide.umd.js"></script>
 <script src="/vendor/chart.umd.min.js"></script>
 <style>
-/* ── DESIGN TOKENS ─────────────────────────────────────────────── */
+/* -- DESIGN TOKENS ----------------------------------------------- */
 :root {
   --font-body: 'Inter', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
@@ -63,7 +63,7 @@
   --transition: 180ms cubic-bezier(0.16,1,0.3,1);
 }
 
-/* ── BASE ─────────────────────────────────────────────────────── */
+/* -- BASE ------------------------------------------------------- */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
 body {
@@ -78,7 +78,7 @@ button { cursor: pointer; font: inherit; color: inherit; background: none; borde
 a { color: inherit; text-decoration: none; }
 svg { display: block; flex-shrink: 0; }
 
-/* ── SCANLINE OVERLAY ─────────────────────────────────────────── */
+/* -- SCANLINE OVERLAY ------------------------------------------- */
 body::before {
   content: '';
   position: fixed; inset: 0;
@@ -93,10 +93,10 @@ body::before {
   z-index: 9999;
 }
 
-/* ── LAYOUT ───────────────────────────────────────────────────── */
+/* -- LAYOUT ----------------------------------------------------- */
 .app { display: grid; grid-template-rows: 44px 1fr; height: 100dvh; }
 
-/* ── AUTHORITY STRIP ──────────────────────────────────────────── */
+/* -- AUTHORITY STRIP -------------------------------------------- */
 .authority-strip {
   background: var(--surface);
   border-bottom: 1px solid var(--border);
@@ -170,7 +170,7 @@ body::before {
 }
 .strip-btn:hover { border-color: var(--border-bright); color: var(--text); }
 
-/* ── MAIN BODY ────────────────────────────────────────────────── */
+/* -- MAIN BODY -------------------------------------------------- */
 .main-body {
   display: grid;
   grid-template-columns: 56px 1fr 340px;
@@ -178,7 +178,7 @@ body::before {
   overflow: hidden;
 }
 
-/* ── SIDEBAR NAV ──────────────────────────────────────────────── */
+/* -- SIDEBAR NAV ------------------------------------------------ */
 .sidebar {
   background: var(--surface);
   border-right: 1px solid var(--border);
@@ -213,21 +213,21 @@ body::before {
 .nav-btn:hover .nav-tooltip { opacity: 1; transform: translateX(0); }
 .sidebar-spacer { flex: 1; }
 
-/* ── CONTENT AREA ─────────────────────────────────────────────── */
+/* -- CONTENT AREA ----------------------------------------------- */
 .content {
   display: grid;
   grid-template-rows: 1fr 200px;
   overflow: hidden;
 }
 
-/* ── TOP SECTION: GLOBE + DECISION FEED ──────────────────────── */
+/* -- TOP SECTION: GLOBE + DECISION FEED ------------------------ */
 .top-section {
   display: grid;
   grid-template-columns: 1fr 320px;
   overflow: hidden;
 }
 
-/* ── GLOBE PANEL ──────────────────────────────────────────────── */
+/* -- GLOBE PANEL ------------------------------------------------ */
 .globe-panel {
   background: var(--surface);
   border-right: 1px solid var(--border);
@@ -294,7 +294,7 @@ body::before {
 .globe-stat-value.amber { color: var(--amber); }
 .globe-stat-value.cyan { color: var(--cyan); }
 
-/* ── DECISION FEED ────────────────────────────────────────────── */
+/* -- DECISION FEED ---------------------------------------------- */
 .decision-feed {
   border-bottom: 1px solid var(--border);
   display: flex; flex-direction: column; overflow: hidden;
@@ -369,7 +369,7 @@ body::before {
   background: var(--green); flex-shrink: 0;
 }
 
-/* ── BOTTOM SECTION: KPI STRIP ────────────────────────────────── */
+/* -- BOTTOM SECTION: KPI STRIP ---------------------------------- */
 .kpi-strip {
   background: var(--surface);
   border-top: 1px solid var(--border);
@@ -414,7 +414,7 @@ body::before {
 .kpi-sparkline { height: 28px; position: relative; margin-top: var(--space-1); }
 .kpi-sparkline canvas { width: 100% !important; height: 28px !important; }
 
-/* ── RIGHT PANEL ──────────────────────────────────────────────── */
+/* -- RIGHT PANEL ------------------------------------------------ */
 .right-panel {
   background: var(--surface);
   border-left: 1px solid var(--border);
@@ -441,7 +441,7 @@ body::before {
 .tab-pane { display: none; padding: var(--space-3); }
 .tab-pane.active { display: block; }
 
-/* ── DOCTRINE PANEL ───────────────────────────────────────────── */
+/* -- DOCTRINE PANEL --------------------------------------------- */
 .doctrine-section { margin-bottom: var(--space-5); }
 .doctrine-section-title {
   font-family: var(--font-mono); font-size: var(--text-xs);
@@ -523,7 +523,7 @@ input[type=range].red::-webkit-slider-thumb { background: var(--red); box-shadow
 }
 .btn-apply:hover { background: rgba(0,229,160,0.18); box-shadow: 0 0 16px var(--green-glow); }
 
-/* ── PROOF PANEL ──────────────────────────────────────────────── */
+/* -- PROOF PANEL ------------------------------------------------ */
 .proof-entry {
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -573,7 +573,7 @@ input[type=range].red::-webkit-slider-thumb { background: var(--red); box-shadow
 }
 .export-btn:hover { border-color: var(--border-bright); color: var(--text); }
 
-/* ── AI COPILOT ───────────────────────────────────────────────── */
+/* -- AI COPILOT ------------------------------------------------- */
 .ai-suggestion {
   border: 1px solid rgba(167,139,250,0.2);
   background: rgba(167,139,250,0.05);
@@ -583,7 +583,7 @@ input[type=range].red::-webkit-slider-thumb { background: var(--red); box-shadow
   position: relative;
 }
 .ai-suggestion::before {
-  content: '✦ AI';
+  content: '* AI';
   position: absolute; top: -8px; left: var(--space-3);
   font-family: var(--font-mono); font-size: var(--text-xs);
   color: var(--purple); background: var(--surface);
@@ -605,7 +605,7 @@ input[type=range].red::-webkit-slider-thumb { background: var(--red); box-shadow
 .ai-btn.primary { border-color: rgba(167,139,250,0.3); color: var(--purple); }
 .ai-btn:hover { background: var(--surface-3); color: var(--text); }
 
-/* ── COUNTERFACTUAL CARD ──────────────────────────────────────── */
+/* -- COUNTERFACTUAL CARD ---------------------------------------- */
 .counterfactual {
   background: var(--surface-2);
   border: 1px solid var(--border);
@@ -648,7 +648,7 @@ input[type=range].red::-webkit-slider-thumb { background: var(--red); box-shadow
   color: var(--green); text-align: center;
 }
 
-/* ── VISOR MODE ───────────────────────────────────────────────── */
+/* -- VISOR MODE ------------------------------------------------- */
 .visor-overlay {
   position: fixed; inset: 0; z-index: 500;
   background: rgba(3,6,10,0.96);
@@ -702,7 +702,7 @@ input[type=range].red::-webkit-slider-thumb { background: var(--red); box-shadow
 }
 .visor-close:hover { color: var(--text); border-color: var(--border-bright); }
 
-/* ── EXPANDED CARD OVERLAY ────────────────────────────────────── */
+/* -- EXPANDED CARD OVERLAY -------------------------------------- */
 .card-overlay {
   position: fixed; inset: 0; z-index: 400;
   background: rgba(3,6,10,0.85); backdrop-filter: blur(6px);
@@ -768,7 +768,7 @@ input[type=range].red::-webkit-slider-thumb { background: var(--red); box-shadow
 }
 .modal-replay-btn:hover { background: rgba(0,229,160,0.14); }
 
-/* ── ANIMATIONS ───────────────────────────────────────────────── */
+/* -- ANIMATIONS ------------------------------------------------- */
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes slide-in-right { from { transform: translateX(12px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 
@@ -779,7 +779,7 @@ input[type=range].red::-webkit-slider-thumb { background: var(--red); box-shadow
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
-/* ── RESPONSIVE ───────────────────────────────────────────────── */
+/* -- RESPONSIVE ------------------------------------------------- */
 @media (max-width: 900px) {
   .globe-stats { display: none; }
   .kpi-strip { grid-template-columns: repeat(3, 1fr); }
@@ -807,35 +807,25 @@ input[type=range].red::-webkit-slider-thumb { background: var(--red); box-shadow
       CO2 ROUTER
     </div>
     <div class="strip-divider"></div>
-    <div class="posture-badge">
+    <div class="posture-badge" id="posture-badge">
       <div class="posture-dot"></div>
-      ENFORCING
+      <span id="posture-text">ENFORCING</span>
     </div>
     <div class="strip-stats">
       <div class="strip-stat">
         <i data-lucide="zap" style="width:12px;height:12px"></i>
         <span>DECISIONS</span>
-        <strong id="decision-count">1,247</strong>
+        <strong id="decision-count">—</strong>
       </div>
       <div class="strip-stat">
         <i data-lucide="cpu" style="width:12px;height:12px"></i>
         <span>P95</span>
-        <strong>31ms</strong>
-      </div>
-      <div class="strip-stat">
-        <i data-lucide="leaf" style="width:12px;height:12px"></i>
-        <span>CO₂ SAVED</span>
-        <strong id="co2-saved">847kg</strong>
-      </div>
-      <div class="strip-stat alert">
-        <i data-lucide="droplets" style="width:12px;height:12px"></i>
-        <span>H₂O SAVED</span>
-        <strong>18.4kL</strong>
+        <strong id="strip-p95">—</strong>
       </div>
       <div class="strip-stat">
         <i data-lucide="shield-check" style="width:12px;height:12px"></i>
         <span>DOCTRINE</span>
-        <strong>v1.14</strong>
+        <strong id="doctrine-version">—</strong>
       </div>
     </div>
     <div class="strip-right">
@@ -904,15 +894,15 @@ input[type=range].red::-webkit-slider-thumb { background: var(--red); box-shadow
           <div class="globe-stats">
             <div class="globe-stat-card">
               <div class="globe-stat-label">Active Regions</div>
-              <div class="globe-stat-value" id="active-regions">14</div>
+              <div class="globe-stat-value" id="active-regions">—</div>
             </div>
             <div class="globe-stat-card">
               <div class="globe-stat-label">Reroutes / hr</div>
-              <div class="globe-stat-value amber" id="reroutes-hr">342</div>
+              <div class="globe-stat-value amber" id="reroutes-hr">—</div>
             </div>
             <div class="globe-stat-card">
               <div class="globe-stat-label">Cleanest Now</div>
-              <div class="globe-stat-value cyan">EU-N1</div>
+              <div class="globe-stat-value cyan" id="cleanest-now">—</div>
             </div>
           </div>
         </div>
@@ -922,7 +912,7 @@ input[type=range].red::-webkit-slider-thumb { background: var(--red); box-shadow
           <div class="panel-header">
             <i data-lucide="activity" style="width:14px;height:14px;color:var(--green)"></i>
             <span class="panel-title">Decision Feed</span>
-            <span class="panel-badge" id="feed-count">0</span>
+            <span class="panel-badge" id="feed-count">—</span>
           </div>
           <div class="feed-scroll" id="feed-scroll"></div>
         </div>
@@ -933,38 +923,38 @@ input[type=range].red::-webkit-slider-thumb { background: var(--red); box-shadow
       <div class="kpi-strip">
         <div class="kpi-cell">
           <div class="kpi-label">Decisions / min</div>
-          <div class="kpi-value" id="kpi-dpm">248</div>
-          <div class="kpi-delta up">▲ 12%</div>
+          <div class="kpi-value" id="kpi-dpm">—</div>
+          <div class="kpi-delta" id="kpi-dpm-delta">—</div>
           <div class="kpi-sparkline"><canvas id="spark-0"></canvas></div>
         </div>
         <div class="kpi-cell">
-          <div class="kpi-label">Carbon Saved</div>
-          <div class="kpi-value">847 kg</div>
-          <div class="kpi-delta up">▲ 6.2%</div>
+          <div class="kpi-label">Carbon Delta (Sample)</div>
+          <div class="kpi-value" id="kpi-carbon-saved">—</div>
+          <div class="kpi-delta" id="kpi-carbon-saved-delta">Sampled production window</div>
           <div class="kpi-sparkline"><canvas id="spark-1"></canvas></div>
         </div>
         <div class="kpi-cell">
           <div class="kpi-label">Reroute Rate</div>
-          <div class="kpi-value amber">41%</div>
-          <div class="kpi-delta up">▲ 3%</div>
+          <div class="kpi-value amber" id="kpi-reroute-rate">—</div>
+          <div class="kpi-delta" id="kpi-reroute-rate-delta">—</div>
           <div class="kpi-sparkline"><canvas id="spark-2"></canvas></div>
         </div>
         <div class="kpi-cell">
           <div class="kpi-label">Delay Rate</div>
-          <div class="kpi-value cyan">18%</div>
-          <div class="kpi-delta down">▼ 1%</div>
+          <div class="kpi-value cyan" id="kpi-delay-rate">—</div>
+          <div class="kpi-delta" id="kpi-delay-rate-delta">—</div>
           <div class="kpi-sparkline"><canvas id="spark-3"></canvas></div>
         </div>
         <div class="kpi-cell">
           <div class="kpi-label">Deny Rate</div>
-          <div class="kpi-value red">3%</div>
-          <div class="kpi-delta down">▼ 0.5%</div>
+          <div class="kpi-value red" id="kpi-deny-rate">—</div>
+          <div class="kpi-delta" id="kpi-deny-rate-delta">—</div>
           <div class="kpi-sparkline"><canvas id="spark-4"></canvas></div>
         </div>
         <div class="kpi-cell">
           <div class="kpi-label">P95 Latency</div>
-          <div class="kpi-value" style="color:var(--purple)">31ms</div>
-          <div class="kpi-delta down">▼ 4ms</div>
+          <div class="kpi-value" style="color:var(--purple)" id="kpi-p95-latency">—</div>
+          <div class="kpi-delta" id="kpi-p95-latency-delta">—</div>
           <div class="kpi-sparkline"><canvas id="spark-5"></canvas></div>
         </div>
       </div>
@@ -983,8 +973,8 @@ input[type=range].red::-webkit-slider-thumb { background: var(--red); box-shadow
         <div class="tab-pane active" id="tab-doctrine">
           <div class="doctrine-version">
             <div>
-              <div class="dv-label">Active Doctrine</div>
-              <div class="dv-hash">v1.14 · 0xa4f2c9e1</div>
+              <div class="dv-label">Active Doctrine (Read-only)</div>
+              <div class="dv-hash" id="doctrine-hash">—</div>
             </div>
             <i data-lucide="check-circle" style="width:16px;height:16px;color:var(--green)"></i>
           </div>
@@ -992,20 +982,20 @@ input[type=range].red::-webkit-slider-thumb { background: var(--red); box-shadow
           <div class="doctrine-section">
             <div class="doctrine-section-title">Objective Weights</div>
             <div class="slider-row">
-              <div class="slider-label"><strong>Carbon Weight</strong><span class="slider-value" id="val-carbon">72%</span></div>
-              <input type="range" class="green" min="0" max="100" value="72" oninput="document.getElementById('val-carbon').textContent=this.value+'%'">
+              <div class="slider-label"><strong>Carbon Weight</strong><span class="slider-value" id="val-carbon">—</span></div>
+              <input type="range" class="green" id="slider-carbon" min="0" max="100" value="0" disabled>
             </div>
             <div class="slider-row">
-              <div class="slider-label"><strong>Water Stress</strong><span class="slider-value" id="val-water">58%</span></div>
-              <input type="range" class="green" min="0" max="100" value="58" oninput="document.getElementById('val-water').textContent=this.value+'%'">
+              <div class="slider-label"><strong>Water Weight</strong><span class="slider-value" id="val-water">—</span></div>
+              <input type="range" class="green" id="slider-water" min="0" max="100" value="0" disabled>
             </div>
             <div class="slider-row">
-              <div class="slider-label"><strong>Latency Tolerance</strong><span class="slider-value" id="val-latency">40ms</span></div>
-              <input type="range" class="amber" min="0" max="200" value="40" oninput="document.getElementById('val-latency').textContent=this.value+'ms'">
+              <div class="slider-label"><strong>Latency Weight</strong><span class="slider-value" id="val-latency">—</span></div>
+              <input type="range" class="amber" id="slider-latency" min="0" max="100" value="0" disabled>
             </div>
             <div class="slider-row">
-              <div class="slider-label"><strong>Cost Ceiling</strong><span class="slider-value" id="val-cost">$0.12</span></div>
-              <input type="range" min="0" max="100" value="48" oninput="document.getElementById('val-cost').textContent='$'+((this.value/100)*0.25).toFixed(2)">
+              <div class="slider-label"><strong>Cost Weight</strong><span class="slider-value" id="val-cost">—</span></div>
+              <input type="range" id="slider-cost" min="0" max="100" value="0" disabled>
             </div>
           </div>
 
@@ -1013,28 +1003,28 @@ input[type=range].red::-webkit-slider-thumb { background: var(--red); box-shadow
             <div class="doctrine-section-title">Hard Rules</div>
             <div class="toggle-row">
               <span class="toggle-label">Deny if water stress HIGH</span>
-              <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+              <div class="toggle on"></div>
             </div>
             <div class="toggle-row">
               <span class="toggle-label">Allow delay up to 4 hours</span>
-              <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+              <div class="toggle on"></div>
             </div>
             <div class="toggle-row">
               <span class="toggle-label">Block us-east-1 (water risk)</span>
-              <div class="toggle" onclick="this.classList.toggle('on')"></div>
+              <div class="toggle"></div>
             </div>
             <div class="toggle-row">
               <span class="toggle-label">GreenOps CI/CD gate enabled</span>
-              <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+              <div class="toggle on"></div>
             </div>
             <div class="toggle-row">
               <span class="toggle-label">Require 2-approver governance</span>
-              <div class="toggle" onclick="this.classList.toggle('on')"></div>
+              <div class="toggle"></div>
             </div>
           </div>
 
-          <button class="btn-apply" onclick="simulateDoctrine()">▶ Run Doctrine Simulator</button>
-        </div>
+            <button class="btn-apply" onclick="simulateDoctrine()">▶ Active Doctrine (Read-only)</button>
+          </div>
 
         <!-- PROOF TAB -->
         <div class="tab-pane" id="tab-proof">
@@ -1044,44 +1034,55 @@ input[type=range].red::-webkit-slider-thumb { background: var(--red); box-shadow
         <!-- COPILOT TAB -->
         <div class="tab-pane" id="tab-copilot">
           <div class="counterfactual">
-            <div class="cf-title">This Month — Counterfactual Engine</div>
+            <div class="cf-title">Sampled Production Window Baseline</div>
             <div class="cf-row">
               <div class="cf-col baseline">
-                <div class="cf-col-label">Without CO₂ Router</div>
-                <div class="cf-col-val">4.21</div>
-                <div class="cf-col-unit">tonnes CO₂</div>
+                <div class="cf-col-label">Sample Window Start</div>
+                <div class="cf-col-val" id="sample-window-start">—</div>
+                <div class="cf-col-unit">UTC</div>
               </div>
               <div class="cf-col actual">
-                <div class="cf-col-label">Actual Impact</div>
-                <div class="cf-col-val">0.72</div>
-                <div class="cf-col-unit">tonnes CO₂</div>
+                <div class="cf-col-label">Sample Window End</div>
+                <div class="cf-col-val" id="sample-window-end">—</div>
+                <div class="cf-col-unit">UTC</div>
               </div>
             </div>
-            <div class="cf-savings">▼ 83% carbon reduction · 18,400L water avoided</div>
+            <div class="cf-savings" id="sample-source-note">Source: sampled production window</div>
           </div>
 
           <div class="ai-suggestion">
-            <p>Your <strong>ml-training-batch</strong> jobs consistently run during peak grid hours in us-east-1. Shifting to a <strong>6-hour delay window</strong> would reduce carbon by 34% with no SLA impact.</p>
+            <p><strong>Sample Size</strong>: <span id="sample-size">—</span> decisions</p>
+            <p><strong>Action Mix</strong>: reroute <span id="sample-action-reroute">—</span>, throttle <span id="sample-action-throttle">—</span>, delay <span id="sample-action-delay">—</span></p>
             <div class="ai-actions">
-              <button class="ai-btn primary">Apply Rule</button>
-              <button class="ai-btn">Simulate First</button>
-              <button class="ai-btn">Dismiss</button>
+              <button class="ai-btn">Sampled production window</button>
+              <button class="ai-btn">Units shown on all metrics</button>
             </div>
           </div>
 
           <div class="ai-suggestion">
-            <p>Water stress in <strong>eu-central-1 is forecast HIGH</strong> for the next 72h (seasonal data). Pre-approve fallback to <strong>eu-north-1</strong> for this period?</p>
+            <p><strong>Water Avoided in Sample Window</strong>: <span id="sample-water-avoided">—</span></p>
+            <p><strong>Water Reduction</strong>: <span id="sample-water-reduction">—</span></p>
             <div class="ai-actions">
-              <button class="ai-btn primary">Pre-Approve</button>
-              <button class="ai-btn">View Forecast</button>
+              <button class="ai-btn">Freshness: <span id="sample-freshness">—</span></button>
+              <button class="ai-btn">Source: /api/analytics/baseline</button>
             </div>
           </div>
 
           <div class="ai-suggestion">
-            <p>Your <strong>latency tolerance on job class: inference</strong> is tighter than doctrine allows. Relaxing by <strong>20ms</strong> unlocks 3 additional clean regions — saving est. <strong>120kg CO₂/week</strong>.</p>
+            <p><strong>Water Scarcity Impact Avoided in Sample Window</strong>: <span id="sample-scarcity-avoided">—</span></p>
+            <p><strong>Water Scarcity Reduction</strong>: <span id="sample-scarcity-reduction">—</span></p>
             <div class="ai-actions">
-              <button class="ai-btn primary">Update Doctrine</button>
-              <button class="ai-btn">Dismiss</button>
+              <button class="ai-btn">Sampled production window</button>
+              <button class="ai-btn">Unit: scarcity impact index</button>
+            </div>
+          </div>
+
+          <div class="ai-suggestion">
+            <p><strong>Carbon Delta (Current Sample)</strong>: <span id="sample-carbon-delta">—</span></p>
+            <p><strong>Carbon Intensity Average</strong>: baseline <span id="sample-carbon-baseline-avg">—</span>, selected <span id="sample-carbon-selected-avg">—</span> (gCO₂‚e/kWh)</p>
+            <div class="ai-actions">
+              <button class="ai-btn">Not a lifetime/global metric</button>
+              <button class="ai-btn">Sample-window only</button>
             </div>
           </div>
         </div>
@@ -1101,34 +1102,34 @@ input[type=range].red::-webkit-slider-thumb { background: var(--red); box-shadow
 <div class="visor-overlay" id="visor-overlay">
   <button class="visor-close" onclick="closeVisor()">✕ EXIT VISOR</button>
   <div class="visor-title">HALOGRID SMART VISOR — POSTURE STATUS</div>
-  <div class="visor-posture">ENFORCING</div>
+  <div class="visor-posture" id="visor-posture">ENFORCING</div>
   <div class="visor-decisions">
-    <span id="visor-count">1,247</span> decisions in the last 60 minutes
+    <span id="visor-count">—</span> decisions in the last 60 minutes
   </div>
   <div class="visor-grid">
     <div class="visor-card">
-      <div class="visor-card-val green">847kg</div>
-      <div class="visor-card-lbl">CO₂ Saved</div>
+      <div class="visor-card-val green" id="visor-active-regions">—</div>
+      <div class="visor-card-lbl">Active Regions</div>
     </div>
     <div class="visor-card">
-      <div class="visor-card-val amber">342</div>
+      <div class="visor-card-val amber" id="visor-reroutes-hr">—</div>
       <div class="visor-card-lbl">Reroutes / hr</div>
     </div>
     <div class="visor-card">
-      <div class="visor-card-val cyan">0</div>
+      <div class="visor-card-val cyan" id="visor-alerts">—</div>
       <div class="visor-card-lbl">Active Alerts</div>
     </div>
     <div class="visor-card">
-      <div class="visor-card-val green">31ms</div>
+      <div class="visor-card-val green" id="visor-p95">—</div>
       <div class="visor-card-lbl">P95 Latency</div>
     </div>
     <div class="visor-card">
-      <div class="visor-card-val green">18.4kL</div>
-      <div class="visor-card-lbl">H₂O Saved</div>
+      <div class="visor-card-val green" id="visor-last-update-age">—</div>
+      <div class="visor-card-lbl">Last Update Age</div>
     </div>
     <div class="visor-card">
-      <div class="visor-card-val cyan">v1.14</div>
-      <div class="visor-card-lbl">Doctrine</div>
+      <div class="visor-card-val cyan" id="visor-status">—</div>
+      <div class="visor-card-lbl">Engine Status</div>
     </div>
   </div>
 </div>
@@ -1144,44 +1145,90 @@ input[type=range].red::-webkit-slider-thumb { background: var(--red); box-shadow
     <div class="modal-grid" id="modal-grid"></div>
     <div style="font-family:var(--font-mono);font-size:var(--text-xs);color:var(--text-faint);margin-bottom:var(--space-2)">PROOF HASH</div>
     <div class="modal-proof-box" id="modal-proof"></div>
-    <button class="modal-replay-btn">⟳ Replay Decision Against Current Signals</button>
+    <button class="modal-replay-btn" id="modal-replay-btn">⟳ Replay Decision Against Current Signals</button>
   </div>
 </div>
 
 <script>
-// ── DATA ────────────────────────────────────────────────────────
-const REGIONS = [
-  { name:'EU-NORTH-1', x:0.52, y:0.22, intensity:41, water:'LOW', label:'eu-n1' },
-  { name:'EU-WEST-2',  x:0.46, y:0.28, intensity:89, water:'LOW', label:'eu-w2' },
-  { name:'EU-CENTRAL', x:0.54, y:0.27, intensity:142, water:'MED', label:'eu-c1' },
-  { name:'US-EAST-1',  x:0.24, y:0.32, intensity:342, water:'HIGH', label:'us-e1' },
-  { name:'US-WEST-2',  x:0.1,  y:0.3,  intensity:180, water:'MED', label:'us-w2' },
-  { name:'AP-EAST-1',  x:0.84, y:0.38, intensity:520, water:'HIGH', label:'ap-e1' },
-  { name:'AP-SE-1',    x:0.82, y:0.5,  intensity:380, water:'MED', label:'ap-se1' },
-  { name:'SA-EAST-1',  x:0.32, y:0.62, intensity:210, water:'MED', label:'sa-e1' },
-  { name:'AF-SOUTH',   x:0.58, y:0.62, intensity:450, water:'HIGH', label:'af-s1' },
-  { name:'ME-SOUTH',   x:0.66, y:0.37, intensity:390, water:'HIGH', label:'me-s1' },
+// -- DATA --------------------------------------------------------
+const REGION_COORDS = [
+  { region: 'eu-north-1', x: 0.52, y: 0.22, label: 'eu-n1' },
+  { region: 'eu-west-2', x: 0.46, y: 0.28, label: 'eu-w2' },
+  { region: 'eu-central-1', x: 0.54, y: 0.27, label: 'eu-c1' },
+  { region: 'us-east-1', x: 0.24, y: 0.32, label: 'us-e1' },
+  { region: 'us-west-2', x: 0.1, y: 0.3, label: 'us-w2' },
+  { region: 'ap-east-1', x: 0.84, y: 0.38, label: 'ap-e1' },
+  { region: 'ap-southeast-1', x: 0.82, y: 0.5, label: 'ap-se1' },
+  { region: 'ap-northeast-1', x: 0.82, y: 0.33, label: 'ap-ne1' },
+  { region: 'sa-east-1', x: 0.32, y: 0.62, label: 'sa-e1' },
+  { region: 'af-south-1', x: 0.58, y: 0.62, label: 'af-s1' },
+  { region: 'me-south-1', x: 0.66, y: 0.37, label: 'me-s1' },
 ];
 
-const ACTIONS = ['REROUTE','REROUTE','REROUTE','DELAY','DELAY','DENY','RUN','RUN','THROTTLE'];
-const JOBS = [
-  'ml-training-batch','inference-worker','etl-pipeline','data-export',
-  'video-encode','model-finetune','batch-analytics','k8s-job','ci-build',
-  'cron-aggregator','stream-processor','dataflow-task'
-];
-const SOURCE_REGIONS = ['us-east-1','us-west-2','ap-east-1','eu-central-1','sa-east-1'];
-const DEST_REGIONS = ['eu-north-1','eu-west-2','us-west-2','ap-southeast-1'];
+const regionCoordMap = new Map(REGION_COORDS.map((r) => [r.region, r]));
 
-function rand(min, max) { return Math.random()*(max-min)+min; }
-function randInt(min, max) { return Math.floor(rand(min, max)); }
-function pick(arr) { return arr[randInt(0, arr.length)]; }
-function hex() { return '0x'+Array.from({length:8},()=>'0123456789abcdef'[randInt(0,16)]).join('')+'...'+Array.from({length:4},()=>'0123456789abcdef'[randInt(0,16)]).join(''); }
+function normalizeRegion(value) {
+  if (!value) return null;
+  return String(value).trim().toLowerCase();
+}
+
+function hashToUnit(value) {
+  const str = String(value ?? '');
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i += 1) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return (h >>> 0) / 4294967295;
+}
+
+function getRegionCoord(region) {
+  const normalized = normalizeRegion(region);
+  if (!normalized) return null;
+  const found = regionCoordMap.get(normalized);
+  if (found) return found;
+  const ux = 0.18 + hashToUnit(normalized) * 0.68;
+  const uy = 0.18 + hashToUnit(`y:${normalized}`) * 0.64;
+  return { region: normalized, x: ux, y: uy, label: normalized.slice(0, 5) };
+}
+
+function shortHash(value, chars = 16) {
+  if (!value) return '—';
+  const str = String(value);
+  return str.length <= chars ? str : str.slice(0, chars);
+}
 
 const ENGINE_PROXY_BASE = '/api/ecobe';
-const ENGINE_POLL_MS = 4000;
+const HEALTH_POLL_MS = 20_000;
+const DECISIONS_POLL_MS = 8_000;
+const ANALYTICS_POLL_MS = 60_000;
+const HEALTH_STALE_MS = 45_000;
+const DECISIONS_STALE_MS = 20_000;
+const ANALYTICS_STALE_MS = 180_000;
 
-let decisionCount = 0;
-let co2SavedKg = 0;
+const state = {
+  health: null,
+  decisions: [],
+  analyticsSample: null,
+  derived: {
+    rows: [],
+    lastHourRows: [],
+    lastMinuteRows: [],
+    uniqueRegionCount: 0,
+    reroutesHr: 0,
+    denyAlerts: 0,
+    p95Latency: null,
+    doctrineVersion: '—',
+  },
+  ui: {
+    loading: { health: true, decisions: true, analytics: true },
+    stale: { health: false, decisions: false, analytics: false },
+    degraded: false,
+    errors: { health: null, decisions: null, analytics: null },
+    lastSuccessAt: { health: 0, decisions: 0, analytics: 0 },
+  },
+};
+
 let feedCount = 0;
 let lastSeenFrameId = null;
 
@@ -1194,7 +1241,7 @@ function formatNumber(value) {
 }
 
 function formatKg(valueKg) {
-  if (!Number.isFinite(valueKg)) return '0kg';
+  if (!Number.isFinite(valueKg)) return '—';
   if (valueKg >= 1000) return `${(valueKg / 1000).toFixed(1)}t`;
   if (valueKg >= 10) return `${Math.round(valueKg)}kg`;
   return `${valueKg.toFixed(1)}kg`;
@@ -1213,7 +1260,7 @@ async function fetchJson(path) {
   return res.json();
 }
 
-// ── CLOCK ───────────────────────────────────────────────────────
+// -- CLOCK -------------------------------------------------------
 function updateClock() {
   const now = new Date();
   document.getElementById('clock').textContent =
@@ -1222,14 +1269,14 @@ function updateClock() {
 setInterval(updateClock, 1000);
 updateClock();
 
-// ── SPARKLINES ──────────────────────────────────────────────────
+// -- SPARKLINES --------------------------------------------------
 const sparkColors = [
   '#00e5a0','#00e5a0','#ffb347','#3dd9ff','#ff4f6b','#a78bfa'
 ];
 const sparkCanvases = [];
 for(let i=0;i<6;i++){
   const ctx = document.getElementById('spark-'+i).getContext('2d');
-  const data = Array.from({length:20},()=>rand(30,100));
+  const data = Array.from({length:20},()=>0);
   const chart = new Chart(ctx, {
     type:'line',
     data:{ labels:data.map((_,i)=>i), datasets:[{
@@ -1251,21 +1298,22 @@ for(let i=0;i<6;i++){
   sparkCanvases.push({chart, data});
 }
 
-function updateSparklines(){
-  sparkCanvases.forEach(({chart, data})=>{
-    data.push(rand(30,100)); data.shift();
-    chart.data.datasets[0].data = [...data];
-    chart.update('none');
-  });
+function pushSpark(index, value){
+  const item = sparkCanvases[index];
+  if(!item) return;
+  const n = Number(value);
+  item.data.push(Number.isFinite(n) ? n : 0);
+  item.data.shift();
+  item.chart.data.datasets[0].data = [...item.data];
+  item.chart.update('none');
 }
-setInterval(updateSparklines, 2000);
 
-// ── GLOBE CANVAS ─────────────────────────────────────────────────
+// -- GLOBE CANVAS -------------------------------------------------
 const globeCanvas = document.getElementById('globe-canvas');
 const gctx = globeCanvas.getContext('2d');
 let globeW, globeH;
 let arcs = [];
-let nodes = [];
+let regionViz = [];
 let animFrame = 0;
 
 function resizeGlobe(){
@@ -1350,23 +1398,33 @@ function drawGlobe(){
     gctx.restore();
   });
 
-  // Nodes
+  // Nodes (derived from live decisions)
   const t = Date.now()/1000;
-  REGIONS.forEach((r,i)=>{
+  regionViz.forEach((r,i)=>{
     const p = geoToXY(r.x, r.y);
     const pulse = (Math.sin(t*1.5 + i*0.8)+1)/2;
-    let color;
-    if(r.intensity < 100) color = '#00e5a0';
-    else if(r.intensity < 300) color = '#ffb347';
-    else color = '#ff4f6b';
+
+    let color = '#3dd9ff';
+    const zone = (r.zone || '').toLowerCase();
+    if(zone === 'red') color = '#ff4f6b';
+    else if(zone === 'amber') color = '#ffb347';
+    else if(zone === 'green') color = '#00e5a0';
+    else if(Number.isFinite(r.intensity)){
+      if(r.intensity < 100) color = '#00e5a0';
+      else if(r.intensity < 300) color = '#ffb347';
+      else color = '#ff4f6b';
+    }
+
+    const count = Number.isFinite(r.count) ? r.count : 0;
+    const amp = Math.min(1, Math.max(0.15, count / 12));
 
     // Pulse ring
     gctx.save();
     gctx.strokeStyle = color;
     gctx.lineWidth = 1;
-    gctx.globalAlpha = (1-pulse)*0.5;
+    gctx.globalAlpha = (1-pulse)*0.55*amp;
     gctx.beginPath();
-    gctx.arc(p.x, p.y, 8 + pulse*14, 0, Math.PI*2);
+    gctx.arc(p.x, p.y, 8 + pulse*14*amp, 0, Math.PI*2);
     gctx.stroke();
     gctx.restore();
 
@@ -1377,7 +1435,7 @@ function drawGlobe(){
     gctx.shadowBlur = 10;
     gctx.globalAlpha = 0.9;
     gctx.beginPath();
-    gctx.arc(p.x, p.y, 4, 0, Math.PI*2);
+    gctx.arc(p.x, p.y, 4 + amp*1.2, 0, Math.PI*2);
     gctx.fill();
     gctx.restore();
 
@@ -1385,7 +1443,7 @@ function drawGlobe(){
     gctx.save();
     gctx.font = '9px JetBrains Mono, monospace';
     gctx.fillStyle = 'rgba(150,200,220,0.6)';
-    gctx.fillText(r.label, p.x+7, p.y+4);
+    gctx.fillText(r.label || r.region || '—', p.x+7, p.y+4);
     gctx.restore();
   });
 
@@ -1393,100 +1451,121 @@ function drawGlobe(){
   requestAnimationFrame(drawGlobe);
 }
 
-function spawnArc(){
-  const src = REGIONS[randInt(3,10)];
-  const dst = REGIONS[randInt(0,4)];
-  const p1 = geoToXY(src.x, src.y);
-  const p2 = geoToXY(dst.x, dst.y);
-  const mx = (p1.x+p2.x)/2;
-  const my = (p1.y+p2.y)/2 - rand(30,80);
-  const colors = ['#00e5a0','#00e5a0','#ffb347','#3dd9ff'];
-  arcs.push({
-    x1:p1.x, y1:p1.y, x2:p2.x, y2:p2.y,
-    cx:mx, cy:my,
-    color:pick(colors), progress:0, speed:rand(0.006,0.012)
-  });
-}
-
 window.addEventListener('resize', ()=>{ resizeGlobe(); });
 resizeGlobe();
 drawGlobe();
-setInterval(spawnArc, 800);
 
-// ── DECISION FEED ────────────────────────────────────────────────
+// -- DECISION FEED ------------------------------------------------
+// -- DECISION FEED / POSTURE / MAP (LIVE) --------------------------
 const feedEl = document.getElementById('feed-scroll');
 const feedCountEl = document.getElementById('feed-count');
 
-const actionClass = { REROUTE:'reroute', DELAY:'delay', DENY:'deny', RUN:'run', THROTTLE:'throttle' };
+const decisionsByFrameId = new Map();
 
-function makeFeedCard(){
-  const action = pick(ACTIONS);
-  const job = pick(JOBS)+'-'+randInt(1000,9999);
-  const src = pick(SOURCE_REGIONS);
-  const dst = pick(DEST_REGIONS);
-  const dCO2 = randInt(20,95);
-  const dH2O = randInt(15,80);
-  const dLatency = randInt(5,45);
-  const proofHash = hex();
-  const mins = randInt(0,59);
-  const secs = randInt(0,59);
-  const timeAgo = mins>0 ? mins+'m '+secs+'s ago' : secs+'s ago';
+const actionClass = { REROUTE:'reroute', DELAY:'delay', DENY:'deny', RUN:'run', THROTTLE:'throttle', RUN_NOW:'run' };
+const actionColor = { REROUTE:'#00e5a0', DELAY:'#ffb347', DENY:'#ff4f6b', RUN:'#3dd9ff', THROTTLE:'#a78bfa', RUN_NOW:'#3dd9ff' };
 
-  const cls = actionClass[action]||'run';
-  const id = 'card-'+Date.now()+Math.random();
-
-  const card = document.createElement('div');
-  card.className = `decision-card ${cls} new-card`;
-  card.dataset.job = job;
-  card.dataset.src = src;
-  card.dataset.dst = dst;
-  card.dataset.action = action;
-  card.dataset.dco2 = dCO2;
-  card.dataset.dh2o = dH2O;
-  card.dataset.dlatency = dLatency;
-  card.dataset.proof = proofHash;
-  card.innerHTML = `
-    <div class="dc-top">
-      <span class="dc-action ${cls}">${action}</span>
-      <span class="dc-job">${job}</span>
-      <span class="dc-time">${timeAgo}</span>
-    </div>
-    <div class="dc-metrics">
-      <div class="dc-metric">${action==='RUN'?'REGION:':'FROM:'} <span>${src}</span></div>
-      ${action!=='RUN'?`<div class="dc-metric">TO: <span class="positive">${dst}</span></div>`:''}
-      <div class="dc-metric">CO₂Δ: <span class="positive">-${dCO2}%</span></div>
-      <div class="dc-metric">H₂OΔ: <span class="positive">-${dH2O}%</span></div>
-      ${action==='REROUTE'?`<div class="dc-metric warn">+${dLatency}ms</div>`:''}
-    </div>
-    <div class="dc-proof"><div class="proof-dot"></div>${proofHash}</div>
-  `;
-  card.addEventListener('click', ()=>openCardModal(card));
-  return card;
-}
-
-function addFeedCard(){
-  const card = makeFeedCard();
-  feedEl.insertBefore(card, feedEl.firstChild);
-  feedCount++;
-  feedCountEl.textContent = feedCount;
-  if(feedEl.children.length > 40) feedEl.removeChild(feedEl.lastChild);
-  decisionCount++;
-  document.getElementById('decision-count').textContent = decisionCount.toLocaleString();
-  if(Math.random()<0.15){ co2Saved+=randInt(1,5); document.getElementById('co2-saved').textContent=co2Saved+'kg'; }
-  document.getElementById('visor-count').textContent = decisionCount.toLocaleString();
-}
-
-// â”€â”€ LIVE MODE (ENGINE) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Replace the synthetic ticker with live engine decisions.
 const liveBadgeEl = document.getElementById('live-badge');
+const postureTextEl = document.getElementById('posture-text');
+const postureBadgeEl = document.getElementById('posture-badge');
 
-function setLiveBadge(live) {
-  if (!liveBadgeEl) return;
-  liveBadgeEl.textContent = live ? '● LIVE' : '● DEGRADED';
-  liveBadgeEl.style.color = live ? 'var(--green)' : 'var(--amber)';
+function safeNumber(v){
+  const n = typeof v === 'number' ? v : Number(v);
+  return Number.isFinite(n) ? n : null;
 }
 
-function toDecisionRow(decision) {
+function quantile(values, q){
+  if(!values.length) return null;
+  const sorted = [...values].sort((a,b)=>a-b);
+  const idx = Math.min(sorted.length-1, Math.max(0, Math.floor((sorted.length-1)*q)));
+  return sorted[idx];
+}
+
+function formatMs(ms){
+  const n = safeNumber(ms);
+  if(n==null) return '—';
+  return `${Math.round(n)}ms`;
+}
+
+function formatPct(value){
+  const n = safeNumber(value);
+  if(n==null) return '—';
+  return `${Math.round(n)}%`;
+}
+
+function setPosture({live,label}){
+  if(liveBadgeEl){
+    liveBadgeEl.textContent = live ? '● LIVE' : '● DEGRADED';
+    liveBadgeEl.style.color = live ? 'var(--green)' : 'var(--amber)';
+  }
+  if(postureTextEl) postureTextEl.textContent = label;
+  if(postureBadgeEl){
+    postureBadgeEl.style.borderColor = live ? 'var(--green)' : 'var(--amber)';
+    postureBadgeEl.style.color = live ? 'var(--green)' : 'var(--amber)';
+    postureBadgeEl.style.background = live ? 'var(--green-glow)' : 'var(--amber-glow)';
+  }
+  const visorPostureEl = document.getElementById('visor-posture');
+  if(visorPostureEl) visorPostureEl.textContent = label;
+}
+
+function sumSavedWaterLiters(decisions){
+  let total = 0;
+  let sawValue = false;
+  for(const d of decisions){
+    const baseline = safeNumber(d?.waterBaselineLiters ?? d?.proofEnvelope?.baseline?.waterImpactLiters);
+    const selected = safeNumber(d?.waterImpactLiters ?? d?.proofEnvelope?.selected?.waterImpactLiters);
+    if(baseline!=null && selected!=null){
+      total += Math.max(0, baseline - selected);
+      sawValue = true;
+    }
+  }
+  return sawValue ? total : null;
+}
+
+function sumSavedCarbonKg(decisions){
+  let savedKg = 0;
+  let sawValue = false;
+  for(const d of decisions){
+    const directKg =
+      safeNumber(d?.metadata?.response?.savings?.carbonSavedKg) ??
+      safeNumber(d?.metadata?.response?.savings?.carbonImpactDeltaKg) ??
+      null;
+    if(directKg!=null){
+      savedKg += Math.max(0, directKg);
+      sawValue = true;
+      continue;
+    }
+
+    const directG =
+      safeNumber(d?.savings) ??
+      safeNumber(d?.metadata?.response?.savings?.carbonSavedGrams) ??
+      safeNumber(d?.metadata?.response?.savings?.carbonImpactDeltaGrams) ??
+      safeNumber(d?.metadata?.response?.savings?.carbonImpactDeltaG) ??
+      null;
+    if(directG!=null){
+      savedKg += Math.max(0, directG) / 1000;
+      sawValue = true;
+    }
+  }
+  return sawValue ? savedKg : null;
+}
+
+function pickGovernanceZone(decision){
+  const zone = decision?.policyTrace?.governance?.zone || decision?.policyTrace?.sekedPolicy?.zone || null;
+  return zone ? String(zone).toLowerCase() : null;
+}
+
+function pickDoctrineVersion(decision){
+  return (
+    decision?.decisionEnvelope?.doctrine?.version ||
+    decision?.policyTrace?.policyVersion ||
+    decision?.policyTrace?.governance?.policyReference ||
+    decision?.policyTrace?.governance?.source ||
+    null
+  );
+}
+
+function toDecisionRow(decision){
   const frameId = decision?.decisionFrameId || decision?.decisionFrame?.id || null;
   const action = (decision?.action || decision?.decisionAction || 'run').toString().toUpperCase();
   const src =
@@ -1502,195 +1581,653 @@ function toDecisionRow(decision) {
     '—';
   const createdAt = decision?.createdAt || decision?.timestamp || decision?.decisionFrame?.request?.timestamp || null;
   const createdMs = createdAt ? Date.parse(createdAt) : Date.now();
-  const proofHash = decision?.decisionFrame?.policyTrace?.proofHash || decision?.proofEnvelope?.proofHash || decision?.proofHash || null;
 
-  const waterBaseline = Number(decision?.decisionFrame?.waterBaselineLiters ?? decision?.waterBaselineLiters ?? decision?.proofEnvelope?.baseline?.waterImpactLiters ?? NaN);
-  const waterSelected = Number(decision?.decisionFrame?.waterImpactLiters ?? decision?.waterImpactLiters ?? decision?.proofEnvelope?.selected?.waterImpactLiters ?? NaN);
-  const waterDeltaPct = Number.isFinite(waterBaseline) && waterBaseline > 0 && Number.isFinite(waterSelected)
-    ? Math.round(((waterBaseline - waterSelected) / waterBaseline) * 100)
-    : null;
+  const proofHash = decision?.proofHash || null;
+  const traceHash =
+    decision?.metadata?.trace?.traceHash ||
+    decision?.telemetryBridge?.traceHash ||
+    decision?.proofEnvelope?.traceHash ||
+    decision?.traceHash ||
+    null;
 
-  const co2Baseline = Number(decision?.baseline ?? decision?.baselineCarbonIntensity ?? decision?.proofEnvelope?.baseline?.carbonIntensity ?? NaN);
-  const co2Selected = Number(decision?.carbonIntensity ?? decision?.proofEnvelope?.selected?.carbonIntensity ?? NaN);
-  const co2DeltaPct = Number.isFinite(co2Baseline) && co2Baseline > 0 && Number.isFinite(co2Selected)
-    ? Math.round(((co2Baseline - co2Selected) / co2Baseline) * 100)
-    : null;
+  const signalConfidence = safeNumber(decision?.signalConfidence);
+  const signalMode = decision?.signalMode || null;
+  const zone = pickGovernanceZone(decision);
 
-  const totalLatencyMs = Number(decision?.latencyMs?.total ?? decision?.latencyMs ?? NaN);
-  const latencyDisplay = Number.isFinite(totalLatencyMs) ? Math.round(totalLatencyMs) : null;
+  const waterBaseline = safeNumber(decision?.waterBaselineLiters ?? decision?.proofEnvelope?.baseline?.waterImpactLiters);
+  const waterSelected = safeNumber(decision?.waterImpactLiters ?? decision?.proofEnvelope?.selected?.waterImpactLiters);
+  const waterDeltaPct = waterBaseline!=null && waterBaseline>0 && waterSelected!=null ? ((waterBaseline-waterSelected)/waterBaseline)*100 : null;
 
-  return { frameId, action, src, dst, createdMs, proofHash, waterDeltaPct, co2DeltaPct, latencyDisplay };
+  const co2Baseline = safeNumber(decision?.baseline ?? decision?.baselineCarbonIntensity ?? decision?.proofEnvelope?.baseline?.carbonIntensity);
+  const co2Selected = safeNumber(decision?.carbonIntensity ?? decision?.proofEnvelope?.selected?.carbonIntensity);
+  const co2DeltaPct = co2Baseline!=null && co2Baseline>0 && co2Selected!=null ? ((co2Baseline-co2Selected)/co2Baseline)*100 : null;
+
+  const totalLatencyMs = safeNumber(decision?.latencyMs?.total ?? decision?.latencyMs);
+  const computeLatencyMs = safeNumber(decision?.latencyMs?.compute);
+
+  return {
+    frameId, action, src, dst, createdMs,
+    proofHash, traceHash,
+    zone, signalConfidence, signalMode,
+    waterBaseline, waterSelected, waterDeltaPct,
+    co2Baseline, co2Selected, co2DeltaPct,
+    totalLatencyMs, computeLatencyMs,
+    doctrineVersion: pickDoctrineVersion(decision),
+    reasonCode: decision?.reasonCode || null,
+  };
 }
 
-function formatTimeAgo(createdMs) {
+function formatTimeAgo(createdMs){
   const deltaSec = Math.max(0, Math.floor((Date.now() - createdMs) / 1000));
   const mins = Math.floor(deltaSec / 60);
   const secs = deltaSec % 60;
   return mins > 0 ? `${mins}m ${secs}s ago` : `${secs}s ago`;
 }
 
-function buildDecisionCard(row) {
+function buildDecisionCard(row){
   const cls = actionClass[row.action] || 'run';
   const card = document.createElement('div');
   card.className = `decision-card ${cls}`;
+  card.dataset.frameId = row.frameId || '';
 
-  card.dataset.job = row.frameId;
-  card.dataset.src = row.src;
-  card.dataset.dst = row.dst;
-  card.dataset.action = row.action;
-  card.dataset.dco2 = row.co2DeltaPct ?? '';
-  card.dataset.dh2o = row.waterDeltaPct ?? '';
-  card.dataset.dlatency = row.latencyDisplay ?? '';
-  card.dataset.proof = row.proofHash || '';
-
-  const dCO2 = Number.isFinite(row.co2DeltaPct) ? row.co2DeltaPct : randInt(10, 35);
-  const dH2O = Number.isFinite(row.waterDeltaPct) ? row.waterDeltaPct : randInt(10, 35);
-  const dLatency = Number.isFinite(row.latencyDisplay) ? row.latencyDisplay : randInt(4, 35);
-  const proofShort = (row.proofHash || hex()).slice(0, 16);
+  const proofShort = shortHash(row.proofHash || row.traceHash, 16);
+  const dCO2 = row.co2DeltaPct == null ? '—' : `-${Math.max(0, Math.round(row.co2DeltaPct))}%`;
+  const dH2O = row.waterDeltaPct == null ? '—' : `-${Math.max(0, Math.round(row.waterDeltaPct))}%`;
+  const dLatency = row.totalLatencyMs == null ? '—' : `+${Math.round(row.totalLatencyMs)}ms`;
 
   card.innerHTML = `
     <div class="dc-top">
       <span class="dc-action ${cls}">${row.action}</span>
-      <span class="dc-job">${row.frameId.slice(0, 8)}</span>
+      <span class="dc-job">${String(row.frameId || '—').slice(0, 8)}</span>
       <span class="dc-time">${formatTimeAgo(row.createdMs)}</span>
     </div>
     <div class="dc-metrics">
       <div class="dc-metric">${row.action==='RUN'?'REGION:':'FROM:'} <span>${row.src}</span></div>
       ${row.action!=='RUN'?`<div class="dc-metric">TO: <span class="positive">${row.dst}</span></div>`:''}
-      <div class="dc-metric">COâ‚‚Î”: <span class="positive">-${dCO2}%</span></div>
-      <div class="dc-metric">Hâ‚‚OÎ”: <span class="positive">-${dH2O}%</span></div>
-      ${row.action==='REROUTE'?`<div class="dc-metric warn">+${dLatency}ms</div>`:''}
+      <div class="dc-metric">CO₂‚Δ: <span class="positive">${dCO2}</span></div>
+      <div class="dc-metric">H2O Delta: <span class="positive">${dH2O}</span></div>
+      ${row.action==='REROUTE'?`<div class="dc-metric warn">${dLatency}</div>`:''}
     </div>
     <div class="dc-proof"><div class="proof-dot"></div>${proofShort}</div>
   `;
-  card.addEventListener('click', () => openCardModal(card));
+  card.addEventListener('click', ()=>openDecisionModal(row));
   return card;
 }
 
-async function refreshFromEngine() {
+function buildProofListFromRows(rows){
+  const el = document.getElementById('proof-list');
+  if(!el) return;
+
+  const items = rows.filter((r)=>r.proofHash || r.traceHash).slice(0, 12);
+  el.innerHTML = '';
+  for(const r of items){
+    const div = document.createElement('div');
+    div.className = 'proof-entry';
+    const hash = shortHash(r.proofHash || r.traceHash, 22);
+    const zone = (r.zone || 'unknown').toUpperCase();
+    const badgeColor = r.zone === 'red' ? 'var(--red)' : r.zone === 'amber' ? 'var(--amber)' : 'var(--green)';
+    div.innerHTML = `
+      <div class="proof-entry-head" onclick="this.parentElement.classList.toggle('open')">
+        <i data-lucide="shield-check" style="width:12px;height:12px;color:var(--green)"></i>
+        <span class="proof-hash">${hash}</span>
+        <span class="proof-status"><span style="width:5px;height:5px;border-radius:50%;background:${badgeColor};display:inline-block"></span>${zone}</span>
+      </div>
+      <div class="proof-entry-body">
+        <div class="proof-row"><span class="proof-key">FRAME</span><span class="proof-val">${String(r.frameId).slice(0, 16)}</span></div>
+        <div class="proof-row"><span class="proof-key">ACTION</span><span class="proof-val green">${r.action}</span></div>
+        <div class="proof-row"><span class="proof-key">FROM</span><span class="proof-val">${r.src}</span></div>
+        <div class="proof-row"><span class="proof-key">TO</span><span class="proof-val">${r.dst}</span></div>
+        <div class="proof-row"><span class="proof-key">CONF</span><span class="proof-val">${r.signalConfidence == null ? '—' : r.signalConfidence.toFixed(2)}</span></div>
+        <div class="proof-row"><span class="proof-key">LATENCY</span><span class="proof-val">${formatMs(r.totalLatencyMs)}</span></div>
+        <div class="proof-row"><span class="proof-key">TIME</span><span class="proof-val">${new Date(r.createdMs).toISOString()}</span></div>
+      </div>
+    `;
+    el.appendChild(div);
+  }
+  lucide.createIcons();
+}
+
+function addArcFromRow(row){
+  const srcCoord = getRegionCoord(row.src);
+  const dstCoord = getRegionCoord(row.dst);
+  if(!srcCoord || !dstCoord) return;
+  if(normalizeRegion(row.src) === normalizeRegion(row.dst)) return;
+
+  const p1 = geoToXY(srcCoord.x, srcCoord.y);
+  const p2 = geoToXY(dstCoord.x, dstCoord.y);
+  const mx = (p1.x + p2.x) / 2;
+  const my = (p1.y + p2.y) / 2 - (30 + hashToUnit(row.frameId) * 70);
+
+  arcs.push({
+    x1:p1.x, y1:p1.y, x2:p2.x, y2:p2.y,
+    cx:mx, cy:my,
+    color: actionColor[row.action] || '#3dd9ff',
+    progress:0,
+    speed: 0.008 + hashToUnit(`s:${row.frameId}`) * 0.006,
+  });
+}
+
+function updateRegionVizFromRows(rows){
+  const agg = new Map();
+  for(const r of rows){
+    for(const region of [r.src, r.dst]){
+      if(!region) continue;
+      const coord = getRegionCoord(region);
+      if(!coord) continue;
+      const prev = agg.get(coord.region) || { ...coord, count: 0, zone: null, intensity: null };
+      prev.count += 1;
+      if(r.zone) prev.zone = r.zone;
+      if(r.co2Selected != null) prev.intensity = r.co2Selected;
+      agg.set(coord.region, prev);
+    }
+  }
+  regionViz = Array.from(agg.values()).slice(0, 20);
+}
+
+async function fetchBaselineBestEffort(){
+  const controller = new AbortController();
+  const timeout = setTimeout(()=>controller.abort(), 7000);
   try {
-    const [health, decisionsPayload] = await Promise.all([
-      fetchJson('/health'),
-      fetchJson('/ci/decisions?limit=25'),
-    ]);
-
-    setLiveBadge(Boolean(health?.ok ?? true));
-
-    const decisions = Array.isArray(decisionsPayload?.decisions) ? decisionsPayload.decisions : [];
-    if (!decisions.length) return;
-
-    const rows = decisions.map(toDecisionRow).filter((r) => r.frameId);
-    rows.sort((a, b) => b.createdMs - a.createdMs);
-
-    const now = Date.now();
-    const hourAgo = now - 60 * 60 * 1000;
-    const lastHour = rows.filter((r) => r.createdMs >= hourAgo);
-
-    decisionCount = lastHour.length;
-    document.getElementById('decision-count').textContent = formatNumber(decisionCount);
-    document.getElementById('visor-count').textContent = formatNumber(decisionCount);
-
-    const uniqueRegions = new Set(rows.flatMap((r) => [r.src, r.dst].filter(Boolean)));
-    document.getElementById('active-regions').textContent = formatNumber(uniqueRegions.size);
-
-    const reroutesHr = lastHour.filter((r) => r.action === 'REROUTE').length;
-    document.getElementById('reroutes-hr').textContent = formatNumber(reroutesHr);
-
-    // CO2 savings best-effort (g -> kg)
-    let savedKg = 0;
-    for (const decision of decisions) {
-      const savedG = Number(decision?.savings ?? NaN);
-      if (Number.isFinite(savedG)) savedKg += savedG / 1000;
-    }
-    co2SavedKg = savedKg;
-    document.getElementById('co2-saved').textContent = formatKg(co2SavedKg);
-
-    const newestFrameId = rows[0]?.frameId;
-    const unseen = [];
-    for (const row of rows) {
-      if (lastSeenFrameId && row.frameId === lastSeenFrameId) break;
-      unseen.push(row);
-      if (unseen.length >= 8) break;
-    }
-
-    if (!lastSeenFrameId) {
-      feedEl.innerHTML = '';
-      const initial = rows.slice(0, 12).reverse();
-      for (const row of initial) feedEl.appendChild(buildDecisionCard(row));
-    } else if (unseen.length) {
-      for (const row of unseen.reverse()) {
-        feedEl.insertBefore(buildDecisionCard(row), feedEl.firstChild);
-      }
-    }
-
-    lastSeenFrameId = newestFrameId;
-    feedCount = feedEl.children.length;
-    feedCountEl.textContent = String(feedCount);
-    while (feedEl.children.length > 40) feedEl.removeChild(feedEl.lastChild);
-  } catch (err) {
-    console.warn('HaloGrid refresh failed:', err);
-    setLiveBadge(false);
+    const res = await fetch('/api/analytics/baseline', { headers: { accept: 'application/json' }, cache: 'no-store', signal: controller.signal });
+    if(!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
   }
 }
 
-refreshFromEngine();
-setInterval(refreshFromEngine, ENGINE_POLL_MS);
+function setText(id, value){
+  const el = document.getElementById(id);
+  if(el) el.textContent = value;
+}
 
-// ── CARD MODAL ───────────────────────────────────────────────────
+function formatAge(ms){
+  const n = safeNumber(ms);
+  if(n == null) return '—';
+  if(n < 1000) return '0s';
+  const sec = Math.floor(n / 1000);
+  if(sec < 60) return `${sec}s`;
+  const min = Math.floor(sec / 60);
+  const rem = sec % 60;
+  return `${min}m ${rem}s`;
+}
+
+function formatIsoShort(value){
+  if(!value) return '—';
+  const d = new Date(value);
+  if(Number.isNaN(d.getTime())) return '—';
+  return d.toISOString().replace('.000Z', 'Z');
+}
+
+function updateDerivedFromState(){
+  const decisions = Array.isArray(state.decisions) ? state.decisions : [];
+  decisionsByFrameId.clear();
+  for(const d of decisions){
+    const frameId = d?.decisionFrameId || d?.decisionFrame?.id;
+    if(frameId) decisionsByFrameId.set(frameId, d);
+  }
+
+  const rows = decisions.map(toDecisionRow).filter((r)=>r.frameId);
+  rows.sort((a,b)=>b.createdMs - a.createdMs);
+  state.derived.rows = rows;
+
+  const now = Date.now();
+  const minuteAgo = now - 60 * 1000;
+  const hourAgo = now - 60 * 60 * 1000;
+  state.derived.lastMinuteRows = rows.filter((r)=>r.createdMs >= minuteAgo);
+  state.derived.lastHourRows = rows.filter((r)=>r.createdMs >= hourAgo);
+
+  const uniqueRegions = new Set(state.derived.lastHourRows.flatMap((r)=>[r.src, r.dst].filter(Boolean)));
+  state.derived.uniqueRegionCount = uniqueRegions.size;
+  state.derived.reroutesHr = state.derived.lastHourRows.filter((r)=>r.action === 'REROUTE').length;
+  state.derived.denyAlerts = state.derived.lastHourRows.filter((r)=>r.action === 'DENY' || r.zone === 'red').length;
+  state.derived.p95Latency = quantile(state.derived.lastHourRows.map((r)=>r.totalLatencyMs).filter((v)=>v!=null), 0.95);
+  state.derived.doctrineVersion = rows[0]?.doctrineVersion || '—';
+}
+
+function renderOperational(){
+  const now = Date.now();
+  state.ui.stale.health = now - state.ui.lastSuccessAt.health > HEALTH_STALE_MS;
+  state.ui.stale.decisions = now - state.ui.lastSuccessAt.decisions > DECISIONS_STALE_MS;
+  state.ui.stale.analytics = now - state.ui.lastSuccessAt.analytics > ANALYTICS_STALE_MS;
+
+  const health = state.health;
+  const healthOk = health?.status === 'ok' && health?.engine === 'online' && Boolean(health?.router);
+  const degradedSignals = Boolean(health?.providers?.static) || Boolean(health?.providers?.watttime) === false;
+  state.ui.degraded = !healthOk || degradedSignals || state.ui.stale.health || state.ui.stale.decisions;
+
+  const postureLabel = state.ui.degraded ? (state.ui.stale.health || state.ui.stale.decisions ? 'STALE' : 'DEGRADED') : 'ENFORCING';
+  setPosture({ live: !state.ui.degraded, label: postureLabel });
+
+  if(liveBadgeEl){
+    const isStale = state.ui.stale.health || state.ui.stale.decisions;
+    liveBadgeEl.textContent = isStale ? '? STALE' : (!state.ui.degraded ? '? LIVE' : '? DEGRADED');
+    liveBadgeEl.style.color = !state.ui.degraded ? 'var(--green)' : 'var(--amber)';
+  }
+
+  const lastHour = state.derived.lastHourRows;
+  const lastMinute = state.derived.lastMinuteRows;
+  const decisionCount = lastHour.length;
+  setText('decision-count', formatNumber(decisionCount));
+  setText('visor-count', formatNumber(decisionCount));
+  setText('active-regions', formatNumber(state.derived.uniqueRegionCount));
+  setText('visor-active-regions', formatNumber(state.derived.uniqueRegionCount));
+  setText('reroutes-hr', formatNumber(state.derived.reroutesHr));
+  setText('visor-reroutes-hr', formatNumber(state.derived.reroutesHr));
+  setText('visor-alerts', formatNumber(state.derived.denyAlerts));
+  setText('strip-p95', formatMs(state.derived.p95Latency));
+  setText('visor-p95', formatMs(state.derived.p95Latency));
+  setText('kpi-p95-latency', formatMs(state.derived.p95Latency));
+  setText('doctrine-version', String(state.derived.doctrineVersion));
+  setText('doctrine-hash', String(state.derived.doctrineVersion));
+  setText('visor-status', state.ui.degraded ? 'DEGRADED' : 'HEALTHY');
+  setText('visor-last-update-age', formatAge(now - Math.max(state.ui.lastSuccessAt.health, state.ui.lastSuccessAt.decisions)));
+
+  const latestDecision = state.decisions[0] || null;
+  const weights =
+    latestDecision?.policyTrace?.governance?.weights ||
+    latestDecision?.policyTrace?.sekedPolicy?.weights ||
+    null;
+
+  function setWeight(spanId, sliderId, weight){
+    const span = document.getElementById(spanId);
+    const slider = document.getElementById(sliderId);
+    const pct = safeNumber(weight) == null ? null : Math.round(safeNumber(weight) * 100);
+    if(span) span.textContent = pct == null ? '—' : `${pct}%`;
+    if(slider) slider.value = pct == null ? '0' : String(Math.max(0, Math.min(100, pct)));
+  }
+
+  setWeight('val-carbon', 'slider-carbon', weights?.carbon);
+  setWeight('val-water', 'slider-water', weights?.water);
+  setWeight('val-latency', 'slider-latency', weights?.latency);
+  setWeight('val-cost', 'slider-cost', weights?.cost);
+
+  const dpm = lastMinute.length;
+  setText('kpi-dpm', formatNumber(dpm));
+
+  const totalActions = lastHour.length || 1;
+  const rerouteRate = (lastHour.filter((r)=>r.action==='REROUTE').length / totalActions) * 100;
+  const delayRate = (lastHour.filter((r)=>r.action==='DELAY').length / totalActions) * 100;
+  const denyRate = (lastHour.filter((r)=>r.action==='DENY').length / totalActions) * 100;
+  setText('kpi-reroute-rate', formatPct(rerouteRate));
+  setText('kpi-delay-rate', formatPct(delayRate));
+  setText('kpi-deny-rate', formatPct(denyRate));
+
+  pushSpark(0, dpm);
+  pushSpark(2, rerouteRate);
+  pushSpark(3, delayRate);
+  pushSpark(4, denyRate);
+  pushSpark(5, state.derived.p95Latency ?? 0);
+
+  let cleanest = null;
+  for(const r of state.derived.rows){
+    if(!r.dst || r.co2Selected==null) continue;
+    if(!cleanest || r.co2Selected < cleanest.intensity) cleanest = { region: r.dst, intensity: r.co2Selected };
+  }
+  setText('cleanest-now', cleanest ? String(cleanest.region).toUpperCase() : '—');
+
+  const rows = state.derived.rows;
+  const newestFrameId = rows[0]?.frameId;
+  const unseen = [];
+  for(const row of rows){
+    if(lastSeenFrameId && row.frameId === lastSeenFrameId) break;
+    unseen.push(row);
+    if(unseen.length >= 10) break;
+  }
+  if(unseen.length){
+    for(const row of unseen) addArcFromRow(row);
+  }
+  updateRegionVizFromRows(lastHour);
+
+  if(!lastSeenFrameId){
+    feedEl.innerHTML = '';
+    const initial = rows.slice(0, 12).reverse();
+    for(const row of initial) feedEl.appendChild(buildDecisionCard(row));
+  } else if(unseen.length){
+    for(const row of unseen.reverse()){
+      feedEl.insertBefore(buildDecisionCard(row), feedEl.firstChild);
+    }
+  }
+
+  lastSeenFrameId = newestFrameId || lastSeenFrameId;
+  feedCount = feedEl.children.length;
+  feedCountEl.textContent = String(feedCount);
+  while(feedEl.children.length > 40) feedEl.removeChild(feedEl.lastChild);
+  buildProofListFromRows(rows);
+}
+
+function renderAnalyticsSample(){
+  const payload = state.analyticsSample;
+  const baseline = payload?.baseline || null;
+  const source = payload?.source || null;
+  const now = Date.now();
+  const generatedAt = payload?.generatedAt || null;
+
+  setText('sample-window-start', formatIsoShort(baseline?.window?.minTimestamp));
+  setText('sample-window-end', formatIsoShort(baseline?.window?.maxTimestamp));
+  setText('sample-size', String(source?.sampleSize ?? baseline?.sampleSize ?? '—'));
+  setText('sample-source-note', source?.note ? `${source.note} | sampled production window` : 'Source: sampled production window');
+  setText('sample-freshness', generatedAt ? formatAge(now - Date.parse(generatedAt)) : formatAge(now - state.ui.lastSuccessAt.analytics));
+
+  const actions = baseline?.actions || {};
+  setText('sample-action-reroute', String(actions?.reroute ?? actions?.REROUTE ?? 0));
+  setText('sample-action-throttle', String(actions?.throttle ?? actions?.THROTTLE ?? 0));
+  setText('sample-action-delay', String(actions?.delay ?? actions?.DELAY ?? 0));
+
+  const water = baseline?.waterLiters || {};
+  const waterAvoided = safeNumber(water?.avoidedL);
+  const waterPct = safeNumber(water?.avoidedPct);
+  setText('sample-water-avoided', waterAvoided == null ? '—' : `${waterAvoided.toFixed(2)} L`);
+  setText('sample-water-reduction', waterPct == null ? '—' : `${waterPct.toFixed(2)}%`);
+
+  const scarcity = baseline?.waterScarcity || {};
+  const scarcityAvoided = safeNumber(scarcity?.avoided);
+  const scarcityPct = safeNumber(scarcity?.avoidedPct);
+  setText('sample-scarcity-avoided', scarcityAvoided == null ? '—' : scarcityAvoided.toFixed(3));
+  setText('sample-scarcity-reduction', scarcityPct == null ? '—' : `${scarcityPct.toFixed(2)}%`);
+
+  const carbon = baseline?.carbonIntensity || {};
+  const carbonPct = safeNumber(carbon?.avoidedPct);
+  const baselineAvg = safeNumber(carbon?.baselineAvg);
+  const selectedAvg = safeNumber(carbon?.selectedAvg);
+  const deltaLabel = carbonPct == null ? '—' : `${carbonPct.toFixed(0)}%`;
+  setText('sample-carbon-delta', deltaLabel);
+  setText('sample-carbon-baseline-avg', baselineAvg == null ? '—' : baselineAvg.toFixed(0));
+  setText('sample-carbon-selected-avg', selectedAvg == null ? '—' : selectedAvg.toFixed(0));
+  setText('kpi-carbon-saved', `Delta ${deltaLabel}`);
+  pushSpark(1, carbonPct ?? 0);
+}
+
+function renderAll(){
+  updateDerivedFromState();
+  renderOperational();
+  renderAnalyticsSample();
+}
+
+async function pollHealth(){
+  try{
+    const health = await fetchJson('/health');
+    state.health = health;
+    state.ui.lastSuccessAt.health = Date.now();
+    state.ui.errors.health = null;
+  } catch (err){
+    state.ui.errors.health = String(err?.message || err);
+    console.warn('HaloGrid health poll failed:', err);
+  } finally {
+    state.ui.loading.health = false;
+    renderAll();
+  }
+}
+
+async function pollDecisions(){
+  try{
+    const decisionsPayload = await fetchJson('/ci/decisions?limit=25&offset=0');
+    const decisions = Array.isArray(decisionsPayload?.decisions) ? decisionsPayload.decisions : [];
+    if(decisions.length){
+      state.decisions = decisions;
+      state.ui.lastSuccessAt.decisions = Date.now();
+      state.ui.errors.decisions = null;
+    }
+  } catch (err){
+    state.ui.errors.decisions = String(err?.message || err);
+    console.warn('HaloGrid decisions poll failed:', err);
+  } finally {
+    state.ui.loading.decisions = false;
+    renderAll();
+  }
+}
+
+const FALLBACK_SAMPLE = {
+  baseline: {
+    sampleSize: 500,
+    window: {
+      minTimestamp: '2026-04-12T11:43:05.321Z',
+      maxTimestamp: '2026-04-12T12:07:38.279Z',
+    },
+    actions: { reroute: 300, throttle: 102, delay: 98 },
+    carbonIntensity: { baselineAvg: 450, selectedAvg: 450, avoidedPct: 0 },
+    waterLiters: { avoidedL: 995.84, avoidedPct: 41.15 },
+    waterScarcity: { avoided: 3634.364, avoidedPct: 66.42 },
+  },
+  source: {
+    type: 'export-backed-sample',
+    sampleSize: 500,
+    note: 'Fallback export-backed sample while baseline route is unavailable.',
+  },
+  generatedAt: '2026-04-12T12:07:38.279Z',
+};
+
+async function pollAnalytics(){
+  try{
+    const payload = await fetchBaselineBestEffort();
+    if(payload?.ok && payload?.baseline){
+      state.analyticsSample = payload;
+    } else {
+      state.analyticsSample = FALLBACK_SAMPLE;
+    }
+    state.ui.lastSuccessAt.analytics = Date.now();
+    state.ui.errors.analytics = null;
+  } catch (err){
+    state.ui.errors.analytics = String(err?.message || err);
+    state.analyticsSample = FALLBACK_SAMPLE;
+    console.warn('HaloGrid analytics poll failed:', err);
+  } finally {
+    state.ui.loading.analytics = false;
+    renderAll();
+  }
+}
+
+renderAll();
+pollHealth();
+pollDecisions();
+pollAnalytics();
+setInterval(pollHealth, HEALTH_POLL_MS);
+setInterval(pollDecisions, DECISIONS_POLL_MS);
+setInterval(pollAnalytics, ANALYTICS_POLL_MS);
 const overlay = document.getElementById('card-overlay');
-function openCardModal(card){
-  document.getElementById('modal-job').textContent = card.dataset.job;
-  document.getElementById('modal-proof').textContent =
-    'HASH: '+card.dataset.proof+'\nSIGNAL_LINEAGE: WattTime·v3 → Ember·2026Q1 → WRI·Aqueduct-v5\nPOLICY_VERSION: v1.14 · doctrine:hash:0xa4f2c9e1\nREPLAY_READY: TRUE\nTIMESTAMP: '+new Date().toISOString();
+const modalReplayBtn = document.getElementById('modal-replay-btn');
+let activeDecisionFrameId = null;
+
+function escHtml(value){
+  return String(value ?? '')
+    .replaceAll('&','&amp;')
+    .replaceAll('<','&lt;')
+    .replaceAll('>','&gt;')
+    .replaceAll('"','&quot;')
+    .replaceAll("'","&#39;");
+}
+
+function prettyJson(value){
+  try { return JSON.stringify(value, null, 2); } catch { return String(value); }
+}
+
+function renderDetails(title, payload){
+  if(payload == null) return '';
+  const safeTitle = escHtml(title);
+  const safeBody = escHtml(prettyJson(payload));
+  return `
+    <details style="margin-top:10px">
+      <summary style="cursor:pointer;color:var(--text);font-weight:700">${safeTitle}</summary>
+      <pre style="white-space:pre-wrap;margin:8px 0 0 0;color:var(--text-faint)">${safeBody}</pre>
+    </details>
+  `;
+}
+
+async function fetchEngineJsonBestEffort(path, { method = 'GET' } = {}){
+  const url = `${ENGINE_PROXY_BASE}${path}`;
+  try {
+    const res = await fetch(url, {
+      method,
+      headers: { accept: 'application/json' },
+      cache: 'no-store',
+    });
+    const contentType = res.headers.get('content-type') || '';
+    if(!res.ok){
+      const text = await res.text().catch(()=> '');
+      return { ok: false, status: res.status, error: text.slice(0, 300) };
+    }
+    if(contentType.includes('application/json')){
+      return { ok: true, status: res.status, data: await res.json() };
+    }
+    return { ok: true, status: res.status, data: await res.text() };
+  } catch (err){
+    return { ok: false, status: 0, error: String(err?.message || err) };
+  }
+}
+
+function modalSetJob(text){
+  const el = document.getElementById('modal-job');
+  if(el) el.textContent = text;
+}
+
+function modalSetGrid(fields){
   const grid = document.getElementById('modal-grid');
-  const fields = [
-    {l:'Action',  v:card.dataset.action, c: card.dataset.action==='DENY'?'red':card.dataset.action==='DELAY'?'amber':'green'},
-    {l:'Source Region', v:card.dataset.src, c:''},
-    {l:'Routed To', v:card.dataset.dst||'—', c:'green'},
-    {l:'Carbon Delta', v:'-'+card.dataset.dco2+'%', c:'green'},
-    {l:'Water Delta', v:'-'+card.dataset.dh2o+'%', c:'green'},
-    {l:'Latency Cost', v:'+'+card.dataset.dlatency+'ms', c:'amber'},
-  ];
-  grid.innerHTML = fields.map(f=>`
+  if(!grid) return;
+  grid.innerHTML = fields.map((f)=>`
     <div>
-      <div class="modal-field-label">${f.l}</div>
-      <div class="modal-field-val ${f.c}">${f.v}</div>
+      <div class="modal-field-label">${escHtml(f.l)}</div>
+      <div class="modal-field-val ${escHtml(f.c || '')}">${escHtml(f.v)}</div>
     </div>
   `).join('');
+}
+
+function modalSetProofHtml(html){
+  const el = document.getElementById('modal-proof');
+  if(!el) return;
+  el.innerHTML = html;
+}
+
+function buildModalProofSummary(decision, row){
+  const proofHash =
+    decision?.proofHash ||
+    decision?.proofEnvelope?.proofHash ||
+    row?.proofHash ||
+    null;
+  const traceHash =
+    decision?.metadata?.trace?.traceHash ||
+    decision?.telemetryBridge?.traceHash ||
+    decision?.traceHash ||
+    row?.traceHash ||
+    null;
+
+  const traceId = decision?.telemetryBridge?.span?.traceId || decision?.telemetryBridge?.traceId || null;
+  const spanId = decision?.telemetryBridge?.span?.spanId || decision?.telemetryBridge?.spanId || null;
+  const adapterId =
+    decision?.telemetryBridge?.adapterContext?.adapterId ||
+    decision?.decisionEnvelope?.transport?.adapterId ||
+    decision?.adapterContext?.adapterId ||
+    null;
+  const transport =
+    decision?.telemetryBridge?.adapterContext?.transport ||
+    decision?.decisionEnvelope?.transport?.transport ||
+    decision?.adapterContext?.transport ||
+    null;
+
+  const lineage =
+    decision?.proofEnvelope?.signalLineage ||
+    decision?.metadata?.response?.mss ||
+    null;
+
+  const confidenceMode = decision?.decisionEnvelope?.confidence?.mode || row?.signalMode || null;
+  const confidenceScore =
+    safeNumber(decision?.decisionEnvelope?.confidence?.score) ??
+    safeNumber(row?.signalConfidence) ??
+    null;
+
+  const zone = row?.zone || pickGovernanceZone(decision) || null;
+  const reasonCode = decision?.reasonCode || decision?.decisionEnvelope?.reasonCode || row?.reasonCode || null;
+  const doctrine = pickDoctrineVersion(decision) || row?.doctrineVersion || null;
+
+  const lines = [
+    `PROOF_HASH: ${proofHash || '—'}`,
+    `TRACE_HASH: ${traceHash || '—'}`,
+    `TRACE_ID: ${traceId || '—'}`,
+    `SPAN_ID: ${spanId || '—'}`,
+    `ADAPTER: ${adapterId || '—'}`,
+    `TRANSPORT: ${transport || '—'}`,
+    `GOVERNANCE_ZONE: ${zone || '—'}`,
+    `CONFIDENCE: ${confidenceMode || '—'}${confidenceScore==null ? '' : ` (${confidenceScore.toFixed(3)})`}`,
+    `REASON_CODE: ${reasonCode || '—'}`,
+    `DOCTRINE: ${doctrine || '—'}`,
+  ];
+
+  let html = `<pre style="white-space:pre-wrap;margin:0;color:var(--text-faint)">${escHtml(lines.join('\n'))}</pre>`;
+  html += renderDetails('Signal Lineage', lineage);
+  html += renderDetails('Decision Envelope', decision?.decisionEnvelope || null);
+  html += renderDetails('Proof Envelope', decision?.proofEnvelope || null);
+  html += renderDetails('Telemetry Bridge', decision?.telemetryBridge || null);
+  html += renderDetails('Policy Trace', decision?.policyTrace || null);
+  html += renderDetails('Metadata', decision?.metadata || null);
+  return html;
+}
+
+async function openDecisionModal(row){
+  const frameId = row?.frameId || '';
+  activeDecisionFrameId = frameId || null;
+
+  const decision = frameId ? (decisionsByFrameId.get(frameId) || {}) : {};
+  const requestId =
+    decision?.metadata?.request?.requestId ||
+    decision?.decisionEnvelope?.requestId ||
+    decision?.requestId ||
+    null;
+
+  modalSetJob(requestId ? `${requestId} · ${frameId}` : frameId);
+
+  const fields = [
+    { l:'Action', v: row?.action || '—', c: row?.action==='DENY'?'red':row?.action==='DELAY'?'amber':'green' },
+    { l:'From', v: row?.src || '—' },
+    { l:'To', v: row?.dst || '—', c:'green' },
+    { l:'CO₂‚ Δ', v: row?.co2DeltaPct==null ? '—' : `-${Math.max(0, Math.round(row.co2DeltaPct))}%`, c:'green' },
+    { l:'H2O Delta', v: row?.waterDeltaPct==null ? '--' : `-${Math.max(0, Math.round(row.waterDeltaPct))}%`, c:'green' },
+    { l:'Latency', v: formatMs(row?.totalLatencyMs), c: row?.totalLatencyMs!=null && row.totalLatencyMs>50 ? 'amber' : '' },
+    { l:'Zone', v: (row?.zone || '—').toUpperCase(), c: row?.zone==='red' ? 'red' : row?.zone==='amber' ? 'amber' : 'green' },
+    { l:'Confidence', v: row?.signalConfidence==null ? '—' : row.signalConfidence.toFixed(3), c: row?.signalConfidence!=null && row.signalConfidence<0.6 ? 'amber' : 'green' },
+  ];
+  modalSetGrid(fields);
+
+  modalSetProofHtml(buildModalProofSummary(decision, row));
   overlay.classList.add('open');
+
+  if(frameId){
+    const traceResult = await fetchEngineJsonBestEffort(`/ci/decisions/${encodeURIComponent(frameId)}/trace`, { method: 'GET' });
+    if(traceResult.ok){
+      const existing = document.getElementById('modal-proof');
+      if(existing){
+        existing.insertAdjacentHTML('beforeend', renderDetails('Trace', traceResult.data));
+      }
+    }
+  }
+}
+
+async function replayActiveDecision(){
+  const frameId = activeDecisionFrameId;
+  if(!frameId) return;
+  modalReplayBtn && (modalReplayBtn.textContent = 'Replaying…');
+
+  const res = await fetchEngineJsonBestEffort(`/ci/decisions/${encodeURIComponent(frameId)}/replay`, { method: 'POST' });
+  const el = document.getElementById('modal-proof');
+  if(el){
+    if(res.ok){
+      el.insertAdjacentHTML('beforeend', renderDetails('Replay Result', res.data));
+    } else {
+      el.insertAdjacentHTML('beforeend', renderDetails('Replay Result (Unavailable)', res));
+    }
+  }
+  if(modalReplayBtn) modalReplayBtn.textContent = '⟳ Replay Decision Against Current Signals';
+}
+
+if(modalReplayBtn){
+  modalReplayBtn.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); replayActiveDecision(); });
 }
 function closeModal(e){
   if(!e || e.target===overlay) overlay.classList.remove('open');
 }
 document.getElementById('card-modal').addEventListener('click',e=>e.stopPropagation());
 
-// ── PROOF LIST ──────────────────────────────────────────────────
-function buildProofList(){
-  const el = document.getElementById('proof-list');
-  for(let i=0;i<6;i++){
-    const div = document.createElement('div');
-    div.className = 'proof-entry';
-    div.innerHTML = `
-      <div class="proof-entry-head" onclick="this.parentElement.classList.toggle('open')">
-        <i data-lucide="shield-check" style="width:12px;height:12px;color:var(--green)"></i>
-        <span class="proof-hash">${hex()}</span>
-        <span class="proof-status"><span style="width:5px;height:5px;border-radius:50%;background:var(--green);display:inline-block"></span>VERIFIED</span>
-      </div>
-      <div class="proof-entry-body">
-        <div class="proof-row"><span class="proof-key">JOB</span><span class="proof-val">${pick(JOBS)+'-'+randInt(1000,9999)}</span></div>
-        <div class="proof-row"><span class="proof-key">ACTION</span><span class="proof-val green">${pick(['REROUTE','DELAY','RUN'])}</span></div>
-        <div class="proof-row"><span class="proof-key">CO₂Δ</span><span class="proof-val green">-${randInt(40,90)}%</span></div>
-        <div class="proof-row"><span class="proof-key">H₂OΔ</span><span class="proof-val green">-${randInt(30,80)}%</span></div>
-        <div class="proof-row"><span class="proof-key">DOCTRINE</span><span class="proof-val">v1.14</span></div>
-        <div class="proof-row"><span class="proof-key">TIMESTAMP</span><span class="proof-val">${new Date(Date.now()-randInt(0,3600000)).toISOString()}</span></div>
-      </div>
-    `;
-    el.appendChild(div);
-  }
-}
-buildProofList();
-
-// ── TABS ─────────────────────────────────────────────────────────
+// -- TABS ---------------------------------------------------------
 document.querySelectorAll('.panel-tab').forEach(btn=>{
   btn.addEventListener('click',()=>{
     document.querySelectorAll('.panel-tab').forEach(b=>b.classList.remove('active'));
@@ -1700,23 +2237,27 @@ document.querySelectorAll('.panel-tab').forEach(btn=>{
   });
 });
 
-// ── VISOR ────────────────────────────────────────────────────────
+// -- VISOR --------------------------------------------------------
 function openVisor(){  document.getElementById('visor-overlay').classList.add('open'); }
 function closeVisor(){ document.getElementById('visor-overlay').classList.remove('open'); }
 
-// ── DOCTRINE SIMULATOR ───────────────────────────────────────────
+// -- DOCTRINE SIMULATOR -------------------------------------------
 function simulateDoctrine(){
-  alert('Doctrine Simulator: Running 30-day backtest...\n\nProjected change if this doctrine were live:\n+12% RUN decisions\n-8% CO₂ delta (net improvement)\n-4% H₂O stress exposure\n\nApply doctrine v1.15? (Requires approval)');
+  alert('Doctrine Simulator is running in READ-ONLY mode.\n\nNo doctrine writeback endpoint is configured for this console build.\n\nDeploy a POST route (e.g. /api/ecobe/ci/doctrine/apply) and then this control can be enabled.');
 }
 
-// ── SIDEBAR NAV ──────────────────────────────────────────────────
+// -- SIDEBAR NAV --------------------------------------------------
 function switchPanel(name){
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   event.currentTarget.classList.add('active');
 }
 
-// ── INIT ICONS ───────────────────────────────────────────────────
+// -- INIT ICONS ---------------------------------------------------
 lucide.createIcons();
 </script>
 </body>
 </html>
+
+
+
+
