@@ -3,7 +3,14 @@ import path from 'node:path'
 
 const ORIGIN = process.env.ORIGIN ?? 'https://co2router.com'
 const PAGE_SIZE = Number(process.env.PAGE_SIZE ?? '2000')
-const MAX_RECORDS = Number(process.env.MAX_RECORDS ?? '25000')
+const MAX_RECORDS = Number(process.env.MAX_RECORDS ?? '500')
+const LEGACY_PAGE_LIMITS = String(
+  process.env.LEGACY_PAGE_LIMITS ?? '500,200,100,50,25,10,5,1'
+)
+  .split(',')
+  .map((value) => Number(value.trim()))
+  .filter((value, index, values) => Number.isFinite(value) && value > 0 && values.indexOf(value) === index)
+  .map((value) => Math.min(value, MAX_RECORDS))
 
 function formatDateStamp(date = new Date()) {
   const yyyy = date.getUTCFullYear()
@@ -134,6 +141,33 @@ async function fetchWithTimeout(url, { timeoutMs = 15000, ...init } = {}) {
   }
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+async function fetchWithRetries(url, init, { retries = 4, backoffMs = 400 } = {}) {
+  let lastErr = null
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    try {
+      const res = await fetchWithTimeout(url, init)
+      if (res.ok) return res
+
+      if (res.status >= 500 && res.status < 600 && attempt < retries) {
+        await sleep(backoffMs * Math.pow(2, attempt))
+        continue
+      }
+
+      return res
+    } catch (err) {
+      lastErr = err
+      if (attempt >= retries) break
+      await sleep(backoffMs * Math.pow(2, attempt))
+    }
+  }
+
+  throw lastErr ?? new Error('Fetch failed.')
+}
+
 async function fetchDecisions() {
   const decisions = []
   let cursor = null
@@ -142,7 +176,7 @@ async function fetchDecisions() {
     const legacy = new URL('/api/ecobe/ci/decisions', ORIGIN)
     legacy.searchParams.set('limit', String(limit))
     legacy.searchParams.set('offset', String(offset))
-    const legacyRes = await fetchWithTimeout(legacy, { headers: { accept: 'application/json' } })
+    const legacyRes = await fetchWithRetries(legacy, { headers: { accept: 'application/json' } })
     if (!legacyRes.ok) {
       const text = await legacyRes.text().catch(() => '')
       throw new Error(`Legacy fetch failed (${legacyRes.status}): ${text.slice(0, 200)}`)
@@ -153,7 +187,11 @@ async function fetchDecisions() {
   }
 
   async function fetchLegacyDecisionsPaged() {
-    const tryLimits = [Math.min(MAX_RECORDS, 200), 200, 100, 50, 25, 10, 1]
+    // The legacy endpoint is still the production path on co2router.com.
+    // Larger limits are materially faster, so probe from highest to lowest and let retries absorb transient 500s.
+    const tryLimits = LEGACY_PAGE_LIMITS.length
+      ? LEGACY_PAGE_LIMITS
+      : [Math.min(MAX_RECORDS, 500), 200, 100, 50, 25, 10, 5, 1]
     let limit = null
     let firstError = null
 
@@ -196,7 +234,7 @@ async function fetchDecisions() {
     url.searchParams.set('limit', String(PAGE_SIZE))
     if (cursor) url.searchParams.set('cursor', cursor)
 
-    const res = await fetchWithTimeout(url, { headers: { accept: 'application/json' } })
+    const res = await fetchWithRetries(url, { headers: { accept: 'application/json' } })
     if (!res.ok) {
       if (pageIndex === 0) {
         // Fallback when engine export isn't deployed yet.

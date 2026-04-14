@@ -328,12 +328,12 @@ export async function GET(request: Request) {
       source: {
         type:
           exportUsed && decisions.length > 0
-            ? 'sampled-production-window'
-            : 'export-backed-sample',
+            ? 'export-backed-sample'
+            : 'sampled-production-window',
         sampleSize: decisions.length,
         note:
           exportUsed && decisions.length > 0
-            ? `Baseline computed from the current ${decisions.length}-decision sampled production window.`
+            ? `Baseline computed from the export endpoint using the current ${decisions.length}-decision sample.`
             : `Baseline computed from the public decisions endpoint using the current ${decisions.length}-decision sampled window.`,
       },
     }

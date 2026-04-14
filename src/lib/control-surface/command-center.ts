@@ -136,7 +136,7 @@ const REGION_ANCHORS: Record<string, { label: string; x: number; y: number }> = 
 }
 
 const STATIC_WATER_BUNDLE_TTL_SEC = 30 * 24 * 60 * 60
-const FAST_DECISION_FEED_TIMEOUT_MS = 2_500
+const FAST_DECISION_FEED_TIMEOUT_MS = 7_000
 const LIVE_PROVIDER_TTL_SEC: Record<string, number> = {
   WATTTIME_MOER: 600,
   GRIDSTATUS: 1800,

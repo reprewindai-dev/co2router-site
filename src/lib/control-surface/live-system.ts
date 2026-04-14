@@ -60,7 +60,7 @@ type SloResponse = {
 }
 
 const REQUIRED_DATASETS = ['aqueduct', 'aware', 'wwf', 'nrel'] as const
-const FAST_DECISION_FEED_TIMEOUT_MS = 2_500
+const FAST_DECISION_FEED_TIMEOUT_MS = 7_000
 
 function unavailableTraceLedger(error: string): LiveSystemTraceLedger {
   return {

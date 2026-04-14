@@ -528,6 +528,15 @@ input[type=range].red::-webkit-slider-thumb { background: var(--red); box-shadow
   transition: var(--transition); margin-top: var(--space-2);
 }
 .btn-apply:hover { background: rgba(0,229,160,0.18); box-shadow: 0 0 16px var(--green-glow); }
+.btn-apply[disabled] {
+  cursor: not-allowed;
+  opacity: 0.55;
+  box-shadow: none;
+}
+.btn-apply[disabled]:hover {
+  background: rgba(0,229,160,0.1);
+  box-shadow: none;
+}
 
 /* -- PROOF PANEL ------------------------------------------------ */
 .proof-entry {
@@ -900,15 +909,15 @@ input[type=range].red::-webkit-slider-thumb { background: var(--red); box-shadow
           </div>
           <div class="globe-stats">
             <div class="globe-stat-card">
-              <div class="globe-stat-label">Active Regions</div>
+              <div class="globe-stat-label">Visible Regions</div>
               <div class="globe-stat-value" id="active-regions">—</div>
             </div>
             <div class="globe-stat-card">
-              <div class="globe-stat-label">Reroutes / hr</div>
+              <div class="globe-stat-label">Routed Paths</div>
               <div class="globe-stat-value amber" id="reroutes-hr">—</div>
             </div>
             <div class="globe-stat-card">
-              <div class="globe-stat-label">Cleanest Now</div>
+              <div class="globe-stat-label">Cleanest Region</div>
               <div class="globe-stat-value cyan" id="cleanest-now">—</div>
             </div>
           </div>
@@ -929,7 +938,7 @@ input[type=range].red::-webkit-slider-thumb { background: var(--red); box-shadow
       <!-- KPI STRIP -->
       <div class="kpi-strip">
         <div class="kpi-cell">
-          <div class="kpi-label">Decisions / min</div>
+          <div class="kpi-label">Visible Decisions</div>
           <div class="kpi-value" id="kpi-dpm">—</div>
           <div class="kpi-delta" id="kpi-dpm-delta">—</div>
           <div class="kpi-sparkline"><canvas id="spark-0"></canvas></div>
@@ -1030,7 +1039,13 @@ input[type=range].red::-webkit-slider-thumb { background: var(--red); box-shadow
             </div>
           </div>
 
-            <button class="btn-apply" onclick="simulateDoctrine()">▶ Active Doctrine (Read-only)</button>
+            <button
+              class="btn-apply"
+              type="button"
+              disabled
+              aria-disabled="true"
+              title="Read-only doctrine snapshot. No live doctrine write endpoint is configured for this console build."
+            >Read-only doctrine snapshot</button>
           </div>
 
         <!-- PROOF TAB -->
@@ -1221,11 +1236,14 @@ const state = {
     rows: [],
     lastHourRows: [],
     lastMinuteRows: [],
+    displayRows: [],
     uniqueRegionCount: 0,
     reroutesHr: 0,
     denyAlerts: 0,
     p95Latency: null,
     doctrineVersion: '—',
+    decisionFreshnessMs: null,
+    hasLiveWindow: false,
   },
   ui: {
     loading: { health: true, decisions: true, analytics: true },
@@ -1799,19 +1817,24 @@ function updateDerivedFromState(){
   const hourAgo = now - 60 * 60 * 1000;
   state.derived.lastMinuteRows = rows.filter((r)=>r.createdMs >= minuteAgo);
   state.derived.lastHourRows = rows.filter((r)=>r.createdMs >= hourAgo);
+  state.derived.hasLiveWindow = state.derived.lastHourRows.length > 0;
+  state.derived.displayRows = state.derived.hasLiveWindow ? state.derived.lastHourRows : rows.slice(0, 12);
+  state.derived.decisionFreshnessMs = rows[0] ? Math.max(0, now - rows[0].createdMs) : null;
 
-  const uniqueRegions = new Set(state.derived.lastHourRows.flatMap((r)=>[r.src, r.dst].filter(Boolean)));
+  const uniqueRegions = new Set(state.derived.displayRows.flatMap((r)=>[r.src, r.dst].filter(Boolean)));
   state.derived.uniqueRegionCount = uniqueRegions.size;
-  state.derived.reroutesHr = state.derived.lastHourRows.filter((r)=>r.action === 'REROUTE').length;
-  state.derived.denyAlerts = state.derived.lastHourRows.filter((r)=>r.action === 'DENY' || r.zone === 'red').length;
-  state.derived.p95Latency = quantile(state.derived.lastHourRows.map((r)=>r.totalLatencyMs).filter((v)=>v!=null), 0.95);
+  state.derived.reroutesHr = state.derived.displayRows.filter((r)=>r.action === 'REROUTE').length;
+  state.derived.denyAlerts = state.derived.displayRows.filter((r)=>r.action === 'DENY' || r.zone === 'red').length;
+  state.derived.p95Latency = quantile(state.derived.displayRows.map((r)=>r.totalLatencyMs).filter((v)=>v!=null), 0.95);
   state.derived.doctrineVersion = rows[0]?.doctrineVersion || '—';
 }
 
 function renderOperational(){
   const now = Date.now();
   state.ui.stale.health = now - state.ui.lastSuccessAt.health > HEALTH_STALE_MS;
-  state.ui.stale.decisions = now - state.ui.lastSuccessAt.decisions > DECISIONS_STALE_MS;
+  state.ui.stale.decisions =
+    now - state.ui.lastSuccessAt.decisions > DECISIONS_STALE_MS ||
+    (state.derived.decisionFreshnessMs != null && state.derived.decisionFreshnessMs > DECISIONS_STALE_MS);
   state.ui.stale.analytics = now - state.ui.lastSuccessAt.analytics > ANALYTICS_STALE_MS;
 
   const health = state.health;
@@ -1830,7 +1853,8 @@ function renderOperational(){
 
   const lastHour = state.derived.lastHourRows;
   const lastMinute = state.derived.lastMinuteRows;
-  const decisionCount = lastHour.length;
+  const displayRows = state.derived.displayRows;
+  const decisionCount = state.derived.rows.length;
   setText('decision-count', formatNumber(decisionCount));
   setText('visor-count', formatNumber(decisionCount));
   setText('active-regions', formatNumber(state.derived.uniqueRegionCount));
@@ -1865,16 +1889,21 @@ function renderOperational(){
   setWeight('val-latency', 'slider-latency', weights?.latency);
   setWeight('val-cost', 'slider-cost', weights?.cost);
 
-  const dpm = lastMinute.length;
+  const dpm = state.derived.hasLiveWindow ? lastMinute.length : displayRows.length;
   setText('kpi-dpm', formatNumber(dpm));
+  setText('kpi-dpm-delta', state.derived.hasLiveWindow ? 'Last minute' : 'Visible feed');
 
-  const totalActions = lastHour.length || 1;
-  const rerouteRate = (lastHour.filter((r)=>r.action==='REROUTE').length / totalActions) * 100;
-  const delayRate = (lastHour.filter((r)=>r.action==='DELAY').length / totalActions) * 100;
-  const denyRate = (lastHour.filter((r)=>r.action==='DENY').length / totalActions) * 100;
+  const totalActions = displayRows.length || 1;
+  const rerouteRate = (displayRows.filter((r)=>r.action==='REROUTE').length / totalActions) * 100;
+  const delayRate = (displayRows.filter((r)=>r.action==='DELAY').length / totalActions) * 100;
+  const denyRate = (displayRows.filter((r)=>r.action==='DENY').length / totalActions) * 100;
   setText('kpi-reroute-rate', formatPct(rerouteRate));
   setText('kpi-delay-rate', formatPct(delayRate));
   setText('kpi-deny-rate', formatPct(denyRate));
+  setText('kpi-reroute-rate-delta', state.derived.hasLiveWindow ? 'Last hour' : 'Visible feed');
+  setText('kpi-delay-rate-delta', state.derived.hasLiveWindow ? 'Last hour' : 'Visible feed');
+  setText('kpi-deny-rate-delta', state.derived.hasLiveWindow ? 'Last hour' : 'Visible feed');
+  setText('kpi-p95-latency-delta', state.derived.hasLiveWindow ? 'Last hour' : 'Visible feed');
 
   pushSpark(0, dpm);
   pushSpark(2, rerouteRate);
@@ -1883,7 +1912,7 @@ function renderOperational(){
   pushSpark(5, state.derived.p95Latency ?? 0);
 
   let cleanest = null;
-  for(const r of state.derived.rows){
+  for(const r of displayRows){
     if(!r.dst || r.co2Selected==null) continue;
     if(!cleanest || r.co2Selected < cleanest.intensity) cleanest = { region: r.dst, intensity: r.co2Selected };
   }
@@ -1900,7 +1929,7 @@ function renderOperational(){
   if(unseen.length){
     for(const row of unseen) addArcFromRow(row);
   }
-  updateRegionVizFromRows(lastHour);
+  updateRegionVizFromRows(displayRows);
 
   if(!lastSeenFrameId){
     feedEl.innerHTML = '';
@@ -2292,9 +2321,7 @@ function openVisor(){  document.getElementById('visor-overlay').classList.add('o
 function closeVisor(){ document.getElementById('visor-overlay').classList.remove('open'); }
 
 // -- DOCTRINE SIMULATOR -------------------------------------------
-function simulateDoctrine(){
-  alert('Doctrine Simulator is running in READ-ONLY mode.\n\nNo doctrine writeback endpoint is configured for this console build.\n\nDeploy a POST route (e.g. /api/ecobe/ci/doctrine/apply) and then this control can be enabled.');
-}
+function simulateDoctrine(){}
 
 // -- SIDEBAR NAV --------------------------------------------------
 function switchPanel(name){
