@@ -24,6 +24,9 @@ function pickTimestampMs(decision: BaselineDecision) {
   const raw =
     decision?.createdAt ??
     decision?.timestamp ??
+    decision?.metadata?.response?.proofRecord?.timestamp ??
+    decision?.metadata?.response?.decisionEnvelope?.timestamp ??
+    decision?.decisionEnvelope?.timestamp ??
     decision?.decisionFrame?.request?.timestamp ??
     null
   if (!raw) return null
