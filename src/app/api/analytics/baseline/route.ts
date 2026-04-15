@@ -313,7 +313,8 @@ export async function GET(request: Request) {
       const legacyPageSize = Math.min(sampleSize, 200)
       for (let offset = 0; offset < legacyMaxRecords; offset += legacyPageSize) {
         const fallback = await fetchEngineJson<{ decisions: BaselineDecision[] }>(
-          `/ci/decisions?limit=${legacyPageSize}&offset=${offset}`
+          `/ci/decisions?limit=${legacyPageSize}&offset=${offset}`,
+          { internal: true }
         )
         const page = fallback?.decisions ?? []
         if (page.length === 0) break

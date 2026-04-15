@@ -879,19 +879,19 @@ input[type=range].red::-webkit-slider-thumb { background: var(--red); box-shadow
 
     <!-- SIDEBAR NAV -->
     <nav class="sidebar">
-      <button class="nav-btn active" onclick="switchPanel('globe')">
+      <button class="nav-btn active" onclick="switchPanel('globe', event)">
         <i data-lucide="globe-2" style="width:18px;height:18px"></i>
         <span class="nav-tooltip">Globe</span>
       </button>
-      <button class="nav-btn" onclick="switchPanel('doctrine')">
+      <button class="nav-btn" onclick="switchPanel('doctrine', event)">
         <i data-lucide="sliders-horizontal" style="width:18px;height:18px"></i>
         <span class="nav-tooltip">Doctrine</span>
       </button>
-      <button class="nav-btn" onclick="switchPanel('proof')">
+      <button class="nav-btn" onclick="switchPanel('proof', event)">
         <i data-lucide="shield-check" style="width:18px;height:18px"></i>
         <span class="nav-tooltip">Proof Chain</span>
       </button>
-      <button class="nav-btn" onclick="switchPanel('copilot')">
+      <button class="nav-btn" onclick="switchPanel('copilot', event)">
         <i data-lucide="sparkles" style="width:18px;height:18px"></i>
         <span class="nav-tooltip">AI Co-Pilot</span>
       </button>
@@ -1811,6 +1811,15 @@ async function fetchDashboardJson(path) {
   return res.json();
 }
 
+async function fetchDashboardJsonBestEffort(path){
+  try {
+    const data = await fetchDashboardJson(path);
+    return { ok: true, status: 200, data };
+  } catch (err){
+    return { ok: false, status: 0, error: String(err?.message || err) };
+  }
+}
+
 // -- CLOCK -------------------------------------------------------
 function updateClock() {
   const now = new Date();
@@ -2724,8 +2733,8 @@ function downloadBlob(filename, type, body){
   URL.revokeObjectURL(url);
 }
 
-function buildDecisionCsv(){
-  const rows = state.derived.displayRows || [];
+function buildDecisionCsv(rowsInput){
+  const rows = Array.isArray(rowsInput) ? rowsInput : (state.derived.displayRows || []);
   const header = [
     'decisionFrameId',
     'action',
@@ -2759,9 +2768,31 @@ function buildDecisionCsv(){
   return lines.join('\n');
 }
 
-function openPosturePdfWindow(){
-  const doctrine = state.doctrine.current;
-  const analytics = state.analyticsSample?.baseline || null;
+async function fetchLatestDecisionRowsForExport(limit = 200){
+  const qs = new URLSearchParams();
+  qs.set('limit', String(Math.max(1, Math.min(Number(limit) || 200, 1000))));
+  const exportResult = await fetchEngineJsonBestEffort(`/ci/decisions/export?${qs.toString()}`, { method: 'GET' });
+  if(!exportResult.ok){
+    throw new Error(`Decision export endpoint unavailable (${exportResult.status || 'network'})`);
+  }
+
+  const decisions = Array.isArray(exportResult?.data?.decisions) ? exportResult.data.decisions : [];
+  const rows = decisions.map(toDecisionRow).filter((row)=>row.frameId);
+  rows.sort((a,b)=>b.createdMs - a.createdMs);
+  return { decisions, rows, source: exportResult.data };
+}
+
+function openPosturePdfWindow(snapshot = {}){
+  const doctrine = snapshot.doctrine || state.doctrine.current;
+  const analytics = snapshot.analyticsBaseline || state.analyticsSample?.baseline || null;
+  const visibleRows = Array.isArray(snapshot.visibleRows) ? snapshot.visibleRows : (state.derived.displayRows || []);
+  const uniqueRegionCount = snapshot.uniqueRegionCount == null
+    ? state.derived.uniqueRegionCount
+    : snapshot.uniqueRegionCount;
+  const p95Latency = snapshot.p95Latency == null
+    ? state.derived.p95Latency
+    : snapshot.p95Latency;
+  const generatedAt = snapshot.generatedAt || new Date().toISOString();
   const html = `
     <html>
       <head>
@@ -2778,7 +2809,7 @@ function openPosturePdfWindow(){
       </head>
       <body>
         <h1>CO2 Router Governance Posture Report</h1>
-        <div class="muted">Generated ${new Date().toISOString()}</div>
+        <div class="muted">Generated ${escHtml(generatedAt)}</div>
         <div class="section">
           <h2>Doctrine</h2>
           <div>Version: ${escHtml(doctrine?.version || '—')}</div>
@@ -2802,9 +2833,9 @@ function openPosturePdfWindow(){
         </div>
         <div class="section">
           <h2>Live Surface</h2>
-          <div>Visible decisions: ${escHtml(String(state.derived.displayRows?.length ?? 0))}</div>
-          <div>Visible regions: ${escHtml(String(state.derived.uniqueRegionCount ?? 0))}</div>
-          <div>P95 latency: ${escHtml(formatMs(state.derived.p95Latency))}</div>
+          <div>Visible decisions: ${escHtml(String(visibleRows.length))}</div>
+          <div>Visible regions: ${escHtml(String(uniqueRegionCount ?? 0))}</div>
+          <div>P95 latency: ${escHtml(formatMs(p95Latency))}</div>
         </div>
         <div class="section">
           <h2>Analytics Sample</h2>
@@ -2966,6 +2997,30 @@ function renderAnalyticsSample(){
   const now = Date.now();
   const generatedAt = payload?.generatedAt || null;
 
+  if(!(payload?.ok && baseline)){
+    setText('sample-window-start', '—');
+    setText('sample-window-end', '—');
+    setText('sample-size', '—');
+    const reason = state.ui.errors.analytics
+      ? `Analytics unavailable — ${state.ui.errors.analytics}`
+      : 'Analytics unavailable — baseline endpoint failed';
+    setText('sample-source-note', reason);
+    setText('sample-freshness', '—');
+    setText('sample-action-reroute', '—');
+    setText('sample-action-throttle', '—');
+    setText('sample-action-delay', '—');
+    setText('sample-water-avoided', '—');
+    setText('sample-water-reduction', '—');
+    setText('sample-scarcity-avoided', '—');
+    setText('sample-scarcity-reduction', '—');
+    setText('sample-carbon-delta', '—');
+    setText('sample-carbon-baseline-avg', '—');
+    setText('sample-carbon-selected-avg', '—');
+    setText('kpi-carbon-saved', 'Delta —');
+    pushSpark(1, 0);
+    return;
+  }
+
   setText('sample-window-start', formatIsoShort(baseline?.window?.minTimestamp));
   setText('sample-window-end', formatIsoShort(baseline?.window?.maxTimestamp));
   setText('sample-size', String(source?.sampleSize ?? baseline?.sampleSize ?? '—'));
@@ -3053,11 +3108,9 @@ async function pollDecisions(){
   try{
     const decisionsPayload = await fetchJson('/ci/decisions?limit=25&offset=0');
     const decisions = Array.isArray(decisionsPayload?.decisions) ? decisionsPayload.decisions : [];
-    if(decisions.length){
-      state.decisions = decisions;
-      state.ui.lastSuccessAt.decisions = Date.now();
-      state.ui.errors.decisions = null;
-    }
+    state.decisions = decisions;
+    state.ui.lastSuccessAt.decisions = Date.now();
+    state.ui.errors.decisions = null;
   } catch (err){
     state.ui.errors.decisions = String(err?.message || err);
     console.warn('HaloGrid decisions poll failed:', err);
@@ -3067,39 +3120,20 @@ async function pollDecisions(){
   }
 }
 
-const FALLBACK_SAMPLE = {
-  baseline: {
-    sampleSize: 500,
-    window: {
-      minTimestamp: '2026-04-12T11:43:05.321Z',
-      maxTimestamp: '2026-04-12T12:07:38.279Z',
-    },
-    actions: { reroute: 300, throttle: 102, delay: 98 },
-    carbonIntensity: { baselineAvg: 450, selectedAvg: 450, avoidedPct: 0 },
-    waterLiters: { avoidedL: 995.84, avoidedPct: 41.15 },
-    waterScarcity: { avoided: 3634.364, avoidedPct: 66.42 },
-  },
-  source: {
-    type: 'export-backed-sample',
-    sampleSize: 500,
-    note: 'Fallback export-backed sample while baseline route is unavailable.',
-  },
-  generatedAt: '2026-04-12T12:07:38.279Z',
-};
-
 async function pollAnalytics(){
   try{
     const payload = await fetchBaselineBestEffort();
     if(payload?.ok && payload?.baseline){
       state.analyticsSample = payload;
+      state.ui.lastSuccessAt.analytics = Date.now();
+      state.ui.errors.analytics = null;
     } else {
-      state.analyticsSample = FALLBACK_SAMPLE;
+      state.analyticsSample = null;
+      state.ui.errors.analytics = String(payload?.detail || payload?.error || 'baseline unavailable');
     }
-    state.ui.lastSuccessAt.analytics = Date.now();
-    state.ui.errors.analytics = null;
   } catch (err){
     state.ui.errors.analytics = String(err?.message || err);
-    state.analyticsSample = FALLBACK_SAMPLE;
+    state.analyticsSample = null;
     console.warn('HaloGrid analytics poll failed:', err);
   } finally {
     state.ui.loading.analytics = false;
@@ -3430,38 +3464,125 @@ document.getElementById('doctrine-export-btn')?.addEventListener('click', ()=>{
   );
 });
 
-document.getElementById('export-api-json')?.addEventListener('click', ()=>{
-  downloadBlob(
-    `co2router-console-export-${new Date().toISOString().replace(/[:.]/g, '-')}.json`,
-    'application/json',
-    JSON.stringify({
+document.getElementById('export-api-json')?.addEventListener('click', async ()=>{
+  const button = document.getElementById('export-api-json');
+  const original = button?.textContent || 'API Export';
+  if(button){
+    button.disabled = true;
+    button.textContent = 'Preparing…';
+  }
+  try {
+    const [healthResult, analyticsResult, decisionSnapshot] = await Promise.all([
+      fetchEngineJsonBestEffort('/health', { method: 'GET' }),
+      fetchDashboardJsonBestEffort('/api/analytics/baseline'),
+      fetchLatestDecisionRowsForExport(200),
+    ]);
+
+    const exportPayload = {
       generatedAt: new Date().toISOString(),
+      sourceOfTruth: {
+        decisions: '/api/ecobe/ci/decisions/export',
+        health: '/api/ecobe/health',
+        analytics: '/api/analytics/baseline',
+      },
+      statuses: {
+        decisions: decisionSnapshot?.source ? 'ok' : 'error',
+        health: healthResult.ok ? 'ok' : 'error',
+        analytics: analyticsResult.ok ? 'ok' : 'error',
+      },
       doctrine: state.doctrine.current,
-      health: state.health,
-      analyticsSample: state.analyticsSample,
-      visibleDecisions: state.derived.displayRows,
+      health: healthResult.ok ? healthResult.data : null,
+      healthError: healthResult.ok ? null : healthResult.error,
+      analyticsSample: analyticsResult.ok ? analyticsResult.data : null,
+      analyticsError: analyticsResult.ok ? null : analyticsResult.error,
+      decisionExport: decisionSnapshot.source,
+      visibleDecisionRows: decisionSnapshot.rows,
       dashboardBuild: state.ui.dashboard.build,
       dashboardRouting: state.ui.dashboard.routing,
-    }, null, 2)
-  );
+    };
+
+    downloadBlob(
+      `co2router-console-export-${new Date().toISOString().replace(/[:.]/g, '-')}.json`,
+      'application/json',
+      JSON.stringify(exportPayload, null, 2)
+    );
+  } catch (err){
+    window.alert(`API export failed — no file generated (${String(err?.message || err)})`);
+  } finally {
+    if(button){
+      button.disabled = false;
+      button.textContent = original;
+    }
+  }
 });
 
-document.getElementById('export-decision-csv')?.addEventListener('click', ()=>{
-  downloadBlob(
-    `co2router-decisions-${new Date().toISOString().replace(/[:.]/g, '-')}.csv`,
-    'text/csv;charset=utf-8',
-    buildDecisionCsv()
-  );
+document.getElementById('export-decision-csv')?.addEventListener('click', async ()=>{
+  const button = document.getElementById('export-decision-csv');
+  const original = button?.textContent || 'Decision CSV';
+  if(button){
+    button.disabled = true;
+    button.textContent = 'Preparing…';
+  }
+  try {
+    const snapshot = await fetchLatestDecisionRowsForExport(500);
+    downloadBlob(
+      `co2router-decisions-${new Date().toISOString().replace(/[:.]/g, '-')}.csv`,
+      'text/csv;charset=utf-8',
+      buildDecisionCsv(snapshot.rows)
+    );
+  } catch (err){
+    window.alert(`Decision CSV export failed — no file generated (${String(err?.message || err)})`);
+  } finally {
+    if(button){
+      button.disabled = false;
+      button.textContent = original;
+    }
+  }
 });
 
-document.getElementById('export-posture-pdf')?.addEventListener('click', ()=>{
-  openPosturePdfWindow();
+document.getElementById('export-posture-pdf')?.addEventListener('click', async ()=>{
+  const button = document.getElementById('export-posture-pdf');
+  const original = button?.textContent || 'Posture PDF';
+  if(button){
+    button.disabled = true;
+    button.textContent = 'Preparing…';
+  }
+  try {
+    const [decisionSnapshot, analyticsResult] = await Promise.all([
+      fetchLatestDecisionRowsForExport(200),
+      fetchDashboardJsonBestEffort('/api/analytics/baseline'),
+    ]);
+    const rows = decisionSnapshot.rows;
+    const regionCount = new Set(rows.flatMap((row)=>[row.src, row.dst].filter(Boolean))).size;
+    const p95Latency = quantile(rows.map((row)=>row.totalLatencyMs).filter((value)=>value!=null), 0.95);
+    openPosturePdfWindow({
+      doctrine: state.doctrine.current,
+      analyticsBaseline: analyticsResult.ok ? analyticsResult.data?.baseline : null,
+      visibleRows: rows,
+      uniqueRegionCount: regionCount,
+      p95Latency,
+      generatedAt: new Date().toISOString(),
+    });
+  } catch (err){
+    window.alert(`Posture PDF export failed — no file generated (${String(err?.message || err)})`);
+  } finally {
+    if(button){
+      button.disabled = false;
+      button.textContent = original;
+    }
+  }
 });
 
 // -- SIDEBAR NAV --------------------------------------------------
-function switchPanel(name){
+function switchPanel(name, evt){
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
-  event.currentTarget.classList.add('active');
+  if(evt?.currentTarget){
+    evt.currentTarget.classList.add('active');
+  }
+  const tab = document.querySelector(`.panel-tab[data-tab="${name}"]`);
+  if(tab){
+    tab.click();
+  }
 }
 
 // -- INIT ICONS ---------------------------------------------------

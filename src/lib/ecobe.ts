@@ -93,7 +93,13 @@ function getEngineBaseUrl() {
 
 function getInternalHeaders() {
   const internalKey = process.env.ECOBE_INTERNAL_API_KEY || process.env.CO2ROUTER_INTERNAL_API_KEY
-  return internalKey ? { authorization: `Bearer ${internalKey}` } : {}
+  return internalKey
+    ? {
+        authorization: `Bearer ${internalKey}`,
+        'x-ecobe-internal-key': internalKey,
+        'x-api-key': internalKey,
+      }
+    : {}
 }
 
 function getEngineTimeoutMs() {
