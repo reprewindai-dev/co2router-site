@@ -281,46 +281,20 @@ export async function GET(request: Request) {
     return NextResponse.json(baselineCache.body, { headers: baselineCacheHeaders() })
   }
 
-  const exportMaxRecords = sampleSize
-  const legacyMaxRecords = sampleSize
-  const pageSize = sampleSize
+  const maxRecords = sampleSize
+  const pageSize = Math.min(sampleSize, 200)
   const decisions: BaselineDecision[] = []
-  let exportUsed = false
 
   try {
-    let cursor: string | null = null
-    for (let i = 0; i < 1000; i += 1) {
-      const qs = new URLSearchParams()
-      qs.set('limit', String(pageSize))
-      if (cursor) qs.set('cursor', cursor)
-
-      const payload = await fetchEngineJson<{
-        decisions: BaselineDecision[]
-        hasMore: boolean
-        nextCursor: string | null
-      }>(`/ci/decisions/export?${qs.toString()}`, { internal: true })
-
+    for (let offset = 0; offset < maxRecords; offset += pageSize) {
+      const payload = await fetchEngineJson<{ decisions: BaselineDecision[] }>(
+        `/ci/decisions?limit=${pageSize}&offset=${offset}`,
+        { internal: true }
+      )
       const page = payload?.decisions ?? []
+      if (page.length === 0) break
       decisions.push(...page)
-
-      if (page.length > 0) exportUsed = true
-      if (decisions.length >= exportMaxRecords) break
-      cursor = payload?.nextCursor ?? null
-      if (!payload?.hasMore || !cursor || page.length === 0) break
-    }
-
-    if (decisions.length === 0) {
-      const legacyPageSize = Math.min(sampleSize, 200)
-      for (let offset = 0; offset < legacyMaxRecords; offset += legacyPageSize) {
-        const fallback = await fetchEngineJson<{ decisions: BaselineDecision[] }>(
-          `/ci/decisions?limit=${legacyPageSize}&offset=${offset}`,
-          { internal: true }
-        )
-        const page = fallback?.decisions ?? []
-        if (page.length === 0) break
-        decisions.push(...page)
-        if (decisions.length >= legacyMaxRecords) break
-      }
+      if (decisions.length >= maxRecords) break
     }
 
     const baseline = computeBaseline(decisions)
@@ -330,15 +304,9 @@ export async function GET(request: Request) {
       baseline,
       generatedAt: new Date(now).toISOString(),
       source: {
-        type:
-          exportUsed && decisions.length > 0
-            ? 'export-backed-sample'
-            : 'sampled-production-window',
+        type: 'sampled-production-window',
         sampleSize: decisions.length,
-        note:
-          exportUsed && decisions.length > 0
-            ? `Baseline computed from the export endpoint using the current ${decisions.length}-decision sample.`
-            : `Baseline computed from the public decisions endpoint using the current ${decisions.length}-decision sampled window.`,
+        note: `Baseline computed from the public decisions endpoint using the current ${decisions.length}-decision sampled window.`,
       },
     }
 
