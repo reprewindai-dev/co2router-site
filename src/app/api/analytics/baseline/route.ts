@@ -5,7 +5,7 @@ import { fetchEngineJson } from '@/lib/engine-fetch'
 type BaselineDecision = Record<string, any>
 
 const BASELINE_CACHE_TTL_MS = 5 * 60 * 1000
-const DEFAULT_SAMPLE_RECORDS = 500
+const DEFAULT_SAMPLE_RECORDS = 200
 let baselineCache: { at: number; body: unknown } | null = null
 
 function baselineCacheHeaders() {
