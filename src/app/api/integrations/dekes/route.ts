@@ -10,6 +10,8 @@ const ECOBE_ENGINE_API_KEY =
   process.env.ECOBE_API_KEY ||
   process.env.CO2ROUTER_API_KEY
 
+const ALLOWED_ENDPOINTS = new Set(['summary', 'metrics'])
+
 async function fetchFromEngine(path: string) {
   const url = `${ECOBE_ENGINE_URL}/api/v1${path}`
 
@@ -38,6 +40,18 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const endpoint = searchParams.get('endpoint') || 'summary'
+
+    if (!ALLOWED_ENDPOINTS.has(endpoint)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Invalid endpoint',
+          timestamp: new Date().toISOString(),
+        },
+        { status: 400 }
+      )
+    }
+
     const days = searchParams.get('days') || '30'
     const hours = searchParams.get('hours') || '168'
 
