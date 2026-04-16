@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 
 import { fetchEngineJson } from '@/lib/control-surface/engine'
+import { requireControlSurfaceOperator } from '@/lib/control-surface/operator-auth'
 import {
   dashboardTelemetryMetricNames,
   recordDashboardMetric,
@@ -133,6 +134,9 @@ export async function POST(request: Request) {
   const startedAt = performance.now()
 
   try {
+    const denied = requireControlSurfaceOperator(request)
+    if (denied) return denied
+
     const rawPayload = (await request.json()) as Record<string, unknown>
     const mode = resolveMode(request, rawPayload)
     const payload = normalizePayload(rawPayload)

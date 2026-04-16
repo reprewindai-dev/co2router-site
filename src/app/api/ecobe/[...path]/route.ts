@@ -48,8 +48,7 @@ function shouldUseInternalKey(path: string[]) {
     joined.startsWith('disclosure/') ||
     joined.startsWith('system/') ||
     joined === 'ci/decisions/export' ||
-    joined.startsWith('ci/decisions/export/') ||
-    isCuratedProofInspectionPath(joined)
+    joined.startsWith('ci/decisions/export/')
   )
 }
 

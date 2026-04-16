@@ -1,15 +1,19 @@
 import { NextResponse } from 'next/server'
 
 import { fetchEngineJson, hasInternalApiKey } from '@/lib/control-surface/engine'
+import { requireControlSurfaceOperator } from '@/lib/control-surface/operator-auth'
 import type { DecisionTraceRawRecord } from '@/types/control-surface'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ decisionFrameId: string }> }
 ) {
   try {
+    const denied = requireControlSurfaceOperator(request)
+    if (denied) return denied
+
     if (!hasInternalApiKey()) {
       return NextResponse.json(
         { error: 'Internal trace access is not configured for this environment' },
