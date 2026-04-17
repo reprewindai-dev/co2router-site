@@ -120,6 +120,8 @@ type MethodologyProvidersResponse = {
     lastSuccessAt: string | null
     stalenessSec: number | null
     disagreementPct: number | null
+    authorityMode?: string | null
+    computed?: boolean
   }>
 }
 
@@ -156,6 +158,9 @@ const LIVE_PROVIDER_TTL_SEC: Record<string, number> = {
   GB_CARBON: 1800,
   DK_CARBON: 1800,
   FI_CARBON: 1800,
+  ON_CARBON: 21600,
+  QC_CARBON: 21600,
+  BC_CARBON: 21600,
   EMBER_STRUCTURAL_BASELINE: 86400,
 }
 
@@ -188,6 +193,12 @@ function mapMethodologyProviderName(name: string): string | null {
       return 'DK_CARBON'
     case 'fi carbon':
       return 'FI_CARBON'
+    case 'ontario carbon':
+      return 'ON_CARBON'
+    case 'quebec carbon':
+      return 'QC_CARBON'
+    case 'bc carbon':
+      return 'BC_CARBON'
     default:
       return null
   }
@@ -206,6 +217,9 @@ function isCanonicalCarbonProvider(provider: string) {
     provider === 'WATTTIME_MOER' ||
     provider === 'GRIDSTATUS' ||
     provider === 'EIA_930' ||
+    provider === 'ON_CARBON' ||
+    provider === 'QC_CARBON' ||
+    provider === 'BC_CARBON' ||
     provider === 'GB_CARBON' ||
     provider === 'DK_CARBON' ||
     provider === 'FI_CARBON' ||
@@ -430,6 +444,22 @@ function buildProviders(
           : status === 'healthy'
             ? 'average'
             : 'fallback',
+      authorityRole:
+        canonicalKey === 'GRIDSTATUS' || canonicalKey === 'EIA_930' || canonicalKey === 'EMBER_STRUCTURAL_BASELINE'
+          ? 'advisory'
+          : 'authoritative',
+      authorityMode:
+        methodology?.authorityMode ??
+        (canonicalKey === 'EMBER_STRUCTURAL_BASELINE'
+          ? 'structural_baseline'
+          : canonicalKey === 'GRIDSTATUS' || canonicalKey === 'EIA_930'
+            ? 'predictive_telemetry'
+            : canonicalKey === 'WATTTIME_MOER'
+              ? 'marginal_live'
+              : ['ON_CARBON', 'QC_CARBON', 'BC_CARBON'].includes(canonicalKey)
+                ? 'computed_provincial'
+                : 'regional_live'),
+      computed: Boolean(methodology?.computed ?? ['ON_CARBON', 'QC_CARBON', 'BC_CARBON'].includes(canonicalKey)),
       degradedReason,
       mirrorVersion: typeof latestMetadata?.version === 'string' ? latestMetadata.version : null,
     } satisfies ControlSurfaceProviderNode
@@ -546,6 +576,9 @@ function buildProviders(
     'WATTTIME_MOER',
     'GRIDSTATUS',
     'EIA_930',
+    'ON_CARBON',
+    'QC_CARBON',
+    'BC_CARBON',
     'GB_CARBON',
     'DK_CARBON',
     'FI_CARBON',

@@ -88,12 +88,13 @@ export interface ControlSurfaceProviderNode {
   mode?: 'live' | 'mirrored' | 'fallback'
   signalAuthority?: 'marginal' | 'average' | 'fallback'
   authorityRole?: 'authoritative' | 'advisory' | 'fallback'
-  authorityMode?: 'basin' | 'facility_overlay' | 'fallback'
+  authorityMode?: string | null
   scenario?: 'current' | '2030' | '2050' | '2080'
   degradedReason?: string | null
   mirrorVersion?: string | null
   ttlSec?: number | null
   provenanceStatus?: 'verified' | 'unverified' | 'missing_source' | 'mismatch' | 'unavailable' | null
+  computed?: boolean
 }
 
 export interface ScenarioPreview {
