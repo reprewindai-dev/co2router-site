@@ -111,6 +111,18 @@ type WaterProvenanceResponse = {
   }>
 }
 
+type MethodologyProvidersResponse = {
+  providers: Array<{
+    name: string
+    status: 'healthy' | 'degraded' | 'offline'
+    latencyMs: number | null
+    lastLatencyMs: number | null
+    lastSuccessAt: string | null
+    stalenessSec: number | null
+    disagreementPct: number | null
+  }>
+}
+
 type LedgerSummary = {
   totalJobsRouted: number
   carbonAvoidedPeriodKg: number
@@ -158,6 +170,27 @@ function normalizeProviderIdentity(provider: string): string {
 
 function providerLabel(provider: string): string {
   return provider.replace(/_/g, ' ')
+}
+
+function mapMethodologyProviderName(name: string): string | null {
+  const normalized = name.trim().toLowerCase()
+
+  switch (normalized) {
+    case 'watttime':
+      return 'WATTTIME_MOER'
+    case 'gridstatus eia-930':
+      return 'GRIDSTATUS'
+    case 'ember':
+      return 'EMBER_STRUCTURAL_BASELINE'
+    case 'gb carbon intensity':
+      return 'GB_CARBON'
+    case 'dk carbon':
+      return 'DK_CARBON'
+    case 'fi carbon':
+      return 'FI_CARBON'
+    default:
+      return null
+  }
 }
 
 function humanizeStatusReason(code: NonNullable<ControlSurfaceProviderNode['statusReasonCode']>): string {
@@ -254,7 +287,8 @@ function buildCommandCenterDecisionItem(decision: DecisionRow): CommandCenterDec
 
 function buildProviders(
   providerTrust: ProviderTrustResponse,
-  provenance: WaterProvenanceResponse
+  provenance: WaterProvenanceResponse,
+  methodologyProviders: MethodologyProvidersResponse['providers']
 ): ControlSurfaceProviderNode[] {
   const freshnessMap = new Map(
     providerTrust.freshness.map((item) => [normalizeProviderIdentity(item.provider), item])
@@ -287,6 +321,10 @@ function buildProviders(
       snapshots: ProviderTrustResponse['providers'][string]
     }
   >()
+  const methodologyMap = new Map<
+    string,
+    MethodologyProvidersResponse['providers'][number]
+  >()
 
   for (const [key, snapshots] of Object.entries(providerTrust.providers)) {
     const canonicalKey = normalizeProviderIdentity(key)
@@ -297,6 +335,18 @@ function buildProviders(
         snapshots,
       })
     )
+  }
+
+  for (const provider of methodologyProviders) {
+    const canonicalKey = mapMethodologyProviderName(provider.name)
+    if (!canonicalKey) continue
+    methodologyMap.set(canonicalKey, provider)
+    if (!carbonProviderBuckets.has(canonicalKey)) {
+      carbonProviderBuckets.set(canonicalKey, {
+        key: canonicalKey,
+        snapshots: [],
+      })
+    }
   }
 
   for (const canonicalKey of Array.from(freshnessMap.keys())) {
@@ -312,47 +362,75 @@ function buildProviders(
 
   const carbonProviders = Array.from(carbonProviderBuckets.entries()).map(([canonicalKey, record]) => {
     const fresh = freshnessMap.get(canonicalKey)
+    const methodology = methodologyMap.get(canonicalKey)
     const latestConfidence = record.snapshots[0]?.confidence ?? null
     const latestMetadata = record.snapshots[0]?.metadata ?? null
     const fallbackFreshnessSec = record.snapshots[0]?.freshnessSec ?? null
     const freshnessSec =
       fresh && fresh.freshnessSec >= 0
         ? fresh.freshnessSec
-        : fallbackFreshnessSec
+        : fallbackFreshnessSec ?? methodology?.stalenessSec ?? null
     const metadataText = latestMetadata ? JSON.stringify(latestMetadata).toLowerCase() : ''
     const rateLimited =
       metadataText.includes('429') || metadataText.includes('rate limit') || metadataText.includes('quota')
-    const isStale =
-      fresh && fresh.freshnessSec >= 0
+    const hasSnapshotFreshness = fresh && fresh.freshnessSec >= 0
+    const hasSnapshotRecord = record.snapshots.length > 0
+    const isStale = hasSnapshotFreshness
         ? Boolean(fresh.isStale)
-        : freshnessSec != null
+        : hasSnapshotRecord && freshnessSec != null
           ? freshnessSec > resolveLiveProviderTtl(canonicalKey)
           : false
-    const statusReasonCode: ControlSurfaceProviderNode['statusReasonCode'] = isStale
-      ? rateLimited
-        ? 'DEGRADED_RATE_LIMIT'
-        : 'DEGRADED_STALE'
-      : 'HEALTHY_LIVE'
+    const methodologyStatus = methodology?.status ?? null
+
+    let status: ControlSurfaceProviderNode['status'] = 'healthy'
+    let statusReasonCode: ControlSurfaceProviderNode['statusReasonCode'] = 'HEALTHY_LIVE'
+    let statusLabel = humanizeStatusReason(statusReasonCode)
+    let degradedReason: string | null = null
+
+    if (isStale) {
+      status = 'degraded'
+      statusReasonCode = rateLimited ? 'DEGRADED_RATE_LIMIT' : 'DEGRADED_STALE'
+      statusLabel = humanizeStatusReason(statusReasonCode)
+      degradedReason = rateLimited
+        ? 'Provider is rate limited or quota constrained.'
+        : 'Freshness breached the safe live-signal window.'
+    } else if (methodologyStatus === 'offline') {
+      status = 'offline'
+      statusReasonCode = 'OFFLINE'
+      statusLabel = 'offline'
+      degradedReason = 'Provider is configured in doctrine inventory but is not producing current live signals.'
+    } else if (methodologyStatus === 'degraded') {
+      status = 'degraded'
+      statusReasonCode = 'DEGRADED_STALE'
+      statusLabel = 'degraded'
+      degradedReason = 'Provider is present in doctrine inventory but currently degraded.'
+    }
 
     return {
       id: canonicalKey,
-      label: providerLabel(canonicalKey),
+      label: methodology?.name ?? providerLabel(canonicalKey),
       providerType: 'carbon' as const,
-      status: isStale ? 'degraded' : 'healthy',
+      status,
       statusReasonCode,
-      statusLabel: humanizeStatusReason(statusReasonCode),
+      statusLabel,
       freshnessSec,
-      latencyMs: resolveLatencyMs(latestMetadata),
+      latencyMs: resolveLatencyMs(latestMetadata) ?? methodology?.latencyMs ?? methodology?.lastLatencyMs ?? null,
       confidence: latestConfidence,
       mirrored: canonicalKey === 'EMBER_STRUCTURAL_BASELINE',
       lineageCount: record.snapshots.length,
-      mode: canonicalKey === 'EMBER_STRUCTURAL_BASELINE' ? 'mirrored' : isStale ? 'fallback' : 'live',
-      signalAuthority: canonicalKey.includes('WATTTIME') ? 'marginal' : isStale ? 'fallback' : 'average',
-      degradedReason: isStale
-        ? rateLimited
-          ? 'Provider is rate limited or quota constrained.'
-          : 'Freshness breached the safe live-signal window.'
-        : null,
+      mode:
+        canonicalKey === 'EMBER_STRUCTURAL_BASELINE'
+          ? 'mirrored'
+          : status === 'healthy'
+            ? 'live'
+            : 'fallback',
+      signalAuthority:
+        canonicalKey.includes('WATTTIME')
+          ? 'marginal'
+          : status === 'healthy'
+            ? 'average'
+            : 'fallback',
+      degradedReason,
       mirrorVersion: typeof latestMetadata?.version === 'string' ? latestMetadata.version : null,
     } satisfies ControlSurfaceProviderNode
   })
@@ -464,7 +542,15 @@ function buildProviders(
     } satisfies ControlSurfaceProviderNode
   })
 
-  const carbonOrder = ['WATTTIME_MOER', 'GRIDSTATUS', 'EIA_930', 'EMBER_STRUCTURAL_BASELINE']
+  const carbonOrder = [
+    'WATTTIME_MOER',
+    'GRIDSTATUS',
+    'EIA_930',
+    'GB_CARBON',
+    'DK_CARBON',
+    'FI_CARBON',
+    'EMBER_STRUCTURAL_BASELINE',
+  ]
   carbonProviders.sort((a, b) => {
     const aIndex = carbonOrder.indexOf(a.id)
     const bIndex = carbonOrder.indexOf(b.id)
@@ -691,15 +777,18 @@ export async function getCommandCenterSnapshot(
     fetchEngineJson<WaterProvenanceResponse>('/water/provenance'),
   ])
 
-  const [ledgerResult, metricsResult, providerTrust] = await Promise.all([
-    fetchEngineJson<LedgerSummary>('/dashboard/carbon-ledger-summary?days=30').catch(() => null),
-    fetchEngineJson<MetricsResponse>('/dashboard/metrics?window=24h').catch(() => null),
-    fetchEngineJson<ProviderTrustResponse>('/dashboard/provider-trust').catch(() => ({
-      freshness: [],
-      providers: {},
-      waterProviders: [],
-    })),
-  ])
+    const [ledgerResult, metricsResult, providerTrust, methodologyProvidersResult] = await Promise.all([
+      fetchEngineJson<LedgerSummary>('/dashboard/carbon-ledger-summary?days=30').catch(() => null),
+      fetchEngineJson<MetricsResponse>('/dashboard/metrics?window=24h').catch(() => null),
+      fetchEngineJson<ProviderTrustResponse>('/dashboard/provider-trust').catch(() => ({
+        freshness: [],
+        providers: {},
+        waterProviders: [],
+      })),
+      fetchEngineJson<MethodologyProvidersResponse>('/dashboard/methodology/providers').catch(() => ({
+        providers: [],
+      })),
+    ])
 
   const fallbackSlo: CiSloSnapshot = {
     samples: 0,
@@ -753,7 +842,7 @@ export async function getCommandCenterSnapshot(
           datasets: [],
         }
 
-  const providers = buildProviders(providerTrust, provenance)
+  const providers = buildProviders(providerTrust, provenance, methodologyProvidersResult.providers)
   const fallbackRateText = metricsResult != null ? `fallback ${(metricsResult.fallbackRate * 100).toFixed(1)}% | ` : ''
   const headerDetail = buildCommandCenterDetail({
     slo,
