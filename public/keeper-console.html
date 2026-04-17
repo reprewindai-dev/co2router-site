@@ -1349,6 +1349,8 @@ function shortHash(value, chars = 16) {
 }
 
 const ENGINE_PROXY_BASE = '/api/ecobe';
+const OVERVIEW_API = '/api/control-surface/overview';
+const COMMAND_CENTER_API = '/api/control-surface/command-center';
 const HEALTH_POLL_MS = 20_000;
 const DECISIONS_POLL_MS = 8_000;
 const ANALYTICS_POLL_MS = 60_000;
@@ -1359,6 +1361,8 @@ const ANALYTICS_STALE_MS = 180_000;
 
 const state = {
   health: null,
+  overview: null,
+  commandCenter: null,
   decisions: [],
   analyticsSample: null,
   doctrine: {
@@ -1809,6 +1813,109 @@ async function fetchDashboardJson(path) {
     throw new Error(`Dashboard request failed (${res.status}): ${text.slice(0, 160)}`);
   }
   return res.json();
+}
+
+function normalizeCommandCenterHealth(commandCenter, overview){
+  const providers = Array.isArray(commandCenter?.health?.providers) ? commandCenter.health.providers : [];
+  const providerMap = Object.fromEntries(
+    providers.map((provider)=>[
+      String(provider?.id || provider?.label || 'unknown').toLowerCase(),
+      {
+        status: String(provider?.status || 'unknown').toLowerCase(),
+        freshnessSec: safeNumber(provider?.freshnessSec),
+      },
+    ])
+  );
+
+  const runtimeMode = String(commandCenter?.runtime?.mode || '').toLowerCase();
+  const serviceStatus = String(commandCenter?.health?.service?.status || overview?.service?.status || '').toLowerCase();
+  const healthy =
+    (runtimeMode === 'live' || runtimeMode === '') &&
+    ['healthy', 'ok', 'live', 'enforcing', 'online'].includes(serviceStatus);
+
+  return {
+    status: healthy ? 'ok' : 'degraded',
+    engine: healthy ? 'online' : 'degraded',
+    router: true,
+    service: commandCenter?.health?.service || overview?.service || null,
+    providers: providerMap,
+  };
+}
+
+function enrichOverviewDecision(decision, commandCenter, overview){
+  const governance = commandCenter?.governance || null;
+  const proofPosture =
+    commandCenter?.health?.service?.proofPosture ||
+    overview?.service?.proofPosture ||
+    null;
+
+  return {
+    ...decision,
+    baseline: decision?.baselineCarbonIntensity ?? null,
+    carbonIntensity: decision?.carbonIntensity ?? null,
+    waterImpactLiters: decision?.waterSelectedLiters ?? null,
+    waterBaselineLiters: decision?.waterBaselineLiters ?? null,
+    latencyMs: decision?.latencyMs ?? null,
+    metadata: decision?.metadata || {},
+    policyTrace: {
+      ...(decision?.policyTrace || {}),
+      policyVersion: decision?.policyTrace?.policyVersion || proofPosture,
+      governance: {
+        ...(decision?.policyTrace?.governance || {}),
+        source: decision?.policyTrace?.governance?.source || governance?.source || proofPosture,
+        policyReference:
+          decision?.policyTrace?.governance?.policyReference || proofPosture || governance?.source || null,
+        weights: decision?.policyTrace?.governance?.weights || governance?.weights || null,
+      },
+    },
+    decisionEnvelope: {
+      ...(decision?.decisionEnvelope || {}),
+      doctrine: {
+        ...(decision?.decisionEnvelope?.doctrine || {}),
+        version: decision?.decisionEnvelope?.doctrine?.version || proofPosture,
+      },
+    },
+  };
+}
+
+function commandCenterDecisionToRuntimeDecision(decision, commandCenter){
+  const proofPosture = commandCenter?.health?.service?.proofPosture || null;
+  const governance = commandCenter?.governance || null;
+
+  return {
+    decisionFrameId: decision?.decisionFrameId || null,
+    createdAt: decision?.createdAt || new Date().toISOString(),
+    action: decision?.action || 'run_now',
+    reasonCode: decision?.reasonCode || null,
+    selectedRegion: decision?.selectedRegion || '—',
+    proofHash: decision?.proofHash || null,
+    signalConfidence: governance?.impact?.signalConfidence ?? null,
+    signalMode: decision?.signalMode || null,
+    accountingMethod: decision?.accountingMethod || null,
+    waterAuthorityMode: decision?.waterAuthorityMode || null,
+    fallbackUsed: Boolean(decision?.fallbackUsed),
+    latencyMs: {
+      total: safeNumber(decision?.latencyTotalMs) ?? null,
+      compute: safeNumber(decision?.latencyComputeMs) ?? null,
+    },
+    carbonIntensity: null,
+    baseline: null,
+    waterImpactLiters: governance?.impact?.waterImpactDeltaLiters ?? null,
+    waterBaselineLiters: null,
+    policyTrace: {
+      policyVersion: proofPosture,
+      governance: {
+        source: decision?.governanceSource || governance?.source || proofPosture,
+        policyReference: proofPosture || governance?.source || null,
+        weights: governance?.weights || null,
+      },
+    },
+    decisionEnvelope: {
+      doctrine: {
+        version: proofPosture,
+      },
+    },
+  };
 }
 
 async function fetchDashboardJsonBestEffort(path){
@@ -2338,6 +2445,13 @@ function severityRank(severity){
 
 function providerStatusList(){
   const providers = state.health?.providers || {};
+  if(Array.isArray(providers)){
+    return providers.map((provider)=>({
+      name: String(provider?.label || provider?.id || 'unknown'),
+      status: String(provider?.status || 'unknown').toLowerCase(),
+      freshnessSec: safeNumber(provider?.freshnessSec),
+    }));
+  }
   return Object.entries(providers).map(([name, value])=>{
     if(value && typeof value === 'object'){
       return {
@@ -2893,7 +3007,7 @@ function renderOperational(){
 
   const health = state.health;
   const healthOk = health?.status === 'ok' && health?.engine === 'online' && Boolean(health?.router);
-  const degradedSignals = Boolean(health?.providers?.static) || Boolean(health?.providers?.watttime) === false;
+  const degradedSignals = providerStatusList().some((provider)=>!['healthy','ok','online','live','true'].includes(provider.status));
   state.ui.degraded = !healthOk || degradedSignals || state.ui.stale.health || state.ui.stale.decisions;
 
   const postureLabel = state.ui.degraded ? (state.ui.stale.health || state.ui.stale.decisions ? 'STALE' : 'DEGRADED') : 'ENFORCING';
@@ -3077,8 +3191,9 @@ function renderBuildMarker(){
 
 async function pollHealth(){
   try{
-    const health = await fetchJson('/health');
-    state.health = health;
+    const commandCenter = await fetchDashboardJson(COMMAND_CENTER_API);
+    state.commandCenter = commandCenter;
+    state.health = normalizeCommandCenterHealth(commandCenter, state.overview);
     state.ui.lastSuccessAt.health = Date.now();
     state.ui.errors.health = null;
   } catch (err){
@@ -3106,9 +3221,31 @@ async function pollDashboardHealth(){
 
 async function pollDecisions(){
   try{
-    const decisionsPayload = await fetchJson('/ci/decisions?limit=25&offset=0');
-    const decisions = Array.isArray(decisionsPayload?.decisions) ? decisionsPayload.decisions : [];
-    state.decisions = decisions;
+    let overview = null;
+    try {
+      overview = await fetchDashboardJson(OVERVIEW_API);
+      state.overview = overview;
+    } catch (overviewErr){
+      console.warn('HaloGrid overview poll failed, falling back to command center:', overviewErr);
+    }
+
+    let commandCenter = state.commandCenter;
+    if(!commandCenter){
+      commandCenter = await fetchDashboardJson(COMMAND_CENTER_API);
+      state.commandCenter = commandCenter;
+    }
+
+    if(overview){
+      const decisions = Array.isArray(overview?.decisions) ? overview.decisions : [];
+      state.decisions = decisions.map((decision)=>enrichOverviewDecision(decision, commandCenter, overview));
+      state.health = normalizeCommandCenterHealth(commandCenter, overview);
+    } else {
+      const decisions = Array.isArray(commandCenter?.decisionCore?.recentDecisions)
+        ? commandCenter.decisionCore.recentDecisions
+        : [];
+      state.decisions = decisions.map((decision)=>commandCenterDecisionToRuntimeDecision(decision, commandCenter));
+      state.health = normalizeCommandCenterHealth(commandCenter, state.overview);
+    }
     state.ui.lastSuccessAt.decisions = Date.now();
     state.ui.errors.decisions = null;
   } catch (err){

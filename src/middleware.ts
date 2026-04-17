@@ -37,9 +37,25 @@ function shouldProtectEcobePath(pathname: string) {
   )
 }
 
+function shouldProtectControlSurfacePath(pathname: string) {
+  if (!pathname.startsWith('/api/control-surface/')) return false
+
+  const joined = pathname.slice('/api/control-surface/'.length)
+
+  if (
+    joined === 'overview' ||
+    joined === 'live-system' ||
+    joined === 'command-center'
+  ) {
+    return false
+  }
+
+  return true
+}
+
 export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname
-  const protectControlSurface = pathname.startsWith('/api/control-surface/')
+  const protectControlSurface = shouldProtectControlSurfacePath(pathname)
   const protectEcobe = shouldProtectEcobePath(pathname)
   if (!protectControlSurface && !protectEcobe) return NextResponse.next()
 
