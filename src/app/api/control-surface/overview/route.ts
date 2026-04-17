@@ -127,6 +127,32 @@ type MetricsResponse = {
   fallbackRate: number
 }
 
+const CANONICAL_CARBON_PROVIDER_ORDER = [
+  'WATTTIME_MOER',
+  'GRIDSTATUS',
+  'EIA_930',
+  'ON_CARBON',
+  'QC_CARBON',
+  'BC_CARBON',
+  'GB_CARBON',
+  'DK_CARBON',
+  'FI_CARBON',
+  'EMBER_STRUCTURAL_BASELINE',
+] as const
+
+const LIVE_PROVIDER_TTL_SEC: Record<string, number> = {
+  WATTTIME_MOER: 600,
+  GRIDSTATUS: 1800,
+  EIA_930: 1800,
+  ON_CARBON: 1800,
+  QC_CARBON: 1800,
+  BC_CARBON: 1800,
+  GB_CARBON: 1800,
+  DK_CARBON: 1800,
+  FI_CARBON: 1800,
+  EMBER_STRUCTURAL_BASELINE: 86400,
+}
+
 function deriveFallbackRate(decisions: ControlSurfaceDecisionSummary[]) {
   if (decisions.length === 0) return 0
   const fallbackCount = decisions.filter((decision) => decision.fallbackUsed).length
@@ -218,12 +244,50 @@ function normalizeProviderIdentity(provider: string): string {
   if (normalized === 'EMBER' || normalized === 'EMBER_STRUCTURAL' || normalized === 'EMBER_STRUCTURAL_BASELINE') {
     return 'EMBER_STRUCTURAL_BASELINE'
   }
-  if (normalized === 'WATTTIME') return 'WATTTIME_MOER'
+  if (normalized === 'WATTTIME' || normalized === 'WATTTIME_MOER') return 'WATTTIME_MOER'
+  if (normalized === 'GRID_STATUS' || normalized.startsWith('GRIDSTATUS')) return 'GRIDSTATUS'
+  if (normalized.startsWith('EIA930') || normalized.startsWith('EIA_930')) return 'EIA_930'
+  if (normalized === 'ONTARIO_CARBON') return 'ON_CARBON'
+  if (normalized === 'QUEBEC_CARBON') return 'QC_CARBON'
+  if (normalized === 'BRITISH_COLUMBIA_CARBON') return 'BC_CARBON'
   return normalized
 }
 
 function providerLabel(provider: string): string {
   return provider.replace(/_/g, ' ')
+}
+
+function humanizeStatusReason(code: NonNullable<ControlSurfaceProviderNode['statusReasonCode']>): string {
+  return code.toLowerCase().replace(/_/g, ' ')
+}
+
+function resolveLiveProviderTtl(provider: string) {
+  return LIVE_PROVIDER_TTL_SEC[provider] ?? 3600
+}
+
+function isCanonicalCarbonProvider(provider: string) {
+  return CANONICAL_CARBON_PROVIDER_ORDER.includes(provider as (typeof CANONICAL_CARBON_PROVIDER_ORDER)[number])
+}
+
+function choosePreferredCarbonRecord(
+  current:
+    | {
+        key: string
+        snapshots: ProviderTrustResponse['providers'][string]
+      }
+    | undefined,
+  next: {
+    key: string
+    snapshots: ProviderTrustResponse['providers'][string]
+  }
+) {
+  if (!current) return next
+  if (normalizeProviderIdentity(next.key) === 'EMBER_STRUCTURAL_BASELINE') {
+    const currentExact = normalizeProviderIdentity(current.key) === current.key
+    const nextExact = normalizeProviderIdentity(next.key) === next.key
+    if (nextExact && !currentExact) return next
+  }
+  return current
 }
 
 function buildProviders(
@@ -237,38 +301,89 @@ function buildProviders(
     (provenance?.datasets ?? []).map((dataset) => [dataset.name.trim().toLowerCase(), dataset])
   )
 
-  const carbonProviders = Object.entries(providerTrust.providers).map(([key, snapshots]) => {
+  const carbonProviderBuckets = new Map<
+    string,
+    {
+      key: string
+      snapshots: ProviderTrustResponse['providers'][string]
+    }
+  >()
+
+  for (const [key, snapshots] of Object.entries(providerTrust.providers)) {
     const canonicalKey = normalizeProviderIdentity(key)
+    if (!isCanonicalCarbonProvider(canonicalKey)) {
+      continue
+    }
+
+    carbonProviderBuckets.set(
+      canonicalKey,
+      choosePreferredCarbonRecord(carbonProviderBuckets.get(canonicalKey), {
+        key,
+        snapshots,
+      })
+    )
+  }
+
+  for (const canonicalKey of Array.from(freshnessMap.keys())) {
+    if (!isCanonicalCarbonProvider(canonicalKey) || carbonProviderBuckets.has(canonicalKey)) {
+      continue
+    }
+
+    carbonProviderBuckets.set(canonicalKey, {
+      key: canonicalKey,
+      snapshots: [],
+    })
+  }
+
+  const carbonProviders = Array.from(carbonProviderBuckets.entries()).map(([canonicalKey, record]) => {
     const fresh = freshnessMap.get(canonicalKey)
-    const latestConfidence = snapshots[0]?.confidence ?? null
-    const isStale = Boolean(fresh?.isStale)
-    const status: ControlSurfaceProviderNode['status'] = isStale ? 'degraded' : 'healthy'
-    const statusReasonCode: ControlSurfaceProviderNode['statusReasonCode'] = isStale
-      ? 'DEGRADED_STALE'
-      : 'HEALTHY_LIVE'
+    const latestConfidence = record.snapshots[0]?.confidence ?? null
+    const latestMetadata = record.snapshots[0]?.metadata ?? null
+    const fallbackFreshnessSec = record.snapshots[0]?.freshnessSec ?? null
+    const freshnessSec =
+      fresh && fresh.freshnessSec >= 0
+        ? fresh.freshnessSec
+        : fallbackFreshnessSec
+    const isStale =
+      fresh && fresh.freshnessSec >= 0
+        ? Boolean(fresh.isStale)
+        : freshnessSec != null
+          ? freshnessSec > resolveLiveProviderTtl(canonicalKey)
+          : false
+    const isOffline = record.snapshots.length === 0
+    const statusReasonCode: ControlSurfaceProviderNode['statusReasonCode'] = isOffline
+      ? 'OFFLINE'
+      : isStale
+        ? 'DEGRADED_STALE'
+        : 'HEALTHY_LIVE'
     const mode: ControlSurfaceProviderNode['mode'] =
-      canonicalKey === 'EMBER_STRUCTURAL_BASELINE' ? 'mirrored' : isStale ? 'fallback' : 'live'
+      canonicalKey === 'EMBER_STRUCTURAL_BASELINE' ? 'mirrored' : isOffline || isStale ? 'fallback' : 'live'
     const signalAuthority: ControlSurfaceProviderNode['signalAuthority'] =
-      canonicalKey.includes('WATTTIME') ? 'marginal' : isStale ? 'fallback' : 'average'
+      canonicalKey.includes('WATTTIME') ? 'marginal' : isOffline || isStale ? 'fallback' : 'average'
+
     return {
       id: canonicalKey,
       label: providerLabel(canonicalKey),
       providerType: 'carbon' as const,
-      status,
+      status: isOffline ? 'offline' : isStale ? 'degraded' : 'healthy',
       statusReasonCode,
-      statusLabel: isStale ? 'degraded stale' : 'healthy live',
-      freshnessSec: fresh && fresh.freshnessSec >= 0 ? fresh.freshnessSec : null,
+      statusLabel: humanizeStatusReason(statusReasonCode),
+      freshnessSec,
       confidence: latestConfidence,
       mirrored: canonicalKey === 'EMBER_STRUCTURAL_BASELINE',
-      lineageCount: snapshots.length,
+      lineageCount: record.snapshots.length,
       mode,
       signalAuthority,
-      degradedReason: isStale ? 'Freshness breached safe mirror window.' : null,
-      mirrorVersion:
-        typeof snapshots[0]?.metadata?.['version'] === 'string'
-          ? String(snapshots[0]?.metadata?.['version'])
+      degradedReason: isOffline
+        ? 'No current operator-grade snapshot is attached for this provider.'
+        : isStale
+          ? 'Freshness breached the safe live-signal window.'
           : null,
-    }
+      mirrorVersion:
+        typeof latestMetadata?.['version'] === 'string'
+          ? String(latestMetadata['version'])
+          : null,
+    } satisfies ControlSurfaceProviderNode
   })
 
   const waterProviders = (providerTrust.waterProviders ?? []).map((provider) => {
@@ -330,6 +445,15 @@ function buildProviders(
       mirrorVersion: provider.datasetVersion ?? null,
       provenanceStatus,
     } satisfies ControlSurfaceProviderNode
+  })
+
+  carbonProviders.sort((a, b) => {
+    const aIndex = CANONICAL_CARBON_PROVIDER_ORDER.indexOf(a.id as (typeof CANONICAL_CARBON_PROVIDER_ORDER)[number])
+    const bIndex = CANONICAL_CARBON_PROVIDER_ORDER.indexOf(b.id as (typeof CANONICAL_CARBON_PROVIDER_ORDER)[number])
+    if (aIndex === -1 && bIndex === -1) return a.label.localeCompare(b.label)
+    if (aIndex === -1) return 1
+    if (bIndex === -1) return -1
+    return aIndex - bIndex
   })
 
   return [...carbonProviders, ...waterProviders]

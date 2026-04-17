@@ -137,10 +137,26 @@ const REGION_ANCHORS: Record<string, { label: string; x: number; y: number }> = 
 
 const STATIC_WATER_BUNDLE_TTL_SEC = 30 * 24 * 60 * 60
 const FAST_DECISION_FEED_TIMEOUT_MS = 2_500
+const CANONICAL_CARBON_PROVIDER_ORDER = [
+  'WATTTIME_MOER',
+  'GRIDSTATUS',
+  'EIA_930',
+  'ON_CARBON',
+  'QC_CARBON',
+  'BC_CARBON',
+  'GB_CARBON',
+  'DK_CARBON',
+  'FI_CARBON',
+  'EMBER_STRUCTURAL_BASELINE',
+] as const
+
 const LIVE_PROVIDER_TTL_SEC: Record<string, number> = {
   WATTTIME_MOER: 600,
   GRIDSTATUS: 1800,
   EIA_930: 1800,
+  ON_CARBON: 1800,
+  QC_CARBON: 1800,
+  BC_CARBON: 1800,
   GB_CARBON: 1800,
   DK_CARBON: 1800,
   FI_CARBON: 1800,
@@ -152,7 +168,12 @@ function normalizeProviderIdentity(provider: string): string {
   if (normalized === 'EMBER' || normalized === 'EMBER_STRUCTURAL' || normalized === 'EMBER_STRUCTURAL_BASELINE') {
     return 'EMBER_STRUCTURAL_BASELINE'
   }
-  if (normalized === 'WATTTIME') return 'WATTTIME_MOER'
+  if (normalized === 'WATTTIME' || normalized === 'WATTTIME_MOER') return 'WATTTIME_MOER'
+  if (normalized === 'GRID_STATUS' || normalized.startsWith('GRIDSTATUS')) return 'GRIDSTATUS'
+  if (normalized.startsWith('EIA930') || normalized.startsWith('EIA_930')) return 'EIA_930'
+  if (normalized === 'ONTARIO_CARBON') return 'ON_CARBON'
+  if (normalized === 'QUEBEC_CARBON') return 'QC_CARBON'
+  if (normalized === 'BRITISH_COLUMBIA_CARBON') return 'BC_CARBON'
   return normalized
 }
 
@@ -169,15 +190,7 @@ function resolveLiveProviderTtl(provider: string) {
 }
 
 function isCanonicalCarbonProvider(provider: string) {
-  return (
-    provider === 'WATTTIME_MOER' ||
-    provider === 'GRIDSTATUS' ||
-    provider === 'EIA_930' ||
-    provider === 'GB_CARBON' ||
-    provider === 'DK_CARBON' ||
-    provider === 'FI_CARBON' ||
-    provider === 'EMBER_STRUCTURAL_BASELINE'
-  )
+  return CANONICAL_CARBON_PROVIDER_ORDER.includes(provider as (typeof CANONICAL_CARBON_PROVIDER_ORDER)[number])
 }
 
 function choosePreferredCarbonRecord(
@@ -290,6 +303,9 @@ function buildProviders(
 
   for (const [key, snapshots] of Object.entries(providerTrust.providers)) {
     const canonicalKey = normalizeProviderIdentity(key)
+    if (!isCanonicalCarbonProvider(canonicalKey)) {
+      continue
+    }
     carbonProviderBuckets.set(
       canonicalKey,
       choosePreferredCarbonRecord(carbonProviderBuckets.get(canonicalKey), {
@@ -328,17 +344,20 @@ function buildProviders(
         : freshnessSec != null
           ? freshnessSec > resolveLiveProviderTtl(canonicalKey)
           : false
-    const statusReasonCode: ControlSurfaceProviderNode['statusReasonCode'] = isStale
-      ? rateLimited
-        ? 'DEGRADED_RATE_LIMIT'
-        : 'DEGRADED_STALE'
-      : 'HEALTHY_LIVE'
+    const isOffline = record.snapshots.length === 0
+    const statusReasonCode: ControlSurfaceProviderNode['statusReasonCode'] = isOffline
+      ? 'OFFLINE'
+      : isStale
+        ? rateLimited
+          ? 'DEGRADED_RATE_LIMIT'
+          : 'DEGRADED_STALE'
+        : 'HEALTHY_LIVE'
 
     return {
       id: canonicalKey,
       label: providerLabel(canonicalKey),
       providerType: 'carbon' as const,
-      status: isStale ? 'degraded' : 'healthy',
+      status: isOffline ? 'offline' : isStale ? 'degraded' : 'healthy',
       statusReasonCode,
       statusLabel: humanizeStatusReason(statusReasonCode),
       freshnessSec,
@@ -346,13 +365,15 @@ function buildProviders(
       confidence: latestConfidence,
       mirrored: canonicalKey === 'EMBER_STRUCTURAL_BASELINE',
       lineageCount: record.snapshots.length,
-      mode: canonicalKey === 'EMBER_STRUCTURAL_BASELINE' ? 'mirrored' : isStale ? 'fallback' : 'live',
-      signalAuthority: canonicalKey.includes('WATTTIME') ? 'marginal' : isStale ? 'fallback' : 'average',
-      degradedReason: isStale
-        ? rateLimited
-          ? 'Provider is rate limited or quota constrained.'
-          : 'Freshness breached the safe live-signal window.'
-        : null,
+      mode: canonicalKey === 'EMBER_STRUCTURAL_BASELINE' ? 'mirrored' : isOffline || isStale ? 'fallback' : 'live',
+      signalAuthority: canonicalKey.includes('WATTTIME') ? 'marginal' : isOffline || isStale ? 'fallback' : 'average',
+      degradedReason: isOffline
+        ? 'No current operator-grade snapshot is attached for this provider.'
+        : isStale
+          ? rateLimited
+            ? 'Provider is rate limited or quota constrained.'
+            : 'Freshness breached the safe live-signal window.'
+          : null,
       mirrorVersion: typeof latestMetadata?.version === 'string' ? latestMetadata.version : null,
     } satisfies ControlSurfaceProviderNode
   })
@@ -464,7 +485,7 @@ function buildProviders(
     } satisfies ControlSurfaceProviderNode
   })
 
-  const carbonOrder = ['WATTTIME_MOER', 'GRIDSTATUS', 'EIA_930', 'EMBER_STRUCTURAL_BASELINE']
+  const carbonOrder: readonly string[] = CANONICAL_CARBON_PROVIDER_ORDER
   carbonProviders.sort((a, b) => {
     const aIndex = carbonOrder.indexOf(a.id)
     const bIndex = carbonOrder.indexOf(b.id)
