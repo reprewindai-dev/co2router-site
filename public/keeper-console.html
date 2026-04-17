@@ -2267,7 +2267,6 @@ function renderSurfaceBanner(){
     state.ui.errors.decisions ||
     state.ui.errors.health ||
     state.ui.errors.analytics ||
-    state.doctrine.error ||
     null;
 
   if(hasSnapshot && !stale){
@@ -3122,9 +3121,7 @@ function updateDerivedFromState(){
 function renderOperational(){
   const now = Date.now();
   state.ui.stale.health = now - state.ui.lastSuccessAt.health > HEALTH_STALE_MS;
-  state.ui.stale.decisions =
-    now - state.ui.lastSuccessAt.decisions > DECISIONS_STALE_MS ||
-    (state.derived.decisionFreshnessMs != null && state.derived.decisionFreshnessMs > DECISIONS_STALE_MS);
+  state.ui.stale.decisions = now - state.ui.lastSuccessAt.decisions > DECISIONS_STALE_MS;
   state.ui.stale.analytics = now - state.ui.lastSuccessAt.analytics > ANALYTICS_STALE_MS;
 
   const health = state.health;

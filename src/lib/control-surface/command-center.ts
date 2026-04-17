@@ -1,6 +1,7 @@
 import 'server-only'
 
 import { fetchEngineJson, hasInternalApiKey } from './engine'
+import { STATIC_WATER_BUNDLE_TTL_SEC } from './freshness'
 import type {
   CiHealthSnapshot,
   CiSloSnapshot,
@@ -135,7 +136,6 @@ const REGION_ANCHORS: Record<string, { label: string; x: number; y: number }> = 
   'ap-northeast-1': { label: 'AP NorthEast 1', x: 83, y: 18 },
 }
 
-const STATIC_WATER_BUNDLE_TTL_SEC = 30 * 24 * 60 * 60
 const FAST_DECISION_FEED_TIMEOUT_MS = 7_000
 const LIVE_PROVIDER_TTL_SEC: Record<string, number> = {
   WATTTIME_MOER: 600,

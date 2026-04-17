@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 
 import { fetchEngineJson, hasInternalApiKey } from '@/lib/control-surface/engine'
+import { STATIC_WATER_BUNDLE_TTL_SEC } from '@/lib/control-surface/freshness'
 import {
   dashboardTelemetryMetricNames,
   recordDashboardMetric,
@@ -277,7 +278,7 @@ function buildProviders(
       (provider.observedAt ? Math.max(0, Math.round((Date.now() - new Date(provider.observedAt).getTime()) / 1000)) : null)
     const provenanceRecord = provenanceMap.get(provider.provider.trim().toLowerCase())
     const provenanceStatus = provenanceRecord?.verificationStatus ?? 'unavailable'
-    const bundleExpired = freshnessSec != null && freshnessSec > 172800
+    const bundleExpired = freshnessSec != null && freshnessSec > STATIC_WATER_BUNDLE_TTL_SEC
 
     let status: ControlSurfaceProviderNode['status'] = 'healthy'
     let statusReasonCode: ControlSurfaceProviderNode['statusReasonCode'] = 'VERIFIED_STATIC'
