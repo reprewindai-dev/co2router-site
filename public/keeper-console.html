@@ -260,6 +260,38 @@ body::before {
   border: 1px solid rgba(0,229,160,0.2);
 }
 
+.surface-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: 12px 24px 0;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: rgba(11, 15, 20, 0.92);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.04em;
+}
+.surface-banner strong { flex: 0 0 auto; }
+.surface-banner span { color: var(--text-muted); }
+.surface-banner.hidden { display: none; }
+.surface-banner.info {
+  border-color: rgba(61, 217, 255, 0.28);
+  background: rgba(61, 217, 255, 0.08);
+  color: var(--cyan);
+}
+.surface-banner.warning {
+  border-color: rgba(255, 179, 71, 0.28);
+  background: rgba(255, 179, 71, 0.08);
+  color: var(--amber);
+}
+.surface-banner.critical {
+  border-color: rgba(255, 79, 107, 0.28);
+  background: rgba(255, 79, 107, 0.08);
+  color: var(--red);
+}
+
 #globe-canvas {
   flex: 1; width: 100%; display: block;
 }
@@ -874,6 +906,8 @@ input[type=range].red::-webkit-slider-thumb { background: var(--red); box-shadow
     </div>
   </header>
 
+  <div class="surface-banner hidden" id="surface-banner" aria-live="polite"></div>
+
   <!-- MAIN BODY -->
   <div class="main-body">
 
@@ -1395,6 +1429,7 @@ const state = {
     loading: { health: true, decisions: true, analytics: true },
     stale: { health: false, decisions: false, analytics: false },
     degraded: false,
+    hydrated: false,
     errors: { health: null, decisions: null, analytics: null },
     lastSuccessAt: { health: 0, decisions: 0, analytics: 0 },
     dashboard: { build: null, routing: null, error: null },
@@ -1469,6 +1504,33 @@ function doctrineFromLive(weights, version){
     source: 'live',
     updatedAt: null,
   };
+}
+
+function doctrineFromPublicSnapshot(){
+  const commandCenter = state.commandCenter;
+  const governance = commandCenter?.governance || null;
+  const runtime = commandCenter?.runtime || null;
+  const service = commandCenter?.health?.service || state.overview?.service || null;
+  const latestDecision = state.decisions[0] || null;
+  const liveWeights =
+    governance?.weights ||
+    latestDecision?.policyTrace?.governance?.weights ||
+    latestDecision?.policyTrace?.sekedPolicy?.weights ||
+    null;
+  const liveVersion =
+    governance?.source ||
+    latestDecision?.doctrineVersion ||
+    state.derived.doctrineVersion ||
+    'co2_router_doctrine_v1';
+
+  const doctrine = doctrineFromLive(liveWeights, liveVersion);
+  doctrine.source = 'public_snapshot';
+  doctrine.status = runtime?.stale ? 'stale_snapshot' : 'snapshot';
+  doctrine.updatedAt = runtime?.lastSuccessfulAt || commandCenter?.generatedAt || state.overview?.generatedAt || null;
+  doctrine.activatedAt = doctrine.updatedAt;
+  doctrine.versionId = governance?.source || liveVersion;
+  doctrine.policyState = service?.proofPosture || null;
+  return doctrine;
 }
 
 function loadDoctrineToken(){
@@ -1567,13 +1629,17 @@ function doctrineFromBackend(record){
 }
 
 function ensureDoctrineState(liveWeights, liveVersion){
-  const liveDoctrine = doctrineFromLive(liveWeights, liveVersion);
+  const liveDoctrine = state.commandCenter || state.overview
+    ? doctrineFromPublicSnapshot()
+    : doctrineFromLive(liveWeights, liveVersion);
   state.doctrine.live = liveDoctrine;
-  if(state.doctrine.current) return;
+  if(state.doctrine.backendAvailable && state.doctrine.authToken && state.doctrine.current) return;
   state.doctrine.current = cloneJson(liveDoctrine);
-  state.doctrine.draft = cloneJson(liveDoctrine);
+  if(!state.doctrine.dirty || !state.doctrine.draft){
+    state.doctrine.draft = cloneJson(liveDoctrine);
+  }
   state.doctrine.backendAvailable = false;
-  state.doctrine.saveStatus = 'Backend doctrine not authenticated — displaying telemetry snapshot only';
+  state.doctrine.saveStatus = 'Public doctrine snapshot active — operator JWT required for backend mutations';
 }
 
 function doctrineProposalPayloadFromDraft(draft){
@@ -1606,7 +1672,15 @@ async function refreshDoctrineState(){
   if(!state.doctrine.authToken){
     state.doctrine.backendAvailable = false;
     state.doctrine.error = 'Missing operator JWT for doctrine API access';
-    state.doctrine.saveStatus = 'Doctrine API locked — paste operator JWT to load and mutate backend state';
+    if(state.doctrine.live){
+      state.doctrine.current = cloneJson(state.doctrine.live);
+      if(!state.doctrine.dirty || !state.doctrine.draft){
+        state.doctrine.draft = cloneJson(state.doctrine.live);
+      }
+      state.doctrine.saveStatus = 'Public doctrine snapshot active — operator JWT required for backend mutations';
+    } else {
+      state.doctrine.saveStatus = 'Public doctrine snapshot unavailable — operator JWT required for backend mutations';
+    }
     renderDoctrineControls();
     return;
   }
@@ -2173,6 +2247,54 @@ function setPosture({live,label}){
   }
   const visorPostureEl = document.getElementById('visor-posture');
   if(visorPostureEl) visorPostureEl.textContent = label;
+}
+
+function renderSurfaceBanner(){
+  const bannerEl = document.getElementById('surface-banner');
+  if(!bannerEl) return;
+
+  const hasSnapshot = Boolean(state.commandCenter || state.overview);
+  const isHydrating = !hasSnapshot && (state.ui.loading.health || state.ui.loading.decisions);
+  const runtime = state.commandCenter?.runtime || null;
+  const lastSuccessfulAt =
+    runtime?.lastSuccessfulAt ||
+    (state.ui.lastSuccessAt.decisions ? new Date(state.ui.lastSuccessAt.decisions).toISOString() : null) ||
+    (state.ui.lastSuccessAt.health ? new Date(state.ui.lastSuccessAt.health).toISOString() : null) ||
+    null;
+  const stale = Boolean(runtime?.stale || state.ui.stale.health || state.ui.stale.decisions);
+  const failureReason =
+    runtime?.degradedReason ||
+    state.ui.errors.decisions ||
+    state.ui.errors.health ||
+    state.ui.errors.analytics ||
+    state.doctrine.error ||
+    null;
+
+  if(hasSnapshot && !stale){
+    bannerEl.className = 'surface-banner hidden';
+    bannerEl.innerHTML = '';
+    return;
+  }
+
+  let tone = 'info';
+  let headline = 'HYDRATING PUBLIC SNAPSHOT';
+  let detail = 'Attaching live read-only control data to the shell.';
+
+  if(isHydrating){
+    tone = 'info';
+  } else if(hasSnapshot && stale){
+    tone = 'warning';
+    headline = 'PUBLIC SNAPSHOT STALE';
+    detail = failureReason || 'Serving the last successful public snapshot while refresh catches up.';
+  } else {
+    tone = 'critical';
+    headline = 'PUBLIC SNAPSHOT UNAVAILABLE';
+    detail = failureReason || 'Public control-surface data did not attach.';
+  }
+
+  const stamp = lastSuccessfulAt ? `Last successful update ${formatIsoShort(lastSuccessfulAt)}` : 'No successful public snapshot yet';
+  bannerEl.className = `surface-banner ${tone}`;
+  bannerEl.innerHTML = `<strong>${escHtml(headline)}</strong><span>${escHtml(detail)} • ${escHtml(stamp)}</span>`;
 }
 
 function sumSavedWaterLiters(decisions){
@@ -3006,17 +3128,39 @@ function renderOperational(){
   state.ui.stale.analytics = now - state.ui.lastSuccessAt.analytics > ANALYTICS_STALE_MS;
 
   const health = state.health;
+  const hasSnapshot = Boolean(state.commandCenter || state.overview);
+  const isHydrating = !hasSnapshot && (state.ui.loading.health || state.ui.loading.decisions);
+  const isUnavailable = !hasSnapshot && !isHydrating;
   const healthOk = health?.status === 'ok' && health?.engine === 'online' && Boolean(health?.router);
   const degradedSignals = providerStatusList().some((provider)=>!['healthy','ok','online','live','true'].includes(provider.status));
   state.ui.degraded = !healthOk || degradedSignals || state.ui.stale.health || state.ui.stale.decisions;
+  state.ui.hydrated = hasSnapshot;
 
-  const postureLabel = state.ui.degraded ? (state.ui.stale.health || state.ui.stale.decisions ? 'STALE' : 'DEGRADED') : 'ENFORCING';
-  setPosture({ live: !state.ui.degraded, label: postureLabel });
+  let postureLabel = 'ENFORCING';
+  if(isHydrating) postureLabel = 'HYDRATING';
+  else if(isUnavailable) postureLabel = 'UNAVAILABLE';
+  else if(state.ui.stale.health || state.ui.stale.decisions) postureLabel = 'STALE';
+  else if(state.ui.degraded) postureLabel = 'DEGRADED';
+  setPosture({ live: hasSnapshot && !state.ui.degraded && !(state.ui.stale.health || state.ui.stale.decisions), label: postureLabel });
 
   if(liveBadgeEl){
     const isStale = state.ui.stale.health || state.ui.stale.decisions;
-    liveBadgeEl.textContent = isStale ? '? STALE' : (!state.ui.degraded ? '? LIVE' : '? DEGRADED');
-    liveBadgeEl.style.color = !state.ui.degraded ? 'var(--green)' : 'var(--amber)';
+    if(isHydrating){
+      liveBadgeEl.textContent = '● HYDRATING';
+      liveBadgeEl.style.color = 'var(--cyan)';
+    } else if(isUnavailable){
+      liveBadgeEl.textContent = '● UNAVAILABLE';
+      liveBadgeEl.style.color = 'var(--red)';
+    } else if(isStale){
+      liveBadgeEl.textContent = '● STALE';
+      liveBadgeEl.style.color = 'var(--amber)';
+    } else if(!state.ui.degraded){
+      liveBadgeEl.textContent = '● LIVE';
+      liveBadgeEl.style.color = 'var(--green)';
+    } else {
+      liveBadgeEl.textContent = '● DEGRADED';
+      liveBadgeEl.style.color = 'var(--amber)';
+    }
   }
 
   const lastHour = state.derived.lastHourRows;
@@ -3034,7 +3178,7 @@ function renderOperational(){
   setText('visor-p95', formatMs(state.derived.p95Latency));
   setText('kpi-p95-latency', formatMs(state.derived.p95Latency));
   setText('doctrine-version', String(state.doctrine.current?.version || state.derived.doctrineVersion));
-  setText('visor-status', state.ui.degraded ? 'DEGRADED' : 'HEALTHY');
+  setText('visor-status', postureLabel);
   setText('visor-last-update-age', formatAge(now - Math.max(state.ui.lastSuccessAt.health, state.ui.lastSuccessAt.decisions)));
 
   const latestDecision = state.decisions[0] || null;
@@ -3044,6 +3188,7 @@ function renderOperational(){
     null;
   ensureDoctrineState(liveWeights, state.derived.doctrineVersion);
   renderDoctrineControls();
+  renderSurfaceBanner();
 
   const dpm = state.derived.hasLiveWindow ? lastMinute.length : displayRows.length;
   setText('kpi-dpm', formatNumber(dpm));
@@ -3563,7 +3708,9 @@ document.getElementById('doctrine-token')?.addEventListener('change', async (eve
   if(token){
     state.doctrine.saveStatus = 'JWT stored — loading doctrine control plane…';
   } else {
-    state.doctrine.saveStatus = 'Doctrine API locked — paste operator JWT';
+    state.doctrine.saveStatus = state.doctrine.live
+      ? 'Public doctrine snapshot active — operator JWT required for backend mutations'
+      : 'Public doctrine snapshot unavailable — operator JWT required for backend mutations';
   }
   renderDoctrineControls();
   await refreshDoctrineState();
