@@ -1,12 +1,7 @@
 'use client'
 
-import { CommandCenterErrorBoundary } from './CommandCenterErrorBoundary'
-import { HaloGridShell } from './recovered/HaloGridShell'
+import { HaloGridConsole } from '@/components/halogrid/HaloGridConsole'
 
 export function CommandCenterShell() {
-  return (
-    <CommandCenterErrorBoundary>
-      <HaloGridShell />
-    </CommandCenterErrorBoundary>
-  )
+  return <HaloGridConsole />
 }
