@@ -227,6 +227,21 @@ function providerLabel(provider: string): string {
   return provider.replace(/_/g, ' ')
 }
 
+function isCanonicalCarbonProvider(provider: string) {
+  return (
+    provider === 'WATTTIME_MOER' ||
+    provider === 'GRIDSTATUS' ||
+    provider === 'EIA_930' ||
+    provider === 'ON_CARBON' ||
+    provider === 'QC_CARBON' ||
+    provider === 'BC_CARBON' ||
+    provider === 'GB_CARBON' ||
+    provider === 'DK_CARBON' ||
+    provider === 'FI_CARBON' ||
+    provider === 'EMBER_STRUCTURAL_BASELINE'
+  )
+}
+
 function buildProviders(
   providerTrust: ProviderTrustResponse,
   provenance: WaterProvenanceResponse | null
@@ -238,9 +253,22 @@ function buildProviders(
     (provenance?.datasets ?? []).map((dataset) => [dataset.name.trim().toLowerCase(), dataset])
   )
 
-  const carbonProviders = Object.entries(providerTrust.providers).map(([key, snapshots]) => {
-    const canonicalKey = normalizeProviderIdentity(key)
+  const carbonProviderBuckets = new Map<string, ProviderTrustResponse['providers'][string]>()
+  for (const [key, snapshots] of Object.entries(providerTrust.providers)) {
+    carbonProviderBuckets.set(normalizeProviderIdentity(key), snapshots)
+  }
+
+  for (const canonicalKey of Array.from(freshnessMap.keys())) {
+    if (!isCanonicalCarbonProvider(canonicalKey) || carbonProviderBuckets.has(canonicalKey)) {
+      continue
+    }
+    carbonProviderBuckets.set(canonicalKey, [])
+  }
+
+  const carbonProviders = Array.from(carbonProviderBuckets.entries()).map(([canonicalKey, snapshots]) => {
     const fresh = freshnessMap.get(canonicalKey)
+    const hasFreshnessSignal = Boolean(fresh)
+    const hasSnapshotRecord = snapshots.length > 0
     const latestConfidence = snapshots[0]?.confidence ?? null
     const isStale = Boolean(fresh?.isStale)
     const status: ControlSurfaceProviderNode['status'] = isStale ? 'degraded' : 'healthy'
@@ -264,7 +292,11 @@ function buildProviders(
       lineageCount: snapshots.length,
       mode,
       signalAuthority,
-      degradedReason: isStale ? 'Freshness breached safe mirror window.' : null,
+      degradedReason: isStale
+        ? 'Freshness breached safe mirror window.'
+        : hasFreshnessSignal && !hasSnapshotRecord
+          ? 'Freshness is live, but zone-level trust snapshots are not attached for this provider yet.'
+          : null,
       mirrorVersion:
         typeof snapshots[0]?.metadata?.['version'] === 'string'
           ? String(snapshots[0]?.metadata?.['version'])
