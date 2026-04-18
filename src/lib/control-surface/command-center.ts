@@ -150,7 +150,7 @@ const REGION_ANCHORS: Record<string, { label: string; x: number; y: number }> = 
   'ap-northeast-1': { label: 'AP NorthEast 1', x: 83, y: 18 },
 }
 
-const FAST_DECISION_FEED_TIMEOUT_MS = 7_000
+const FAST_DECISION_FEED_TIMEOUT_MS = 8_000
 const LIVE_PROVIDER_TTL_SEC: Record<string, number> = {
   WATTTIME_MOER: 600,
   GRIDSTATUS: 1800,
@@ -185,6 +185,8 @@ function mapMethodologyProviderName(name: string): string | null {
       return 'WATTTIME_MOER'
     case 'gridstatus eia-930':
       return 'GRIDSTATUS'
+    case 'eia-930 direct':
+      return 'EIA_930'
     case 'ember':
       return 'EMBER_STRUCTURAL_BASELINE'
     case 'gb carbon intensity':
@@ -387,6 +389,7 @@ function buildProviders(
     const metadataText = latestMetadata ? JSON.stringify(latestMetadata).toLowerCase() : ''
     const rateLimited =
       metadataText.includes('429') || metadataText.includes('rate limit') || metadataText.includes('quota')
+    const hasFreshnessSignal = Boolean(fresh)
     const hasSnapshotFreshness = fresh && fresh.freshnessSec >= 0
     const hasSnapshotRecord = record.snapshots.length > 0
     const isStale = hasSnapshotFreshness
@@ -408,16 +411,18 @@ function buildProviders(
       degradedReason = rateLimited
         ? 'Provider is rate limited or quota constrained.'
         : 'Freshness breached the safe live-signal window.'
-    } else if (methodologyStatus === 'offline') {
+    } else if (methodologyStatus === 'offline' && !hasFreshnessSignal) {
       status = 'offline'
       statusReasonCode = 'OFFLINE'
       statusLabel = 'offline'
       degradedReason = 'Provider is configured in doctrine inventory but is not producing current live signals.'
-    } else if (methodologyStatus === 'degraded') {
+    } else if (methodologyStatus === 'degraded' && !hasFreshnessSignal) {
       status = 'degraded'
       statusReasonCode = 'DEGRADED_STALE'
       statusLabel = 'degraded'
       degradedReason = 'Provider is present in doctrine inventory but currently degraded.'
+    } else if (hasFreshnessSignal && !hasSnapshotRecord) {
+      degradedReason = 'Freshness is live, but zone-level trust snapshots are not attached for this provider yet.'
     }
 
     return {
