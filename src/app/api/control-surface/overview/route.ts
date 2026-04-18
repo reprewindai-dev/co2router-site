@@ -337,6 +337,7 @@ function buildProviders(
 
   const carbonProviders = Array.from(carbonProviderBuckets.entries()).map(([canonicalKey, record]) => {
     const fresh = freshnessMap.get(canonicalKey)
+    const hasFreshnessSignal = Boolean(fresh)
     const latestConfidence = record.snapshots[0]?.confidence ?? null
     const latestMetadata = record.snapshots[0]?.metadata ?? null
     const fallbackFreshnessSec = record.snapshots[0]?.freshnessSec ?? null
@@ -350,7 +351,7 @@ function buildProviders(
         : freshnessSec != null
           ? freshnessSec > resolveLiveProviderTtl(canonicalKey)
           : false
-    const isOffline = record.snapshots.length === 0
+    const isOffline = record.snapshots.length === 0 && !hasFreshnessSignal
     const statusReasonCode: ControlSurfaceProviderNode['statusReasonCode'] = isOffline
       ? 'OFFLINE'
       : isStale
@@ -378,6 +379,8 @@ function buildProviders(
         ? 'No current operator-grade snapshot is attached for this provider.'
         : isStale
           ? 'Freshness breached the safe live-signal window.'
+          : record.snapshots.length === 0 && hasFreshnessSignal
+            ? 'Freshness is live, but zone-level trust snapshots are not attached for this provider yet.'
           : null,
       mirrorVersion:
         typeof latestMetadata?.['version'] === 'string'
