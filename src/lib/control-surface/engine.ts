@@ -1,6 +1,6 @@
 import crypto from 'crypto'
+import { getInternalApiKey as resolveInternalApiKey } from '@/lib/internal-api-key'
 
-const DEFAULT_ENGINE_URL = 'https://ecobe-engineclaude-co2router.onrender.com'
 const DECISION_SIGNATURE_PATHS = new Set(['/ci/route', '/ci/authorize', '/ci/carbon-route'])
 const DEFAULT_ENGINE_TIMEOUT_MS = 12_000
 
@@ -9,14 +9,15 @@ export function getEngineBaseUrl() {
     process.env.ECOBE_API_URL ||
     process.env.CO2ROUTER_API_URL ||
     process.env.NEXT_PUBLIC_ECOBE_API_URL ||
-    DEFAULT_ENGINE_URL
+    process.env.ECOBE_MVP_URL ||
+    ''
   )
     .replace(/\/api\/v1\/?$/, '')
     .replace(/\/$/, '')
 }
 
 function getInternalApiKey() {
-  return process.env.ECOBE_INTERNAL_API_KEY || process.env.CO2ROUTER_INTERNAL_API_KEY || null
+  return resolveInternalApiKey()
 }
 
 function getDecisionApiSignatureSecret() {
@@ -65,6 +66,11 @@ export async function fetchEngineJson<T>(
   init: RequestInit = {},
   options: { internal?: boolean; timeoutMs?: number } = {}
 ) {
+  const baseUrl = getEngineBaseUrl()
+  if (!baseUrl) {
+    throw new Error('ECOBE broker is not configured')
+  }
+
   const headers = new Headers(init.headers)
   headers.set('content-type', 'application/json')
   const requestBody = typeof init.body === 'string' ? init.body : null
@@ -97,7 +103,7 @@ export async function fetchEngineJson<T>(
 
   let response: Response
   try {
-    response = await fetch(`${getEngineBaseUrl()}/api/v1${path}`, {
+    response = await fetch(`${baseUrl}/api/v1${path}`, {
       ...init,
       headers,
       cache: 'no-store',

@@ -6,8 +6,7 @@ import type {
   DekesIntegrationSummaryResponse,
 } from '@/types'
 import { deriveQualityTier, getDecisionSource, isDecisionDelayed } from '@/lib/decisions'
-
-const DEFAULT_ENGINE_URL = 'https://ecobe-engineclaude-co2router.onrender.com'
+import { getInternalApiKey } from '@/lib/internal-api-key'
 
 type EngineSystemStatus = {
   status?: string
@@ -25,23 +24,33 @@ type DekesRuntimeReadModel = {
 }
 
 function getEngineBaseUrl() {
-  return (process.env.ECOBE_API_URL || DEFAULT_ENGINE_URL).replace(/\/$/, '')
+  return (
+    process.env.ECOBE_API_URL ||
+    process.env.CO2ROUTER_API_URL ||
+    process.env.ECOBE_MVP_URL ||
+    ''
+  ).replace(/\/$/, '')
 }
 
 async function fetchEngineJson<T>(path: string, useInternalKey = false): Promise<T | null> {
+  const baseUrl = getEngineBaseUrl()
+  if (!baseUrl) {
+    throw new Error('ECOBE broker is not configured')
+  }
+
   const headers: Record<string, string> = {
     accept: 'application/json',
   }
 
   if (useInternalKey) {
-    const internalKey = process.env.ECOBE_INTERNAL_API_KEY
+    const internalKey = getInternalApiKey()
     if (!internalKey) return null
     headers.authorization = `Bearer ${internalKey}`
     headers['x-ecobe-internal-key'] = internalKey
     headers['x-api-key'] = internalKey
   }
 
-  const response = await fetch(`${getEngineBaseUrl()}${path}`, {
+  const response = await fetch(`${baseUrl}${path}`, {
     headers,
     cache: 'no-store',
   })

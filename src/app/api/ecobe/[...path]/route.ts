@@ -3,8 +3,8 @@ import axios from 'axios'
 import { NextResponse } from 'next/server'
 
 import { getClientIp, RateLimiter } from '@/lib/rate-limit'
+import { getInternalApiKey } from '@/lib/internal-api-key'
 
-const DEFAULT_ENGINE_URL = 'https://ecobe-engineclaude-co2router.onrender.com'
 const FORWARDED_HEADERS = ['accept', 'content-type', 'authorization', 'x-request-id', 'x-ecobe-signature'] as const
 const SIGNED_DECISION_PATHS = new Set(['ci/route', 'ci/authorize', 'ci/carbon-route'])
 const HOP_BY_HOP_HEADERS = [
@@ -26,7 +26,8 @@ const engineLimiter = new RateLimiter({
 })
 
 function getEngineBaseUrl() {
-  return process.env.ECOBE_API_URL || DEFAULT_ENGINE_URL
+  const brokerUrl = process.env.ECOBE_API_URL || process.env.ECOBE_MVP_URL || null
+  return brokerUrl ? brokerUrl.replace(/\/$/, '') : null
 }
 
 function getEngineTimeoutMs() {
@@ -83,7 +84,13 @@ async function proxy(request: Request, ctx: { params: Promise<{ path?: string[] 
     )
   }
 
-  const engineBaseUrl = getEngineBaseUrl().replace(/\/$/, '')
+  const engineBaseUrl = getEngineBaseUrl()
+  if (!engineBaseUrl) {
+    return NextResponse.json(
+      { error: 'ECOBE broker is not configured.' },
+      { status: 503 }
+    )
+  }
   const url = new URL(request.url)
   const useInternalKey = shouldUseInternalKey(path)
 
@@ -129,7 +136,7 @@ async function proxy(request: Request, ctx: { params: Promise<{ path?: string[] 
   }
 
   if (useInternalKey) {
-    const internalKey = process.env.ECOBE_INTERNAL_API_KEY
+    const internalKey = getInternalApiKey()
     if (!internalKey) {
       return NextResponse.json(
         { error: 'Dashboard internal engine authentication is not configured.' },

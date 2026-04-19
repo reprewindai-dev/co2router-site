@@ -3,7 +3,8 @@ import { NextResponse } from 'next/server'
 const ECOBE_ENGINE_URL =
   process.env.ECOBE_API_URL ||
   process.env.CO2ROUTER_API_URL ||
-  'http://localhost:3000'
+  process.env.ECOBE_MVP_URL ||
+  ''
 
 const ECOBE_ENGINE_API_KEY =
   process.env.DEKES_API_KEY ||
@@ -13,6 +14,10 @@ const ECOBE_ENGINE_API_KEY =
 const ALLOWED_ENDPOINTS = new Set(['summary', 'metrics'])
 
 async function fetchFromEngine(path: string) {
+  if (!ECOBE_ENGINE_URL) {
+    throw new Error('ECOBE broker is not configured')
+  }
+
   const url = `${ECOBE_ENGINE_URL}/api/v1${path}`
 
   const headers: Record<string, string> = {

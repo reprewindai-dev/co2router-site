@@ -5,7 +5,8 @@ export const dynamic = 'force-dynamic'
 const ECOBE_ENGINE_URL =
   process.env.ECOBE_API_URL ||
   process.env.CO2ROUTER_API_URL ||
-  'http://localhost:3000'
+  process.env.ECOBE_MVP_URL ||
+  ''
 
 const ECOBE_ENGINE_API_KEY =
   process.env.DEKES_API_KEY ||
@@ -36,6 +37,10 @@ type GridSummaryResponse = {
 }
 
 async function fetchFromEngine(path: string) {
+  if (!ECOBE_ENGINE_URL) {
+    throw new Error('ECOBE broker is not configured')
+  }
+
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   }

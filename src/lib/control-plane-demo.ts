@@ -74,7 +74,10 @@ export type DemoRouteResponse = {
 }
 
 const ENGINE_BASE_URL =
-  process.env.ECOBE_API_URL || 'https://ecobe-engineclaude-co2router.onrender.com'
+  process.env.ECOBE_API_URL ||
+  process.env.CO2ROUTER_API_URL ||
+  process.env.ECOBE_MVP_URL ||
+  ''
 
 const DEFAULT_CANDIDATE_REGIONS = ['eastus', 'westus2', 'northeurope', 'norwayeast']
 
@@ -136,6 +139,10 @@ function toConfidence(qualityTier: 'high' | 'medium' | 'low' | undefined) {
 }
 
 async function postEngineJson<T>(path: string, body: Record<string, unknown>): Promise<T> {
+  if (!ENGINE_BASE_URL) {
+    throw new Error('ECOBE broker is not configured')
+  }
+
   const response = await fetch(`${ENGINE_BASE_URL}${path}`, {
     method: 'POST',
     headers: {

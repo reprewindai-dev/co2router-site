@@ -1,12 +1,36 @@
 /** @type {import('next').NextConfig} */
-const ECOBE_ENGINE_URL = (process.env.ECOBE_API_URL || 'https://ecobe-engineclaude-co2router.onrender.com')
+const ECOBE_BROKER_URL = (
+  process.env.ECOBE_API_URL ||
+  process.env.ECOBE_MVP_URL ||
+  ''
+)
   .replace(/\/api\/v1\/?$/, '')
+  .replace(/\/$/, '')
+
+const HALOGRID_CONSOLE_URL = (
+  process.env.HALOGRID_CONSOLE_URL ||
+  'https://halogrid.vercel.app'
+).replace(/\/$/, '')
 
 const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
   env: {
-    ECOBE_API_URL: ECOBE_ENGINE_URL,
+    ECOBE_API_URL: ECOBE_BROKER_URL,
+  },
+  async rewrites() {
+    return {
+      beforeFiles: [
+        {
+          source: '/console',
+          destination: `${HALOGRID_CONSOLE_URL}/`,
+        },
+        {
+          source: '/console/:path*',
+          destination: `${HALOGRID_CONSOLE_URL}/:path*`,
+        },
+      ],
+    }
   },
   async headers() {
     const securityHeaders = [

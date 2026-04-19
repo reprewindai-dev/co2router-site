@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 
 import { getEngineBaseUrl } from '@/lib/control-surface/engine'
+import { getInternalApiKey } from '@/lib/internal-api-key'
 import { recordDashboardMetric } from '@/lib/observability/telemetry'
 
 export const dynamic = 'force-dynamic'
@@ -14,10 +15,6 @@ type ProbeResult = {
   durationMs: number
   bytes: number | null
   error: string | null
-}
-
-function getInternalApiKey() {
-  return process.env.ECOBE_INTERNAL_API_KEY || process.env.CO2ROUTER_INTERNAL_API_KEY || null
 }
 
 function getTimeoutMs() {

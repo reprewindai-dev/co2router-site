@@ -1,9 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-
-function getOperatorKey() {
-  return process.env.CO2ROUTER_OPERATOR_KEY || process.env.ECOBE_OPERATOR_KEY || null
-}
+import { getOperatorKey } from '@/lib/internal-api-key'
 
 function hasOperatorAccess(request: NextRequest, expected: string) {
   const headerKey =

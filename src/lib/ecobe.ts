@@ -1,4 +1,4 @@
-const DEFAULT_ENGINE_URL = 'https://ecobe-engineclaude-co2router.onrender.com'
+import { getInternalApiKey } from '@/lib/internal-api-key'
 
 function titleCaseWords(value: string) {
   return value
@@ -85,14 +85,15 @@ function getEngineBaseUrl() {
     process.env.ECOBE_API_URL ||
     process.env.CO2ROUTER_API_URL ||
     process.env.NEXT_PUBLIC_ECOBE_API_URL ||
-    DEFAULT_ENGINE_URL
+    process.env.ECOBE_MVP_URL ||
+    ''
   )
     .replace(/\/api\/v1\/?$/, '')
     .replace(/\/$/, '')
 }
 
 function getInternalHeaders() {
-  const internalKey = process.env.ECOBE_INTERNAL_API_KEY || process.env.CO2ROUTER_INTERNAL_API_KEY
+  const internalKey = getInternalApiKey()
   return internalKey
     ? {
         authorization: `Bearer ${internalKey}`,
@@ -136,6 +137,11 @@ export async function fetchEngineJson<T>(
   }
 ): Promise<T | null> {
   try {
+    const baseUrl = getEngineBaseUrl()
+    if (!baseUrl) {
+      return null
+    }
+
     const { internal, headers: initHeaders, ...requestInit } = init ?? {}
     const headers = new Headers(initHeaders)
     headers.set('Content-Type', 'application/json')
@@ -152,7 +158,7 @@ export async function fetchEngineJson<T>(
 
     let response: Response
     try {
-      response = await fetch(`${getEngineBaseUrl()}/api/v1${path}`, {
+      response = await fetch(`${baseUrl}/api/v1${path}`, {
         ...requestInit,
         headers,
         cache: 'no-store',
