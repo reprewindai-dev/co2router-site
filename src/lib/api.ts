@@ -32,7 +32,7 @@ import type {
   DesignPartnerApplicationResponse,
 } from '@/types'
 
-const API_BASE = process.env.NEXT_PUBLIC_ECOBE_API_URL || '/api/ecobe'
+const API_BASE = process.env.NEXT_PUBLIC_MCP_API_URL || '/api/ecobe'
 
 const api = axios.create({
   baseURL: API_BASE,
@@ -143,7 +143,7 @@ api.interceptors.response.use(
 
       if (!err.response) {
         return Promise.reject(
-          new Error('Cannot reach COâ‚‚Router Engine â€” check NEXT_PUBLIC_ECOBE_API_URL')
+          new Error('Cannot reach CO2 Router MCP broker — check NEXT_PUBLIC_MCP_API_URL')
         )
       }
 
