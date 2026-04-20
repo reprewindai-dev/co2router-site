@@ -22,11 +22,11 @@ function pickBuildVersion() {
   )
 }
 
-function pickEngineBaseHost() {
+function pickMcpBrokerHost() {
   const raw =
-    process.env.ECOBE_API_URL ??
-    process.env.CO2ROUTER_API_URL ??
-    process.env.NEXT_PUBLIC_ECOBE_API_URL ??
+    process.env.MCP_API_URL ??
+    process.env.ECOBE_MVP_URL ??
+    process.env.NEXT_PUBLIC_MCP_API_URL ??
     null
 
   if (!raw) return null
@@ -50,7 +50,7 @@ export async function GET() {
     routing: {
       ecobeProxyBase: '/api/ecobe',
       analyticsRoute: '/api/analytics/baseline',
-      engineHost: pickEngineBaseHost(),
+      mcpHost: pickMcpBrokerHost(),
     },
   })
 }
