@@ -17,8 +17,8 @@ Public documentation lives in:
 ## Environment Variables
 
 ```env
-NEXT_PUBLIC_ECOBE_API_URL=http://localhost:3000
-ECOBE_API_URL=http://localhost:3000
+NEXT_PUBLIC_MCP_API_URL=http://localhost:3000
+MCP_API_URL=http://localhost:3000
 ```
 
 ## Development
