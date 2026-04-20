@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 
-import { getEngineBaseUrl } from '@/lib/control-surface/engine'
+import { getMcpBrokerBaseUrl } from '@/lib/control-surface/engine'
 import { getInternalApiKey } from '@/lib/internal-api-key'
 import { recordDashboardMetric } from '@/lib/observability/telemetry'
 
@@ -40,7 +40,7 @@ async function probe(path: string, options?: { internal?: boolean }): Promise<Pr
       if (key) headers.set('authorization', `Bearer ${key}`)
     }
 
-    const response = await fetch(`${getEngineBaseUrl()}/api/v1${path}`, {
+    const response = await fetch(`${getMcpBrokerBaseUrl()}/api/v1${path}`, {
       method: 'GET',
       headers,
       cache: 'no-store',
@@ -98,7 +98,7 @@ async function probe(path: string, options?: { internal?: boolean }): Promise<Pr
 }
 
 export async function GET() {
-  const engineBaseUrl = getEngineBaseUrl()
+  const mcpBrokerBaseUrl = getMcpBrokerBaseUrl()
   const hasInternal = Boolean(getInternalApiKey())
 
   const paths: Array<{ path: string; internal?: boolean }> = [
@@ -109,7 +109,6 @@ export async function GET() {
     { path: '/dashboard/metrics?window=24h' },
     { path: '/dashboard/carbon-ledger-summary?days=30' },
     { path: '/dashboard/provider-trust' },
-    { path: '/integrations/events/outbox/metrics', internal: true },
   ]
 
   const probes = await Promise.all(paths.map((item) => probe(item.path, { internal: Boolean(item.internal && hasInternal) })))
@@ -117,7 +116,7 @@ export async function GET() {
   return NextResponse.json(
     {
       generatedAt: new Date().toISOString(),
-      engineBaseUrl,
+      mcpBrokerBaseUrl,
       internalAccessConfigured: hasInternal,
       probes,
     },
@@ -128,4 +127,3 @@ export async function GET() {
     }
   )
 }
-
