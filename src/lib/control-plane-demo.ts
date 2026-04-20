@@ -73,9 +73,8 @@ export type DemoRouteResponse = {
   generatedAt: string
 }
 
-const ENGINE_BASE_URL =
-  process.env.ECOBE_API_URL ||
-  process.env.CO2ROUTER_API_URL ||
+const MCP_BROKER_BASE_URL =
+  process.env.MCP_API_URL ||
   process.env.ECOBE_MVP_URL ||
   ''
 
@@ -138,12 +137,12 @@ function toConfidence(qualityTier: 'high' | 'medium' | 'low' | undefined) {
   return 0.48
 }
 
-async function postEngineJson<T>(path: string, body: Record<string, unknown>): Promise<T> {
-  if (!ENGINE_BASE_URL) {
-    throw new Error('ECOBE broker is not configured')
+async function postMcpJson<T>(path: string, body: Record<string, unknown>): Promise<T> {
+  if (!MCP_BROKER_BASE_URL) {
+    throw new Error('MCP broker is not configured')
   }
 
-  const response = await fetch(`${ENGINE_BASE_URL}${path}`, {
+  const response = await fetch(`${MCP_BROKER_BASE_URL}${path}`, {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
@@ -154,7 +153,7 @@ async function postEngineJson<T>(path: string, body: Record<string, unknown>): P
   })
 
   if (!response.ok) {
-    throw new Error(`Engine request failed for ${path} (${response.status})`)
+    throw new Error(`MCP broker request failed for ${path} (${response.status})`)
   }
 
   return (await response.json()) as T
@@ -175,7 +174,7 @@ async function maybeGetDelayRecommendation(
   }
 
   try {
-    const bestWindow = await postEngineJson<BestWindowResponse>('/api/v1/intelligence/best-window', {
+    const bestWindow = await postMcpJson<BestWindowResponse>('/api/v1/intelligence/best-window', {
       region: selectedRegion,
       lookAheadHours: 24,
       workloadType,
@@ -226,7 +225,7 @@ export async function buildDemoRoutingDecision(
   const candidateRegions = normalizeCandidateRegions(input.candidateRegions)
   const profile = WORKLOAD_PROFILES[workloadType]
 
-  const routing = await postEngineJson<GreenRoutingResult>('/api/v1/route/green', {
+  const routing = await postMcpJson<GreenRoutingResult>('/api/v1/route/green', {
     preferredRegions: candidateRegions,
     durationMinutes: profile.durationMinutes,
     carbonWeight: clamp(input.carbonSensitivity ?? 0.65, 0, 1),
