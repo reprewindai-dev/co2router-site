@@ -2,18 +2,21 @@ import crypto from 'crypto'
 import { getInternalApiKey as resolveInternalApiKey } from '@/lib/internal-api-key'
 
 const DECISION_SIGNATURE_PATHS = new Set(['/ci/route', '/ci/authorize', '/ci/carbon-route'])
-const DEFAULT_ENGINE_TIMEOUT_MS = 12_000
+const DEFAULT_MCP_TIMEOUT_MS = 12_000
 
-export function getEngineBaseUrl() {
+export function getMcpBrokerBaseUrl() {
   return (
-    process.env.ECOBE_API_URL ||
-    process.env.CO2ROUTER_API_URL ||
-    process.env.NEXT_PUBLIC_ECOBE_API_URL ||
+    process.env.MCP_API_URL ||
+    process.env.NEXT_PUBLIC_MCP_API_URL ||
     process.env.ECOBE_MVP_URL ||
     ''
   )
     .replace(/\/api\/v1\/?$/, '')
     .replace(/\/$/, '')
+}
+
+export function getEngineBaseUrl() {
+  return getMcpBrokerBaseUrl()
 }
 
 function getInternalApiKey() {
@@ -34,11 +37,11 @@ function signDecisionBody(body: string) {
   return crypto.createHmac('sha256', secret).update(body).digest('hex')
 }
 
-function getEngineTimeoutMs() {
+function getMcpTimeoutMs() {
   const raw = process.env.ECOBE_ENGINE_TIMEOUT_MS || process.env.CO2ROUTER_ENGINE_TIMEOUT_MS
-  if (!raw) return DEFAULT_ENGINE_TIMEOUT_MS
+  if (!raw) return DEFAULT_MCP_TIMEOUT_MS
   const parsed = Number(raw)
-  if (!Number.isFinite(parsed)) return DEFAULT_ENGINE_TIMEOUT_MS
+  if (!Number.isFinite(parsed)) return DEFAULT_MCP_TIMEOUT_MS
   return Math.max(1_000, Math.min(60_000, Math.round(parsed)))
 }
 
@@ -66,9 +69,9 @@ export async function fetchEngineJson<T>(
   init: RequestInit = {},
   options: { internal?: boolean; timeoutMs?: number } = {}
 ) {
-  const baseUrl = getEngineBaseUrl()
+  const baseUrl = getMcpBrokerBaseUrl()
   if (!baseUrl) {
-    throw new Error('ECOBE broker is not configured')
+    throw new Error('MCP broker is not configured')
   }
 
   const headers = new Headers(init.headers)
@@ -96,7 +99,7 @@ export async function fetchEngineJson<T>(
   const timeoutMs =
     options.timeoutMs != null
       ? Math.max(1_000, Math.min(60_000, Math.round(options.timeoutMs)))
-      : getEngineTimeoutMs()
+      : getMcpTimeoutMs()
   const timeoutController = new AbortController()
   const timeout = setTimeout(() => timeoutController.abort(), timeoutMs)
   const mergedSignal = mergeAbortSignals([init.signal, timeoutController.signal])
@@ -111,7 +114,7 @@ export async function fetchEngineJson<T>(
     })
   } catch (error) {
     if (timeoutController.signal.aborted) {
-      throw new Error(`Engine request timed out for ${path} after ${timeoutMs}ms`)
+      throw new Error(`MCP broker request timed out for ${path} after ${timeoutMs}ms`)
     }
     throw error
   } finally {
@@ -120,7 +123,7 @@ export async function fetchEngineJson<T>(
 
   if (!response.ok) {
     const text = await response.text()
-    throw new Error(`Engine request failed for ${path}: ${response.status} ${text}`)
+    throw new Error(`MCP broker request failed for ${path}: ${response.status} ${text}`)
   }
 
   return (await response.json()) as T
