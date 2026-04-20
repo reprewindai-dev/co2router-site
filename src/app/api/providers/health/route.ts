@@ -5,11 +5,11 @@ export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
-    const baseUrl = process.env.ECOBE_API_URL || process.env.ECOBE_MVP_URL
+    const baseUrl = process.env.MCP_API_URL || process.env.ECOBE_MVP_URL
     const internalKey = getInternalApiKey()
 
     if (!baseUrl) {
-      return NextResponse.json({ error: 'ECOBE broker is not configured.' }, { status: 503 })
+      return NextResponse.json({ error: 'MCP broker is not configured.' }, { status: 503 })
     }
 
     const headers: Record<string, string> = {
