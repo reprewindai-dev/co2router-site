@@ -1,9 +1,5 @@
 /** @type {import('next').NextConfig} */
-const ECOBE_BROKER_URL = (
-  process.env.ECOBE_API_URL ||
-  process.env.ECOBE_MVP_URL ||
-  ''
-)
+const MCP_BROKER_URL = (process.env.MCP_API_URL || process.env.ECOBE_MVP_URL || '')
   .replace(/\/api\/v1\/?$/, '')
   .replace(/\/$/, '')
 
@@ -16,7 +12,7 @@ const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
   env: {
-    ECOBE_API_URL: ECOBE_BROKER_URL,
+    MCP_API_URL: MCP_BROKER_URL,
   },
   async rewrites() {
     return {
