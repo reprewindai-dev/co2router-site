@@ -19,26 +19,22 @@ const HOP_BY_HOP_HEADERS = [
   'content-length',
 ]
 
-const engineLimiter = new RateLimiter({
+const mcpLimiter = new RateLimiter({
   // 240 req/min/IP burst, refills at 4 req/sec
   capacity: 240,
   refillPerSecond: 4,
 })
 
-function getEngineBaseUrl() {
-  const brokerUrl = process.env.ECOBE_API_URL || process.env.ECOBE_MVP_URL || null
+function getMcpBrokerBaseUrl() {
+  const brokerUrl = process.env.MCP_API_URL || process.env.ECOBE_MVP_URL || null
   return brokerUrl ? brokerUrl.replace(/\/$/, '') : null
 }
 
-function getEngineTimeoutMs() {
+function getMcpTimeoutMs() {
   const raw = process.env.ECOBE_ENGINE_TIMEOUT_MS
   const parsed = raw ? Number(raw) : NaN
   if (!Number.isFinite(parsed) || parsed <= 0) return 12_000
   return Math.min(Math.max(parsed, 2_000), 60_000)
-}
-
-function isCuratedProofInspectionPath(joined: string) {
-  return /^ci\/decisions\/[^/]+\/(trace|replay)$/.test(joined)
 }
 
 function shouldUseInternalKey(path: string[]) {
@@ -71,7 +67,7 @@ async function proxy(request: Request, ctx: { params: Promise<{ path?: string[] 
   const { path = [] } = await ctx.params
 
   const ip = getClientIp(request)
-  const limit = engineLimiter.consume(ip)
+  const limit = mcpLimiter.consume(ip)
   if (!limit.ok) {
     return NextResponse.json(
       { error: 'Rate limit exceeded.' },
@@ -84,10 +80,10 @@ async function proxy(request: Request, ctx: { params: Promise<{ path?: string[] 
     )
   }
 
-  const engineBaseUrl = getEngineBaseUrl()
-  if (!engineBaseUrl) {
+  const mcpBrokerBaseUrl = getMcpBrokerBaseUrl()
+  if (!mcpBrokerBaseUrl) {
     return NextResponse.json(
-      { error: 'ECOBE broker is not configured.' },
+      { error: 'MCP broker is not configured.' },
       { status: 503 }
     )
   }
@@ -95,9 +91,9 @@ async function proxy(request: Request, ctx: { params: Promise<{ path?: string[] 
   const useInternalKey = shouldUseInternalKey(path)
 
   const joinedPath = path.map((part) => encodeURIComponent(part)).join('/')
-  const targetUrl = new URL(`${engineBaseUrl}/api/v1/${joinedPath}${url.search}`)
+  const targetUrl = new URL(`${mcpBrokerBaseUrl}/api/v1/${joinedPath}${url.search}`)
 
-  // Engine quirk hardening:
+  // Broker upstream quirk hardening:
   // - `/ci/decisions?limit=<small>` intermittently fails upstream with 500
   // - `/ci/decisions?limit=<n>` may fail when `limit` is the only query param
   // Normalize to a safe request and slice response back down when needed.
@@ -139,7 +135,7 @@ async function proxy(request: Request, ctx: { params: Promise<{ path?: string[] 
     const internalKey = getInternalApiKey()
     if (!internalKey) {
       return NextResponse.json(
-        { error: 'Dashboard internal engine authentication is not configured.' },
+        { error: 'Dashboard internal broker authentication is not configured.' },
         { status: 503 }
       )
     }
@@ -173,7 +169,7 @@ async function proxy(request: Request, ctx: { params: Promise<{ path?: string[] 
     responseType: 'arraybuffer',
     validateStatus: () => true,
     maxRedirects: 0,
-    timeout: getEngineTimeoutMs(),
+    timeout: getMcpTimeoutMs(),
   })
 
   if (shouldSliceDecisions) {
