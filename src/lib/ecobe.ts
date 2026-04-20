@@ -80,16 +80,19 @@ function buildMethodologyProviders(
   }
 }
 
-function getEngineBaseUrl() {
+function getMcpBrokerBaseUrl() {
   return (
-    process.env.ECOBE_API_URL ||
-    process.env.CO2ROUTER_API_URL ||
-    process.env.NEXT_PUBLIC_ECOBE_API_URL ||
+    process.env.MCP_API_URL ||
+    process.env.NEXT_PUBLIC_MCP_API_URL ||
     process.env.ECOBE_MVP_URL ||
     ''
   )
     .replace(/\/api\/v1\/?$/, '')
     .replace(/\/$/, '')
+}
+
+function getEngineBaseUrl() {
+  return getMcpBrokerBaseUrl()
 }
 
 function getInternalHeaders() {
@@ -103,7 +106,7 @@ function getInternalHeaders() {
     : {}
 }
 
-function getEngineTimeoutMs() {
+function getMcpTimeoutMs() {
   const raw = process.env.ECOBE_ENGINE_TIMEOUT_MS || process.env.CO2ROUTER_ENGINE_TIMEOUT_MS
   if (!raw) return 12_000
   const parsed = Number(raw)
@@ -137,7 +140,7 @@ export async function fetchEngineJson<T>(
   }
 ): Promise<T | null> {
   try {
-    const baseUrl = getEngineBaseUrl()
+    const baseUrl = getMcpBrokerBaseUrl()
     if (!baseUrl) {
       return null
     }
@@ -151,7 +154,7 @@ export async function fetchEngineJson<T>(
       }
     }
 
-    const timeoutMs = getEngineTimeoutMs()
+    const timeoutMs = getMcpTimeoutMs()
     const timeoutController = new AbortController()
     const timeout = setTimeout(() => timeoutController.abort(), timeoutMs)
     const mergedSignal = mergeAbortSignals([requestInit.signal, timeoutController.signal])
