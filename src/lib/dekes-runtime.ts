@@ -23,19 +23,18 @@ type DekesRuntimeReadModel = {
   events: DekesIntegrationEventsResponse
 }
 
-function getEngineBaseUrl() {
+function getMcpBrokerBaseUrl() {
   return (
-    process.env.ECOBE_API_URL ||
-    process.env.CO2ROUTER_API_URL ||
+    process.env.MCP_API_URL ||
     process.env.ECOBE_MVP_URL ||
     ''
   ).replace(/\/$/, '')
 }
 
-async function fetchEngineJson<T>(path: string, useInternalKey = false): Promise<T | null> {
-  const baseUrl = getEngineBaseUrl()
+async function fetchMcpJson<T>(path: string, useInternalKey = false): Promise<T | null> {
+  const baseUrl = getMcpBrokerBaseUrl()
   if (!baseUrl) {
-    throw new Error('ECOBE broker is not configured')
+    throw new Error('MCP broker is not configured')
   }
 
   const headers: Record<string, string> = {
@@ -56,7 +55,7 @@ async function fetchEngineJson<T>(path: string, useInternalKey = false): Promise
   })
 
   if (!response.ok) {
-    throw new Error(`Engine request failed for ${path} (${response.status})`)
+    throw new Error(`MCP broker request failed for ${path} (${response.status})`)
   }
 
   return (await response.json()) as T
@@ -216,8 +215,8 @@ function buildHourlyTrend(decisions: DashboardDecision[]) {
 
 export async function buildDekesRuntimeReadModel(limit = 96): Promise<DekesRuntimeReadModel> {
   const [decisionPayload, systemStatus] = await Promise.all([
-    fetchEngineJson<{ decisions: DashboardDecision[] }>(`/api/v1/dashboard/decisions?limit=${Math.max(limit, 200)}`),
-    fetchEngineJson<EngineSystemStatus>('/api/v1/system/status', true).catch(() => null),
+    fetchMcpJson<{ decisions: DashboardDecision[] }>(`/api/v1/dashboard/decisions?limit=${Math.max(limit, 200)}`),
+    fetchMcpJson<EngineSystemStatus>('/api/v1/system/status', true).catch(() => null),
   ])
 
   const decisions = getDekesDecisions(decisionPayload?.decisions ?? [])
@@ -286,7 +285,7 @@ export async function buildDekesRuntimeReadModel(limit = 96): Promise<DekesRunti
 }
 
 export async function getDekesRuntimeHandoffById(handoffId: string): Promise<DekesHandoff | null> {
-  const decisionPayload = await fetchEngineJson<{ decisions: DashboardDecision[] }>(
+  const decisionPayload = await fetchMcpJson<{ decisions: DashboardDecision[] }>(
     `/api/v1/dashboard/decisions?limit=400`
   )
   const decision = getDekesDecisions(decisionPayload?.decisions ?? []).find(
