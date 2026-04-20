@@ -2,13 +2,9 @@ import { NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 
-const ECOBE_ENGINE_URL =
-  process.env.ECOBE_API_URL ||
-  process.env.CO2ROUTER_API_URL ||
-  process.env.ECOBE_MVP_URL ||
-  ''
+const MCP_BROKER_URL = process.env.MCP_API_URL || process.env.ECOBE_MVP_URL || ''
 
-const ECOBE_ENGINE_API_KEY =
+const MCP_BROKER_API_KEY =
   process.env.DEKES_API_KEY ||
   process.env.ECOBE_API_KEY ||
   process.env.CO2ROUTER_API_KEY
@@ -36,27 +32,27 @@ type GridSummaryResponse = {
   regions: GridSummaryRegion[]
 }
 
-async function fetchFromEngine(path: string) {
-  if (!ECOBE_ENGINE_URL) {
-    throw new Error('ECOBE broker is not configured')
+async function fetchFromMcpBroker(path: string) {
+  if (!MCP_BROKER_URL) {
+    throw new Error('MCP broker is not configured')
   }
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   }
 
-  if (ECOBE_ENGINE_API_KEY) {
-    headers.Authorization = `Bearer ${ECOBE_ENGINE_API_KEY}`
+  if (MCP_BROKER_API_KEY) {
+    headers.Authorization = `Bearer ${MCP_BROKER_API_KEY}`
   }
 
-  const response = await fetch(`${ECOBE_ENGINE_URL}/api/v1${path}`, {
+  const response = await fetch(`${MCP_BROKER_URL}/api/v1${path}`, {
     method: 'GET',
     headers,
     cache: 'no-store',
   })
 
   if (!response.ok) {
-    throw new Error(`ECOBE Engine error: ${response.status} ${response.statusText}`)
+    throw new Error(`MCP broker upstream error: ${response.status} ${response.statusText}`)
   }
 
   return (await response.json()) as GridSummaryResponse
@@ -76,7 +72,7 @@ export async function GET(request: Request) {
       ? `?${selectedRegions.map((region) => `regions=${encodeURIComponent(region)}`).join('&')}`
       : ''
 
-    const data = await fetchFromEngine(`/intelligence/grid/summary${query}`)
+    const data = await fetchFromMcpBroker(`/intelligence/grid/summary${query}`)
     const regionData = data.regions.map((region) => ({
       id: region.region,
       name: REGION_NAMES[region.region] || region.region,
