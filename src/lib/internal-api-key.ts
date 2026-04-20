@@ -1,8 +1,8 @@
 export function getInternalApiKey() {
   return (
+    process.env.MCP_INTERNAL_API_KEY ||
     process.env.ECOBE_INTERNAL_API_KEY ||
     process.env.CO2ROUTER_INTERNAL_API_KEY ||
-    process.env.ECOBE_ENGINE_INTERNAL_KEY ||
     null
   )
 }
