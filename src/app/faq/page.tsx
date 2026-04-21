@@ -1,19 +1,19 @@
 const faqs = [
   {
     q: 'Is CO2 Router a dashboard?',
-    a: 'No. The dashboard is a read layer over the engine. The product is the pre-execution authorization control plane.',
+    a: 'No. The site presents the control plane and proof surface, not a reporting layer. Buyers use it to authorize compute before execution and inspect the resulting decision frame.',
   },
   {
-    q: 'Is the engine live in production?',
-    a: 'Yes. The engine is deployed on Render and is storing canonical decision frames in production.',
+    q: 'Does the public site talk to the private engine directly?',
+    a: 'No. Public traffic is brokered through ecobe-mvp so the website stays cleanly separated from private execution behavior.',
   },
   {
     q: 'Is assurance fully closed?',
-    a: 'Not yet. The product is operational, but full assurance closure is still in progress because source provenance is not fully verified for every water dataset.',
+    a: 'Not yet. The product is operational, but assurance remains tied to verified provenance and evidence coverage for every public decision path.',
   },
   {
     q: 'What are the strongest production wedges today?',
-    a: 'CI/CD and Kubernetes. Those are the most credible, mature enforcement paths in the product today.',
+    a: 'CI/CD and Kubernetes. Those are the clearest control points for binding policy, proof, and operator authority before workloads run.',
   },
 ] as const
 
@@ -22,7 +22,9 @@ export default function FaqPage() {
     <div className="space-y-8 pb-10">
       <section className="surface-card-strong p-8">
         <div className="eyebrow">FAQ</div>
-        <h1 className="mt-3 text-4xl font-semibold text-white sm:text-5xl">Direct answers for technical buyers.</h1>
+        <h1 className="mt-3 text-4xl font-semibold text-white sm:text-5xl">
+          Direct answers for buyers and operators.
+        </h1>
       </section>
 
       <section className="grid gap-6">
