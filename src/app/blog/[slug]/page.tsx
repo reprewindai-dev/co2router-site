@@ -1,9 +1,16 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { headers } from 'next/headers'
 import { notFound } from 'next/navigation'
 
 import { blogPosts, getBlogPost } from '@/lib/blog/posts'
-import { defaultOgImage, siteName, siteUrl } from '@/lib/seo'
+import { defaultOgImage, siteName } from '@/lib/seo'
+import { getAudienceForHost, getSiteUrlForAudience } from '@/lib/site-host'
+
+async function getAudience() {
+  const headerList = await headers()
+  return getAudienceForHost(headerList.get('x-forwarded-host') ?? headerList.get('host'))
+}
 
 export async function generateStaticParams() {
   return blogPosts.map((post) => ({ slug: post.slug }))
@@ -21,6 +28,12 @@ export async function generateMetadata({
     return {}
   }
 
+  const audience = await getAudience()
+  if (post.audience !== audience) {
+    return {}
+  }
+
+  const siteUrl = getSiteUrlForAudience(audience)
   const path = `/blog/${post.slug}`
   const url = `${siteUrl}${path}`
 
@@ -68,6 +81,12 @@ export default async function BlogPostPage({
     notFound()
   }
 
+  const audience = await getAudience()
+  if (post.audience !== audience) {
+    notFound()
+  }
+
+  const siteUrl = getSiteUrlForAudience(audience)
   const articleSchema = {
     '@context': 'https://schema.org',
     '@type': 'BlogPosting',
