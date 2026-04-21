@@ -6,13 +6,13 @@ import { blogPosts } from '@/lib/blog/posts'
 import { createPageMetadata } from '@/lib/seo'
 import { getAudienceForHost } from '@/lib/site-host'
 
-function getAudience() {
-  const headerList = headers()
+async function getAudience() {
+  const headerList = await headers()
   return getAudienceForHost(headerList.get('x-forwarded-host') ?? headerList.get('host'))
 }
 
 export async function generateMetadata(): Promise<Metadata> {
-  const audience = getAudience()
+  const audience = await getAudience()
 
   if (audience === 'technical') {
     return createPageMetadata({
@@ -33,8 +33,8 @@ export async function generateMetadata(): Promise<Metadata> {
   })
 }
 
-export default function BlogIndexPage() {
-  const audience = getAudience()
+export default async function BlogIndexPage() {
+  const audience = await getAudience()
   const posts = blogPosts.filter((post) => post.audience === audience)
 
   return (
