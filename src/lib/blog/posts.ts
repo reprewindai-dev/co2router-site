@@ -1,5 +1,8 @@
+import type { SiteAudience } from '@/lib/site-host'
+
 export type BlogPost = {
   slug: string
+  audience: SiteAudience
   title: string
   description: string
   publishedAt: string
@@ -18,73 +21,162 @@ export type BlogPost = {
 
 export const blogPosts: BlogPost[] = [
   {
-    slug: 'what-is-pre-execution-environmental-governance-for-compute',
-    title: 'What is pre-execution environmental governance for compute?',
+    slug: 'why-buyers-need-a-pre-execution-control-plane',
+    audience: 'commercial',
+    title: 'Why buyers need a pre-execution control plane',
     description:
-      'Why environmentally-governed compute needs a binding authorization layer before execution instead of post-hoc reporting.',
+      'A buying guide for teams that need binding environmental control before workloads run, not after the fact.',
     publishedAt: '2026-03-30',
-    readTime: '7 min read',
+    readTime: '6 min read',
     summary:
-      'Pre-execution environmental governance means a workload is evaluated before it runs, not after the fact. The control plane decides whether compute can proceed, where it may run, and what proof stays attached to that decision.',
-    keywords: [
-      'pre-execution environmental governance',
-      'compute governance',
-      'carbon aware control plane',
-      'water aware compute',
-      'environmental execution control',
-    ],
+      'Dashboards explain what happened. A pre-execution control plane decides whether compute may run, where it may run, and what proof remains attached to the decision. That distinction matters for procurement, policy, and operator trust.',
+    keywords: ['buying guide', 'pre-execution control plane', 'policy enforcement', 'proof and replay', 'operator trust'],
     sections: [
       {
-        heading: 'Execution is the control point',
+        heading: 'Reporting does not change outcomes',
         paragraphs: [
-          'Most sustainability software operates after execution. It measures impact, explains historical usage, or recommends better placement. That is useful for reporting, but it is not governance.',
-          'Pre-execution governance moves the control point upstream. A workload asks to run. The authority layer evaluates the request against environmental signals, policy constraints, and execution posture before compute is admitted.',
+          'Most sustainability software is informative. It shows trends, highlights risk, or suggests better placement. Useful, but still advisory.',
+          'A control plane is different. It binds the runtime before execution starts, so the buyer can enforce policy instead of simply observing it.',
         ],
       },
       {
-        heading: 'Authorization changes the category',
+        heading: 'The purchasing question is simple',
         paragraphs: [
-          'The critical distinction is whether the system can bind the outcome. A reporting tool can describe what happened. A scheduler can recommend a cleaner region. A control plane can return one of several binding actions such as run, reroute, delay, throttle, or deny.',
-          'That changes the product from advisory software into operational infrastructure. The system does not describe behavior at the edge of execution. It decides whether behavior is allowed at all.',
+          'Can the product make a binding decision before compute starts? Can that decision be reviewed later? Can it be replayed against the same evidence?',
+          'If the answer is yes, the system is operational infrastructure. If not, it is reporting with better branding.',
         ],
       },
       {
-        heading: 'Environmental governance is multi-objective',
+        heading: 'Proof matters to finance, compliance, and operators',
         paragraphs: [
-          'Carbon is not the only signal that matters. Water stress, latency protection, and operating policy all shape whether a decision is defensible. A real governance layer must combine them without hiding the trade-offs inside black-box heuristics.',
-          'CO2 Router uses SAIQ governance to evaluate those constraints before execution. The result is attached to the decision frame so trace, replay, and provenance remain consistent with the decision that was actually enforced.',
-        ],
-      },
-      {
-        heading: 'Proof is part of the contract',
-        paragraphs: [
-          'Pre-execution governance only matters if the resulting decision can be inspected later. That requires proof, trace, replay, and provenance to stay attached to the same frame, rather than being reconstructed later from best-effort logs.',
-          'The system therefore needs deterministic replay, trace-backed decision state, and verified environmental inputs. Without that, governance is only a narrative.',
+          'Proof, trace, replay, and provenance are what make the control plane defensible. Without them, policy is hard to audit and hard to trust.',
+          'CO2 Router keeps those artifacts attached to the decision frame so commercial teams can show buyers the exact basis for each authorization.',
         ],
       },
     ],
     relatedLinks: [
       { href: '/methodology', label: 'Read the methodology' },
-      { href: '/system/decision-engine', label: 'Inspect the decision engine' },
-      { href: '/system/provenance', label: 'Review provenance' },
+      { href: '/assurance', label: 'See assurance posture' },
+      { href: '/pricing', label: 'Review commercial terms' },
+    ],
+  },
+  {
+    slug: 'what-operators-should-expect-from-environmental-governance',
+    audience: 'commercial',
+    title: 'What operators should expect from environmental governance',
+    description:
+      'An operator-facing view of policy enforcement, live evidence, and the controls that make sustainability operational.',
+    publishedAt: '2026-03-30',
+    readTime: '5 min read',
+    summary:
+      'Operators do not need another dashboard. They need a control layer that can authorize workloads, preserve evidence, and expose the operational boundary to the people accountable for spend and policy.',
+    keywords: ['operator-facing', 'environmental governance', 'operational boundary', 'proof surface', 'policy controls'],
+    sections: [
+      {
+        heading: 'Control comes before visibility',
+        paragraphs: [
+          'A dashboard tells you that a workload was expensive, slow, or carbon heavy. An operator needs to decide before that workload starts.',
+          'The commercial value is not the chart. It is the ability to bind the workload to a decision before the runtime spends money or emits impact.',
+        ],
+      },
+      {
+        heading: 'Evidence closes the deal',
+        paragraphs: [
+          'Procurement and platform teams want a clear answer to one question: what proof exists for each decision?',
+          'That proof has to stay connected to the decision frame. Otherwise the system becomes a narrative layer instead of a control layer.',
+        ],
+      },
+    ],
+    relatedLinks: [
+      { href: '/overview', label: 'Product overview' },
+      { href: '/faq', label: 'Commercial FAQ' },
+      { href: '/contact', label: 'Talk to the team' },
+    ],
+  },
+  {
+    slug: 'how-proof-creates-procurement-confidence',
+    audience: 'commercial',
+    title: 'How proof creates procurement confidence',
+    description:
+      'Why replay, provenance, and decision evidence matter when a buyer evaluates environmental control software.',
+    publishedAt: '2026-03-30',
+    readTime: '5 min read',
+    summary:
+      'Buyers do not just buy policy. They buy confidence that the policy can be enforced, reviewed, and explained. Proof is what turns a control plane into something procurement can sponsor.',
+    keywords: ['procurement confidence', 'replay', 'provenance', 'decision evidence', 'buyer trust'],
+    sections: [
+      {
+        heading: 'Confidence needs traceability',
+        paragraphs: [
+          'If a decision cannot be reproduced from stored inputs, it cannot be defended in a review.',
+          'Replay and provenance give buyers a way to verify that the product is making the same decision it said it made.',
+        ],
+      },
+      {
+        heading: 'Commercial teams need a crisp proof story',
+        paragraphs: [
+          'The proof story has to be simple enough for procurement, security, and platform leadership to evaluate together.',
+          'That story is strongest when the same frame contains the policy, the inputs, the outcome, and the evidence needed to explain it.',
+        ],
+      },
+    ],
+    relatedLinks: [
+      { href: '/developers/architecture', label: 'View architecture' },
+      { href: '/system/provenance', label: 'Inspect provenance' },
+      { href: '/system/replay', label: 'Inspect replay' },
+    ],
+  },
+  {
+    slug: 'how-deterministic-control-stays-auditable',
+    audience: 'technical',
+    title: 'How deterministic control stays auditable',
+    description:
+      'A technical explanation of how bounded signals, governance, and proof keep the control surface auditable.',
+    publishedAt: '2026-03-30',
+    readTime: '7 min read',
+    summary:
+      'Deterministic control only matters if the same inputs produce the same decision and the proof stays attached. That requires bounded signal handling, policy traceability, and stable replay behavior.',
+    keywords: ['auditable control', 'bounded signals', 'policy traceability', 'stable replay', 'evidence chain'],
+    sections: [
+      {
+        heading: 'Bounded inputs create bounded outcomes',
+        paragraphs: [
+          'A control system needs a fixed surface area for signals. If the runtime can improvise the shape of its inputs, the decision stops being repeatable.',
+          'CO2 Router keeps the input path narrow so the decision can be reconstructed later from the same evidence set.',
+        ],
+      },
+      {
+        heading: 'Trace ties policy to outcome',
+        paragraphs: [
+          'Policy only becomes auditable when it is attached to the outcome that was actually enforced.',
+          'The trace record does that work by preserving the policy version, the selected action, and the evidence needed to explain why the result was chosen.',
+        ],
+      },
+      {
+        heading: 'Replay has to be stable, not theatrical',
+        paragraphs: [
+          'A replay feature is valuable only if it can reproduce the same decision when the same frame is reloaded.',
+          'The technical bar is not a simulation. It is deterministic reconstruction against stored inputs and stored governance state.',
+        ],
+      },
+    ],
+    relatedLinks: [
+      { href: '/developers/architecture', label: 'View architecture' },
+      { href: '/system/replay', label: 'Inspect replay' },
+      { href: '/system/trace-ledger', label: 'Inspect trace ledger' },
     ],
   },
   {
     slug: 'why-dashboards-are-not-enough-from-reporting-to-enforcement',
+    audience: 'technical',
     title: 'Why dashboards are not enough: from reporting to enforcement',
     description:
       'Dashboards and telemetry are not enough to govern compute. The missing layer is pre-execution enforcement with proof.',
     publishedAt: '2026-03-30',
     readTime: '6 min read',
     summary:
-      'Dashboards make systems visible. They do not decide whether a workload may run. Infrastructure governance requires an execution layer that can enforce policy before compute starts.',
-    keywords: [
-      'dashboards are not enough',
-      'reporting versus enforcement',
-      'control plane vs dashboard',
-      'carbon dashboards',
-      'infrastructure enforcement',
-    ],
+      'Dashboards make systems visible. They do not decide whether a workload may run. Infrastructure governance requires a control layer that can enforce policy before compute starts.',
+    keywords: ['dashboards are not enough', 'reporting versus enforcement', 'control plane vs dashboard', 'carbon dashboards', 'infrastructure enforcement'],
     sections: [
       {
         heading: 'Visibility is not authority',
@@ -122,48 +214,36 @@ export const blogPosts: BlogPost[] = [
     ],
   },
   {
-    slug: 'how-co2-router-makes-deterministic-decisions-with-proof-replay-and-provenance',
-    title: 'How CO2 Router makes deterministic decisions with proof, replay, and provenance',
+    slug: 'how-deterministic-control-remains-auditable',
+    audience: 'technical',
+    title: 'How deterministic control remains auditable',
     description:
-      'Inside the deterministic decision chain: signals, SAIQ governance, policy, decision, proof, replay, and provenance.',
+      'A technical view of bounded signals, governance, and stable replay in the control plane.',
     publishedAt: '2026-03-30',
-    readTime: '8 min read',
+    readTime: '7 min read',
     summary:
-      'The system path is intentionally strict: signals are normalized, SAIQ governance applies policy, the engine returns a binding decision, and proof artifacts remain attached to the resulting frame for replay and inspection.',
-    keywords: [
-      'deterministic decisions',
-      'proof replay provenance',
-      'SAIQ governance',
-      'trace ledger',
-      'environmental decision engine',
-    ],
+      'Deterministic control remains auditable when every decision can be traced back to bounded inputs, policy state, and stored proof. That is what keeps the control plane defensible.',
+    keywords: ['deterministic control', 'auditable decisions', 'bounded inputs', 'stable replay', 'policy state'],
     sections: [
       {
-        heading: 'Signals become a bounded decision input',
+        heading: 'Bounded inputs create reproducible outcomes',
         paragraphs: [
-          'CO2 Router does not let request-time provider behavior define execution. Signals are collected, normalized, cached, and evaluated through a bounded decision path. Carbon and water inputs exist to support a deterministic decision, not a best-effort live fetch.',
-          'That distinction matters for both latency and trust. A control plane cannot wait on the outside world and still claim real-time authority.',
+          'The runtime has to consume a fixed input shape if the decision is going to be reproducible later.',
+          'That is why CO2 Router constrains the decision frame instead of letting the surrounding application improvise its own structure.',
         ],
       },
       {
-        heading: 'SAIQ provides governance context',
+        heading: 'Policy state has to travel with the frame',
         paragraphs: [
-          'SAIQ is the governance layer that applies weighting, constraint logic, and zone semantics to the decision frame. It does not replace the engine. It explains how policy shaped the final action.',
-          'That governance state becomes part of the trace record so the control plane can show why the frame was admitted, delayed, rerouted, throttled, or denied.',
+          'A decision is only audit-ready if the policy version, input snapshot, and chosen action remain attached to the same frame.',
+          'That attachment gives operators a way to explain the result without reconstructing the past from loose logs.',
         ],
       },
       {
-        heading: 'The decision is binding',
+        heading: 'Replay is a verification tool, not a demo',
         paragraphs: [
-          'Once the engine resolves the frame, it returns one binding outcome. The downstream adapter or runtime uses that result as the execution authority. That is the moment where infrastructure control actually exists.',
-          'Everything after that point is evidence: proof references, trace state, replay posture, and provenance visibility.',
-        ],
-      },
-      {
-        heading: 'Replay and provenance close the loop',
-        paragraphs: [
-          'Replay only matters if the same frame can be reconstructed against the same stored inputs. Provenance only matters if the environmental datasets behind the decision can be identified and verified.',
-          'The result is a single chain from signal inputs to proof artifacts. That is what lets the product defend a decision instead of merely describing one.',
+          'Replay has to answer a strict question: if we load the same frame again, do we get the same outcome?',
+          'If the answer changes, the system is no longer deterministic and the proof chain is weakened.',
         ],
       },
     ],
