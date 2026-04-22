@@ -51,11 +51,16 @@ function shouldProtectControlSurfacePath(pathname: string) {
   return true
 }
 
+function withServerTiming(response = NextResponse.next()) {
+  response.headers.set('Server-Timing', 'edge;dur=0.1')
+  return response
+}
+
 export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname
   const protectControlSurface = shouldProtectControlSurfacePath(pathname)
   const protectEcobe = shouldProtectEcobePath(pathname)
-  if (!protectControlSurface && !protectEcobe) return NextResponse.next()
+  if (!protectControlSurface && !protectEcobe) return withServerTiming()
 
   const operatorKey = getOperatorKey()
   if (!operatorKey) {
@@ -87,7 +92,7 @@ export function middleware(request: NextRequest) {
     )
   }
 
-  return NextResponse.next()
+  return withServerTiming()
 }
 
 export const config = {
