@@ -642,7 +642,7 @@ export function RecoveredCommandCenterShell() {
                   <MessageSquare className="mt-1 h-5 w-5 text-cyan-300" />
                   <div>
                     <div className="text-sm font-semibold text-white">Not configured</div>
-                    <div className="mt-2 text-sm leading-6" style={{ color: THEME.muted }}>The recovered HalOGrid shell keeps the comms surface visible, but this repo has no live chat backend configured, so messages are not simulated.</div>
+      <div className="mt-2 text-sm leading-6" style={{ color: THEME.muted }}>The recovered CO2 Grid shell keeps the comms surface visible, but this repo has no live chat backend configured, so messages are not simulated.</div>
                   </div>
                 </div>
               </div>

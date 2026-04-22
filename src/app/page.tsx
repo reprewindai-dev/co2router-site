@@ -13,7 +13,7 @@ export async function generateMetadata(): Promise<Metadata> {
     return createPageMetadata({
       title: 'CO2 Grid Overview',
       description:
-        'CO2 Grid, architecture, proof, replay, provenance, and developer entrypoints for the CO2 Router operator surface.',
+        'CO2 Grid, architecture, proof, replay, provenance, and developer entrypoints for the CO2 Router technical surface.',
       path: '/',
       keywords: ['CO2 Grid', 'technical overview', 'control surface', 'replay', 'architecture'],
     })

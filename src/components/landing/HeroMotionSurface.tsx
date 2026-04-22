@@ -87,7 +87,7 @@ export function HeroMotionSurface({
             transition={{ duration: 0.6 }}
             className="max-w-4xl text-5xl font-black leading-[0.94] tracking-[-0.06em] text-white sm:text-6xl lg:text-7xl"
           >
-            Compute does not run until it is authorized.
+            Compute runs only with approval.
             <span className="mt-2 block bg-gradient-to-r from-emerald-300 via-cyan-300 to-sky-400 bg-clip-text text-transparent">
               CO2 Router issues the binding decision.
             </span>
@@ -102,7 +102,7 @@ export function HeroMotionSurface({
               href="/console"
               className="rounded-2xl bg-gradient-to-r from-emerald-300 via-cyan-300 to-sky-400 px-5 py-3 text-sm font-bold uppercase tracking-[0.18em] text-slate-950 transition hover:brightness-105"
             >
-              Open Control Surface
+              Open Live Demo
             </Link>
             <Link
               href="/methodology"

@@ -77,14 +77,14 @@ export function CommercialHomePage() {
         <div>
           <div className="text-[11px] uppercase tracking-[0.22em] text-cyan-200">Live Control Plane</div>
           <div className="mt-1 text-sm text-slate-100 sm:text-base">
-            Open the CO2 Grid execution console, inspect the current routing frame, and verify proof posture.
+            Open the CO2 Grid live demo, inspect the current routing frame, and verify proof posture.
           </div>
         </div>
         <a
           href="/console"
           className="rounded-full border border-cyan-200/40 bg-cyan-300 px-5 py-2 text-sm font-semibold text-slate-950 transition hover:bg-cyan-200"
         >
-          Open Console
+          Open Live Demo
         </a>
       </section>
 
