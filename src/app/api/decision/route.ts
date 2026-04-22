@@ -5,7 +5,9 @@ const baseUrl = () =>
 
 export async function POST(request: Request) {
   const base = baseUrl()
-  if (!base) return NextResponse.json({ error: 'Broker not configured' }, { status: 503 })
+  if (!base) {
+    return NextResponse.json({ error: 'Decision service unavailable' }, { status: 503 })
+  }
 
   const body = await request.text()
   const upstream = await fetch(`${base}/decision`, {

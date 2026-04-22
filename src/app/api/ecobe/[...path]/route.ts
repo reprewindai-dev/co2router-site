@@ -83,7 +83,7 @@ async function proxy(request: Request, ctx: { params: Promise<{ path?: string[] 
   const mcpBrokerBaseUrl = getMcpBrokerBaseUrl()
   if (!mcpBrokerBaseUrl) {
     return NextResponse.json(
-      { error: 'MCP broker is not configured.' },
+      { error: 'Control-plane bridge is unavailable.' },
       { status: 503 }
     )
   }
@@ -135,7 +135,7 @@ async function proxy(request: Request, ctx: { params: Promise<{ path?: string[] 
     const internalKey = getInternalApiKey()
     if (!internalKey) {
       return NextResponse.json(
-        { error: 'Dashboard internal broker authentication is not configured.' },
+        { error: 'Control-plane bridge authentication is unavailable.' },
         { status: 503 }
       )
     }

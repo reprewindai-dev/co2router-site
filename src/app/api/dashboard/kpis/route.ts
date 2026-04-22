@@ -11,7 +11,7 @@ const MCP_BROKER_API_KEY =
 
 async function fetchFromMcpBroker(path: string) {
   if (!MCP_BROKER_URL) {
-    throw new Error('MCP broker is not configured')
+    throw new Error('Control-plane bridge is unavailable')
   }
 
   const headers: Record<string, string> = {
@@ -44,7 +44,7 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error('KPIs API error:', error)
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to fetch KPI data' },
+      { error: 'Failed to fetch KPI data' },
       { status: 500 }
     )
   }

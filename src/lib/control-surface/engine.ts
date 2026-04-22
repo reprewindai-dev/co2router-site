@@ -71,7 +71,7 @@ export async function fetchEngineJson<T>(
 ) {
   const baseUrl = getMcpBrokerBaseUrl()
   if (!baseUrl) {
-    throw new Error('MCP broker is not configured')
+    throw new Error('Private engine bridge is unavailable')
   }
 
   const headers = new Headers(init.headers)

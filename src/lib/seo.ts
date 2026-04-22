@@ -18,7 +18,6 @@ export const coreSitePaths = [
   '/assurance',
   '/status',
   '/methodology',
-  '/blog',
   '/developers/api',
   '/developers/adapters',
   '/developers/architecture',

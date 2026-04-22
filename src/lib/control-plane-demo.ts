@@ -80,6 +80,21 @@ const MCP_BROKER_BASE_URL =
 
 const DEFAULT_CANDIDATE_REGIONS = ['eastus', 'westus2', 'northeurope', 'norwayeast']
 
+const LOCAL_REGION_CARBON: Record<string, number> = {
+  eastus: 386,
+  eastus2: 372,
+  westus2: 128,
+  centralus: 243,
+  southcentralus: 277,
+  northeurope: 164,
+  norwayeast: 72,
+  uksouth: 198,
+  'us-east-1': 382,
+  'us-west-2': 124,
+  'eu-west-1': 176,
+  'eu-central-1': 292,
+}
+
 const WORKLOAD_PROFILES: Record<
   WorkloadType,
   {
@@ -139,7 +154,7 @@ function toConfidence(qualityTier: 'high' | 'medium' | 'low' | undefined) {
 
 async function postMcpJson<T>(path: string, body: Record<string, unknown>): Promise<T> {
   if (!MCP_BROKER_BASE_URL) {
-    throw new Error('MCP broker is not configured')
+    throw new Error('Private engine bridge is unavailable')
   }
 
   const response = await fetch(`${MCP_BROKER_BASE_URL}${path}`, {
@@ -157,6 +172,108 @@ async function postMcpJson<T>(path: string, body: Record<string, unknown>): Prom
   }
 
   return (await response.json()) as T
+}
+
+function getLocalCarbonIntensity(region: string) {
+  const key = region.trim().toLowerCase()
+  return LOCAL_REGION_CARBON[key] ?? 260
+}
+
+function getLocalQualityTier(carbonIntensity: number): 'high' | 'medium' | 'low' {
+  if (carbonIntensity < 180) return 'high'
+  if (carbonIntensity < 320) return 'medium'
+  return 'low'
+}
+
+function buildLocalDemoDecision(input: DemoRouteRequest): DemoRouteResponse {
+  const workloadType = normalizeWorkloadType(input.workloadType)
+  const candidateRegions = normalizeCandidateRegions(input.candidateRegions)
+  const profile = WORKLOAD_PROFILES[workloadType]
+
+  const evaluated = candidateRegions
+    .map((region) => {
+      const carbonIntensity = getLocalCarbonIntensity(region)
+      const cost = estimateCostUsd(region, workloadType)
+      const score =
+        carbonIntensity * clamp(input.carbonSensitivity ?? 0.65, 0, 1) +
+        cost * 10 * clamp(input.costSensitivity ?? 0.15, 0, 1)
+      return { region, carbonIntensity, cost, score }
+    })
+    .sort((left, right) => left.score - right.score)
+
+  const selected = evaluated[0] ?? {
+    region: baselineRegionFallback(candidateRegions),
+    carbonIntensity: 260,
+    cost: estimateCostUsd(baselineRegionFallback(candidateRegions), workloadType),
+    score: 260,
+  }
+
+  const baselineRegion =
+    input.baselineRegion && evaluated.some((entry) => entry.region === input.baselineRegion)
+      ? input.baselineRegion
+      : candidateRegions[0] ?? selected.region
+  const baselineCarbonIntensity = getLocalCarbonIntensity(baselineRegion)
+  const baselineEstimatedCost = estimateCostUsd(baselineRegion, workloadType)
+  const selectedEstimatedCost = estimateCostUsd(selected.region, workloadType)
+  const carbonSavingsPct =
+    baselineCarbonIntensity > 0
+      ? Number((((baselineCarbonIntensity - selected.carbonIntensity) / baselineCarbonIntensity) * 100).toFixed(1))
+      : 0
+  const costSavingsPct =
+    baselineEstimatedCost > 0
+      ? Number((((baselineEstimatedCost - selectedEstimatedCost) / baselineEstimatedCost) * 100).toFixed(1))
+      : 0
+
+  const canDelay = Boolean(input.canDelay) && workloadType !== 'inference'
+  const recommendedDelaySeconds =
+    canDelay && selected.carbonIntensity > 250 ? profile.durationMinutes * 60 : 0
+
+  const recommendedDelayWindow =
+    recommendedDelaySeconds > 0
+      ? {
+          startTime: new Date(Date.now() + recommendedDelaySeconds * 1000).toISOString(),
+          endTime: new Date(Date.now() + (recommendedDelaySeconds + 3600) * 1000).toISOString(),
+        }
+      : null
+
+  const qualityTier = getLocalQualityTier(selected.carbonIntensity)
+  const confidence = toConfidence(qualityTier)
+  const explanation = `Sandbox demo selected ${selected.region} as the lowest-defensible signal for ${profile.label.toLowerCase()}.`
+
+  return {
+    workloadType,
+    baselineRegion,
+    baselineCarbonIntensity,
+    baselineEstimatedCost,
+    selectedRegion: selected.region,
+    selectedCarbonIntensity: selected.carbonIntensity,
+    selectedEstimatedCost,
+    carbonSavingsPct,
+    costSavingsPct,
+    recommendedDelaySeconds,
+    recommendedDelayWindow,
+    confidence,
+    explanation,
+    policyMode: 'optimize',
+    providers: {
+      sourceUsed: 'sandbox-mock',
+      validationSource: 'sandbox-mock',
+      fallbackUsed: true,
+      qualityTier,
+    },
+    alternatives: evaluated.slice(0, 4).map((entry) => ({
+      region: entry.region,
+      carbonIntensity: entry.carbonIntensity,
+      estimatedCost: entry.cost,
+      score: Number(entry.score.toFixed(2)),
+    })),
+    decisionId: `demo-${workloadType}-${selected.region}`,
+    generatedAt: new Date().toISOString(),
+  }
+}
+
+function baselineRegionFallback(candidateRegions: string[]) {
+  return candidateRegions[0] ?? DEFAULT_CANDIDATE_REGIONS[0]
 }
 
 async function maybeGetDelayRecommendation(
@@ -221,96 +338,101 @@ async function maybeGetDelayRecommendation(
 export async function buildDemoRoutingDecision(
   input: DemoRouteRequest
 ): Promise<DemoRouteResponse> {
-  const workloadType = normalizeWorkloadType(input.workloadType)
-  const candidateRegions = normalizeCandidateRegions(input.candidateRegions)
-  const profile = WORKLOAD_PROFILES[workloadType]
+  try {
+    const workloadType = normalizeWorkloadType(input.workloadType)
+    const candidateRegions = normalizeCandidateRegions(input.candidateRegions)
+    const profile = WORKLOAD_PROFILES[workloadType]
 
-  const routing = await postMcpJson<GreenRoutingResult>('/api/v1/route/green', {
-    preferredRegions: candidateRegions,
-    durationMinutes: profile.durationMinutes,
-    carbonWeight: clamp(input.carbonSensitivity ?? 0.65, 0, 1),
-    latencyWeight: clamp(input.latencySensitivity ?? 0.2, 0, 1),
-    costWeight: clamp(input.costSensitivity ?? 0.15, 0, 1),
-  })
-
-  const evaluated = new Map<string, { carbonIntensity: number; score: number }>()
-  evaluated.set(routing.selectedRegion, {
-    carbonIntensity: routing.carbonIntensity,
-    score: 1,
-  })
-
-  for (const alternative of routing.alternatives ?? []) {
-    evaluated.set(alternative.region, {
-      carbonIntensity: alternative.carbonIntensity,
-      score: alternative.score,
+    const routing = await postMcpJson<GreenRoutingResult>('/api/v1/route/green', {
+      preferredRegions: candidateRegions,
+      durationMinutes: profile.durationMinutes,
+      carbonWeight: clamp(input.carbonSensitivity ?? 0.65, 0, 1),
+      latencyWeight: clamp(input.latencySensitivity ?? 0.2, 0, 1),
+      costWeight: clamp(input.costSensitivity ?? 0.15, 0, 1),
     })
-  }
 
-  const baselineRegion = input.baselineRegion && evaluated.has(input.baselineRegion)
-    ? input.baselineRegion
-    : candidateRegions.find((region) => evaluated.has(region)) ?? routing.selectedRegion
-
-  const baselineCarbonIntensity =
-    evaluated.get(baselineRegion)?.carbonIntensity ?? routing.carbonIntensity
-  const baselineEstimatedCost = estimateCostUsd(baselineRegion, workloadType)
-  const selectedEstimatedCost = estimateCostUsd(routing.selectedRegion, workloadType)
-  const carbonSavingsPct =
-    baselineCarbonIntensity > 0
-      ? Number(
-          (((baselineCarbonIntensity - routing.carbonIntensity) / baselineCarbonIntensity) * 100).toFixed(1)
-        )
-      : 0
-  const costSavingsPct =
-    baselineEstimatedCost > 0
-      ? Number(
-          (((baselineEstimatedCost - selectedEstimatedCost) / baselineEstimatedCost) * 100).toFixed(1)
-        )
-      : 0
-
-  const delay = await maybeGetDelayRecommendation(
-    routing.selectedRegion,
-    routing.carbonIntensity,
-    Boolean(input.canDelay),
-    workloadType
-  )
-
-  const alternatives = candidateRegions
-    .map((region) => {
-      const current = evaluated.get(region)
-      if (!current) return null
-      return {
-        region,
-        carbonIntensity: current.carbonIntensity,
-        estimatedCost: estimateCostUsd(region, workloadType),
-        score: current.score,
-      }
+    const evaluated = new Map<string, { carbonIntensity: number; score: number }>()
+    evaluated.set(routing.selectedRegion, {
+      carbonIntensity: routing.carbonIntensity,
+      score: 1,
     })
-    .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry))
-    .sort((left, right) => left.carbonIntensity - right.carbonIntensity)
 
-  return {
-    workloadType,
-    baselineRegion,
-    baselineCarbonIntensity,
-    baselineEstimatedCost,
-    selectedRegion: routing.selectedRegion,
-    selectedCarbonIntensity: routing.carbonIntensity,
-    selectedEstimatedCost,
-    carbonSavingsPct,
-    costSavingsPct,
-    recommendedDelaySeconds: delay.recommendedDelaySeconds,
-    recommendedDelayWindow: delay.recommendedDelayWindow,
-    confidence: toConfidence(routing.qualityTier),
-    explanation: `${routing.explanation} ${delay.delayNote}`.trim(),
-    policyMode: 'optimize',
-    providers: {
-      sourceUsed: routing.source_used ?? null,
-      validationSource: routing.validation_source ?? null,
-      fallbackUsed: Boolean(routing.fallback_used),
-      qualityTier: routing.qualityTier ?? 'low',
-    },
-    alternatives,
-    decisionId: routing.decisionFrameId ?? null,
-    generatedAt: new Date().toISOString(),
+    for (const alternative of routing.alternatives ?? []) {
+      evaluated.set(alternative.region, {
+        carbonIntensity: alternative.carbonIntensity,
+        score: alternative.score,
+      })
+    }
+
+    const baselineRegion =
+      input.baselineRegion && evaluated.has(input.baselineRegion)
+        ? input.baselineRegion
+        : candidateRegions.find((region) => evaluated.has(region)) ?? routing.selectedRegion
+
+    const baselineCarbonIntensity =
+      evaluated.get(baselineRegion)?.carbonIntensity ?? routing.carbonIntensity
+    const baselineEstimatedCost = estimateCostUsd(baselineRegion, workloadType)
+    const selectedEstimatedCost = estimateCostUsd(routing.selectedRegion, workloadType)
+    const carbonSavingsPct =
+      baselineCarbonIntensity > 0
+        ? Number(
+            (((baselineCarbonIntensity - routing.carbonIntensity) / baselineCarbonIntensity) * 100).toFixed(1)
+          )
+        : 0
+    const costSavingsPct =
+      baselineEstimatedCost > 0
+        ? Number(
+            (((baselineEstimatedCost - selectedEstimatedCost) / baselineEstimatedCost) * 100).toFixed(1)
+          )
+        : 0
+
+    const delay = await maybeGetDelayRecommendation(
+      routing.selectedRegion,
+      routing.carbonIntensity,
+      Boolean(input.canDelay),
+      workloadType
+    )
+
+    const alternatives = candidateRegions
+      .map((region) => {
+        const current = evaluated.get(region)
+        if (!current) return null
+        return {
+          region,
+          carbonIntensity: current.carbonIntensity,
+          estimatedCost: estimateCostUsd(region, workloadType),
+          score: current.score,
+        }
+      })
+      .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry))
+      .sort((left, right) => left.carbonIntensity - right.carbonIntensity)
+
+    return {
+      workloadType,
+      baselineRegion,
+      baselineCarbonIntensity,
+      baselineEstimatedCost,
+      selectedRegion: routing.selectedRegion,
+      selectedCarbonIntensity: routing.carbonIntensity,
+      selectedEstimatedCost,
+      carbonSavingsPct,
+      costSavingsPct,
+      recommendedDelaySeconds: delay.recommendedDelaySeconds,
+      recommendedDelayWindow: delay.recommendedDelayWindow,
+      confidence: toConfidence(routing.qualityTier),
+      explanation: `${routing.explanation} ${delay.delayNote}`.trim(),
+      policyMode: 'optimize',
+      providers: {
+        sourceUsed: routing.source_used ?? null,
+        validationSource: routing.validation_source ?? null,
+        fallbackUsed: Boolean(routing.fallback_used),
+        qualityTier: routing.qualityTier ?? 'low',
+      },
+      alternatives,
+      decisionId: routing.decisionFrameId ?? null,
+      generatedAt: new Date().toISOString(),
+    }
+  } catch {
+    return buildLocalDemoDecision(input)
   }
 }

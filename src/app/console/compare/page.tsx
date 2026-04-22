@@ -12,7 +12,7 @@ export const metadata: Metadata = createPageMetadata({
   keywords: ['CO2 Grid compare', 'command center', 'control surface'],
 })
 
-export default async function HaloGridComparePage(props: {
+export default async function CommandCenterComparePage(props: {
   searchParams?: Promise<Record<string, string | string[] | undefined>>
 }) {
   const normalizeVariant = (value: string | undefined) => {

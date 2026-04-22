@@ -52,7 +52,6 @@ const commercialFooterLinkSections: SiteLinkSection[] = [
     links: [
       { href: '/company/about', label: 'About' },
       { href: '/company/roadmap', label: 'Roadmap' },
-      { href: '/blog', label: 'Blog' },
       { href: '/contact', label: 'Contact' },
     ],
   },
@@ -139,7 +138,6 @@ export const legacyProductLinks: SiteLink[] = [
   { href: '/pricing', label: 'Pricing' },
   { href: '/status', label: 'Status' },
   { href: '/methodology', label: 'Methodology' },
-  { href: '/blog', label: 'Blog' },
 ]
 
 export const legalResourceLinks: SiteLink[] = [

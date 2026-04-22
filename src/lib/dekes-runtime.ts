@@ -34,7 +34,7 @@ function getMcpBrokerBaseUrl() {
 async function fetchMcpJson<T>(path: string, useInternalKey = false): Promise<T | null> {
   const baseUrl = getMcpBrokerBaseUrl()
   if (!baseUrl) {
-    throw new Error('MCP broker is not configured')
+    throw new Error('Control-plane bridge is unavailable')
   }
 
   const headers: Record<string, string> = {

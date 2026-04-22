@@ -11,7 +11,7 @@ const ALLOWED_ENDPOINTS = new Set(['summary', 'metrics'])
 
 async function fetchFromMcpBroker(path: string) {
   if (!MCP_BROKER_URL) {
-    throw new Error('MCP broker is not configured')
+    throw new Error('Control-plane bridge is unavailable')
   }
 
   const url = `${MCP_BROKER_URL}/api/v1${path}`
@@ -77,7 +77,7 @@ export async function GET(request: Request) {
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: 'Integration data is unavailable',
         timestamp: new Date().toISOString(),
       },
       { status: 500 }

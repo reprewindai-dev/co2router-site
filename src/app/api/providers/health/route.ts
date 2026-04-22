@@ -9,7 +9,7 @@ export async function GET() {
     const internalKey = getInternalApiKey()
 
     if (!baseUrl) {
-      return NextResponse.json({ error: 'MCP broker is not configured.' }, { status: 503 })
+      return NextResponse.json({ error: 'Provider health is unavailable.' }, { status: 503 })
     }
 
     const headers: Record<string, string> = {

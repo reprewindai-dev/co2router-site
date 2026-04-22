@@ -16,7 +16,7 @@ export async function GET(
 
     if (!hasInternalApiKey()) {
       return NextResponse.json(
-        { error: 'Internal trace access is not configured for this environment' },
+        { error: 'Trace details are unavailable for this snapshot' },
         { status: 503 }
       )
     }
