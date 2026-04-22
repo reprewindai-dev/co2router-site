@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { getBrokerHost } from '@/lib/broker-url'
 
 function pickBuildCommit() {
   const raw =
@@ -23,19 +24,7 @@ function pickBuildVersion() {
 }
 
 function pickMcpBrokerHost() {
-  const raw =
-    process.env.MCP_API_URL ??
-    process.env.ECOBE_MVP_URL ??
-    process.env.NEXT_PUBLIC_MCP_API_URL ??
-    null
-
-  if (!raw) return null
-
-  try {
-    return new URL(String(raw)).host
-  } catch {
-    return null
-  }
+  return getBrokerHost()
 }
 
 export async function GET() {

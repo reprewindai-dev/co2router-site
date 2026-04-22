@@ -6,6 +6,7 @@ import type {
   DekesIntegrationSummaryResponse,
 } from '@/types'
 import { deriveQualityTier, getDecisionSource, isDecisionDelayed } from '@/lib/decisions'
+import { getBrokerBaseUrl } from '@/lib/broker-url'
 import { getInternalApiKey } from '@/lib/internal-api-key'
 
 type EngineSystemStatus = {
@@ -24,11 +25,7 @@ type DekesRuntimeReadModel = {
 }
 
 function getMcpBrokerBaseUrl() {
-  return (
-    process.env.MCP_API_URL ||
-    process.env.ECOBE_MVP_URL ||
-    ''
-  ).replace(/\/$/, '')
+  return getBrokerBaseUrl()
 }
 
 async function fetchMcpJson<T>(path: string, useInternalKey = false): Promise<T | null> {

@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server'
+import { getBrokerBaseUrl } from '@/lib/broker-url'
 
 export const dynamic = 'force-dynamic'
 
-const MCP_BROKER_URL = process.env.MCP_API_URL || process.env.ECOBE_MVP_URL || ''
+const MCP_BROKER_URL = getBrokerBaseUrl()
 
 const MCP_BROKER_API_KEY =
   process.env.DEKES_API_KEY ||

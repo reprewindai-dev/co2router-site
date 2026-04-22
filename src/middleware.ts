@@ -42,7 +42,8 @@ function shouldProtectControlSurfacePath(pathname: string) {
   if (
     joined === 'overview' ||
     joined === 'live-system' ||
-    joined === 'command-center'
+    joined === 'command-center' ||
+    joined === 'metrics'
   ) {
     return false
   }

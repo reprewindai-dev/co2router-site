@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
+import { getBrokerBaseUrl } from '@/lib/broker-url'
 
 const baseUrl = () =>
-  process.env.MCP_API_URL?.replace(/\/$/, '') ?? process.env.ECOBE_MVP_URL?.replace(/\/$/, '') ?? null
+  getBrokerBaseUrl() || null
 
 export async function POST(request: Request) {
   const base = baseUrl()

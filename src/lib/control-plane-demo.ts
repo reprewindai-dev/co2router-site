@@ -1,3 +1,5 @@
+import { getBrokerBaseUrl } from '@/lib/broker-url'
+
 type WorkloadType = 'build' | 'test' | 'batch' | 'inference' | 'etl'
 
 type GreenRoutingResult = {
@@ -73,10 +75,7 @@ export type DemoRouteResponse = {
   generatedAt: string
 }
 
-const MCP_BROKER_BASE_URL =
-  process.env.MCP_API_URL ||
-  process.env.ECOBE_MVP_URL ||
-  ''
+const MCP_BROKER_BASE_URL = getBrokerBaseUrl()
 
 const DEFAULT_CANDIDATE_REGIONS = ['eastus', 'westus2', 'northeurope', 'norwayeast']
 

@@ -2,6 +2,7 @@ import crypto from 'crypto'
 import axios from 'axios'
 import { NextResponse } from 'next/server'
 
+import { getBrokerBaseUrl } from '@/lib/broker-url'
 import { getClientIp, RateLimiter } from '@/lib/rate-limit'
 import { getInternalApiKey } from '@/lib/internal-api-key'
 
@@ -26,8 +27,8 @@ const mcpLimiter = new RateLimiter({
 })
 
 function getMcpBrokerBaseUrl() {
-  const brokerUrl = process.env.MCP_API_URL || process.env.ECOBE_MVP_URL || null
-  return brokerUrl ? brokerUrl.replace(/\/$/, '') : null
+  const brokerUrl = getBrokerBaseUrl()
+  return brokerUrl.length > 0 ? brokerUrl : null
 }
 
 function getMcpTimeoutMs() {

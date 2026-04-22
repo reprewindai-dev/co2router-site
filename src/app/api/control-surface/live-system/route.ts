@@ -10,7 +10,7 @@ import {
 export const dynamic = 'force-dynamic'
 
 const LIVE_SYSTEM_CACHE_TTL_MS = 5_000
-const SNAPSHOT_CACHE_CONTROL = 'public, max-age=0, s-maxage=5, stale-while-revalidate=10'
+const SNAPSHOT_CACHE_CONTROL = 'no-store, max-age=0'
 
 export async function GET() {
   const startedAt = performance.now()

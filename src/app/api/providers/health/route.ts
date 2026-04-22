@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server'
+import { getBrokerBaseUrl } from '@/lib/broker-url'
 import { getInternalApiKey } from '@/lib/internal-api-key'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
-    const baseUrl = process.env.MCP_API_URL || process.env.ECOBE_MVP_URL
+    const baseUrl = getBrokerBaseUrl() || null
     const internalKey = getInternalApiKey()
 
     if (!baseUrl) {
