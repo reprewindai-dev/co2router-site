@@ -13,6 +13,21 @@ import { LiveSystemSection } from '@/components/landing/LiveSystemSection'
 import { FALLBACK_OVERVIEW } from '@/lib/control-surface/fallbacks'
 import { useControlSurfaceOverview } from '@/lib/hooks/control-surface'
 
+const hallogridSurfaces = [
+  {
+    title: 'CO2 Grid Freeview',
+    detail: 'Public live preview and proof surface. Visitors see the governed mirror without operator control.',
+  },
+  {
+    title: 'CO2 Grid Pro',
+    detail: 'Operator surface for Pilot Access and Operator plans, with full decision card, HUD, trace, replay, and workload authority.',
+  },
+  {
+    title: 'CO2 Grid Elite',
+    detail: 'Governance and assurance surface with alarms, policy tuning, enforcement export, anomaly detection, and team operations.',
+  },
+] as const
+
 export default function LandingPage() {
   const overviewQuery = useControlSurfaceOverview()
   const overview = overviewQuery.data
@@ -72,6 +87,42 @@ export default function LandingPage() {
       ) : null}
 
       <HeroMotionSurface liveDecision={heroDecision} />
+
+      <section className="rounded-[32px] border border-cyan-300/15 bg-white/[0.03] p-6 sm:p-8">
+        <div className="max-w-3xl">
+          <div className="text-[11px] uppercase tracking-[0.28em] text-cyan-300">CO2 Grid surface family</div>
+          <h2 className="mt-3 text-3xl font-black tracking-[-0.04em] text-white sm:text-4xl">
+            Freeview, Pro, and Elite are live now.
+          </h2>
+          <p className="mt-4 text-sm leading-7 text-slate-300 sm:text-base">
+            CO2 Grid is the operator surface family for CO2 Router. Freeview is the public proof
+            surface. Pro is the operator surface. Elite is the governance and assurance surface.
+          </p>
+        </div>
+        <div className="mt-8 grid gap-4 lg:grid-cols-3">
+          {hallogridSurfaces.map((surface) => (
+            <div key={surface.title} className="rounded-[24px] border border-white/8 bg-slate-950/55 p-5">
+              <div className="text-[11px] uppercase tracking-[0.2em] text-slate-500">CO2 Grid tier</div>
+              <div className="mt-2 text-xl font-semibold text-white">{surface.title}</div>
+              <div className="mt-3 text-sm leading-7 text-slate-300">{surface.detail}</div>
+            </div>
+          ))}
+        </div>
+        <div className="mt-6 flex flex-wrap gap-3">
+          <a
+            href="/access"
+            className="inline-flex rounded-full border border-cyan-300/20 bg-cyan-300/10 px-4 py-2 text-sm font-semibold text-cyan-200 transition hover:border-cyan-300/30 hover:bg-cyan-300/15 hover:text-white"
+          >
+            Request Pilot Access
+          </a>
+          <a
+            href="/pricing"
+            className="inline-flex rounded-full border border-white/10 px-4 py-2 text-sm font-semibold text-slate-100 transition hover:border-white/20 hover:bg-white/5 hover:text-white"
+          >
+            View CO2 Grid pricing
+          </a>
+        </div>
+      </section>
 
       <section className="grid gap-3 lg:grid-cols-3">
         {liveStrip.length > 0

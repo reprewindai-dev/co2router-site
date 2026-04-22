@@ -55,7 +55,7 @@ export function SignalDoctrineSection({
           ) : (
             <div className="rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-4 text-sm leading-7 text-slate-300">
               Live provider posture attaches here without replacing the rest of the page. The
-              control doctrine remains visible first; the current signal window hydrates second.
+              control doctrine remains visible first; the current signal window attaches second.
             </div>
           )}
         </div>

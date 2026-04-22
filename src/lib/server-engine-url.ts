@@ -27,7 +27,7 @@ export function getServerEngineBaseUrl() {
 
   if (process.env.NODE_ENV === 'production') {
     throw new Error(
-      'ECOBE_API_URL must be set in production and should point to the canonical CO2 Router engine origin.'
+      'Engine base URL must be set in production and should point to the canonical CO2 Router engine origin.'
     )
   }
 

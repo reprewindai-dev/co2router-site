@@ -33,18 +33,31 @@ export function DecisionExampleCard({
     : null
   const routeDecision = decision && isRouteResponse(decision) ? decision : null
   const summaryDecision = routeDecision || !decision ? null : (decision as ControlSurfaceDecisionSummary)
+  const isFallback = routeDecision?.fallbackUsed ?? summaryDecision?.fallbackUsed ?? false
 
   const baselineRegion = routeDecision?.baseline.region ?? 'baseline region'
   const selectedRegion = routeDecision?.selected.region ?? summaryDecision?.selectedRegion ?? 'selected region'
-  const baselineCarbon = routeDecision?.baseline.carbonIntensity ?? summaryDecision?.baselineCarbonIntensity ?? null
-  const selectedCarbon = routeDecision?.selected.carbonIntensity ?? summaryDecision?.carbonIntensity ?? null
-  const baselineWater = routeDecision?.baseline.waterImpactLiters ?? summaryDecision?.waterBaselineLiters ?? null
-  const selectedWater = routeDecision?.selected.waterImpactLiters ?? summaryDecision?.waterSelectedLiters ?? null
-  const totalLatency = routeDecision?.latencyMs?.total ?? summaryDecision?.latencyMs?.total ?? null
-  const carbonReductionPct = routeDecision?.savings.carbonReductionPct ?? summaryDecision?.carbonReductionPct ?? null
+  const baselineCarbon = !isFallback
+    ? routeDecision?.baseline.carbonIntensity ?? summaryDecision?.baselineCarbonIntensity ?? null
+    : null
+  const selectedCarbon = !isFallback
+    ? routeDecision?.selected.carbonIntensity ?? summaryDecision?.carbonIntensity ?? null
+    : null
+  const baselineWater = !isFallback
+    ? routeDecision?.baseline.waterImpactLiters ?? summaryDecision?.waterBaselineLiters ?? null
+    : null
+  const selectedWater = !isFallback
+    ? routeDecision?.selected.waterImpactLiters ?? summaryDecision?.waterSelectedLiters ?? null
+    : null
+  const totalLatency = !isFallback ? routeDecision?.latencyMs?.total ?? summaryDecision?.latencyMs?.total ?? null : null
+  const carbonReductionPct = !isFallback
+    ? routeDecision?.savings.carbonReductionPct ?? summaryDecision?.carbonReductionPct ?? null
+    : null
   const waterImpactDeltaLiters =
-    routeDecision?.savings.waterImpactDeltaLiters ?? summaryDecision?.waterImpactDeltaLiters ?? null
-  const signalConfidence = routeDecision?.signalConfidence ?? summaryDecision?.signalConfidence ?? null
+    !isFallback
+      ? routeDecision?.savings.waterImpactDeltaLiters ?? summaryDecision?.waterImpactDeltaLiters ?? null
+      : null
+  const signalConfidence = !isFallback ? routeDecision?.signalConfidence ?? summaryDecision?.signalConfidence ?? null : null
 
   return (
     <motion.section

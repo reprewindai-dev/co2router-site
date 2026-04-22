@@ -15,6 +15,7 @@ import {
   useHallOGridSnapshot,
 } from '@/lib/hooks/control-surface'
 import { FALLBACK_HALLOGRID_SNAPSHOT } from '@/lib/control-surface/fallbacks'
+import { analyzeSmartAdvisor, type SmartAdvisorReport } from '@/lib/control-surface/smart-advisor'
 import type {
   ControlSurfaceProviderNode,
   HallOGridBusinessImpact,
@@ -28,11 +29,13 @@ import type {
   HallOGridMirrorPosture,
   HallOGridOverrideRecord,
   HallOGridProWorkspace,
+  HallOGridSnapshot,
   WorldRegionState,
   WorldRoutingFlow,
 } from '@/types/control-surface'
 
 type Panel = 'trace' | 'replay' | 'proof'
+type WatchdogState = { stale: boolean; ageSec: number }
 
 const DESKTOP_HEADER_HEIGHT = 58
 const DESKTOP_STRIP_HEIGHT = 34
@@ -116,6 +119,9 @@ const WORLD_STATE_META: Record<
   },
 }
 
+const WORLD_TOPO_PATH =
+  'M118,278 C162,228 234,206 302,214 C352,164 430,146 504,164 C560,144 632,154 690,194 C748,196 802,230 838,282 C862,336 852,394 816,442 C786,486 776,534 794,586 C782,640 738,674 680,688 C630,724 566,726 510,704 C450,730 374,722 320,688 C248,684 188,642 154,586 C118,530 110,468 122,408 C96,362 94,318 118,278 Z'
+
 const hex = (c: string, o: number) => `${c}${Math.round(o * 255).toString(16).padStart(2, '0')}`
 
 const ago = (v: string, now = Date.now()) => {
@@ -192,9 +198,13 @@ function pressureGlow(node: WorldRegionState) {
 }
 
 function worldStateColor(node: WorldRegionState) {
-  if (node.action && node.action in A) return A[node.action as HallOGridFrame['action']]
   if (node.state === 'active') return A.run_now
-  if (node.state === 'marginal') return A.reroute
+  if (node.state === 'marginal') {
+    if (node.action === 'delay') return A.delay
+    if (node.action === 'throttle') return A.throttle
+    return A.reroute
+  }
+  if (node.action && node.action in A) return A[node.action as HallOGridFrame['action']]
   return A.deny
 }
 
@@ -219,6 +229,22 @@ function signalQualityColor(frame: HallOGridFrame) {
   if (frame.syntheticFlag) return A.reroute
   if (frame.estimatedFlag) return P.t2
   return A.run_now
+}
+
+function hallogridTier(access: HallOGridConsoleAccess) {
+  return access.label.replace('CO2 Grid ', '')
+}
+
+function hallogridConsoleBadge(access: HallOGridConsoleAccess) {
+  return access.label.toUpperCase()
+}
+
+function hallogridAuthorityBadge(access: HallOGridConsoleAccess) {
+  if (access.label === 'CO2 Grid Elite') {
+    return access.mode === 'pro_production' ? 'ELITE AUTHORITY' : 'ELITE EVALUATION'
+  }
+
+  return access.mode === 'pro_production' ? 'PRO AUTHORITY' : 'PRO EVALUATION'
 }
 
 function providerStatusColor(status: ControlSurfaceProviderNode['status']) {
@@ -338,9 +364,9 @@ function HeaderBar({
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'var(--m)', fontSize: mobile ? 10 : 11, letterSpacing: '0.12em', flexWrap: mobile ? 'wrap' : 'nowrap' }}>
             <span style={{ color: P.t0, fontWeight: 700 }}>CO2 ROUTER</span>
             <span style={{ padding: '3px 9px', borderRadius: 999, border: `1px solid ${hex(P.accent, 0.28)}`, background: hex(P.accent, 0.08), color: '#dbeafe' }}>
-              {access.isReadOnlyPreview ? 'PREVIEW CONSOLE' : 'OPERATOR CONSOLE'}
+              {hallogridConsoleBadge(access)}
             </span>
-            {!mobile ? <span style={{ color: P.accent }}>HALLOGRID</span> : null}
+            {!mobile ? <span style={{ color: P.accent }}>SURFACE FAMILY</span> : null}
           </div>
           <div style={{ color: P.t1, fontSize: mobile ? 11 : 12, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {title} | {subtitle}
@@ -350,15 +376,15 @@ function HeaderBar({
       <div style={{ display: 'flex', alignItems: 'center', gap: mobile ? 8 : 10, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 10px', borderRadius: 999, border: `1px solid ${streamHealthy ? hex(A.run_now, 0.24) : hex(A.reroute, 0.28)}`, background: streamHealthy ? hex(A.run_now, 0.08) : hex(A.reroute, 0.1), color: streamHealthy ? '#d1fae5' : '#fde68a', fontFamily: 'var(--m)', fontSize: 10, letterSpacing: '0.08em' }}>
           <Radar size={12} />
-          {streamHealthy ? access.label.toUpperCase() : 'FALLBACK PATH'}
+          {streamHealthy ? access.label.toUpperCase() : `${access.label.toUpperCase()} FALLBACK`}
         </div>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 10px', borderRadius: 999, border: `1px solid ${mirror.degraded ? hex(A.reroute, 0.28) : hex(P.accent, 0.2)}`, background: mirror.degraded ? hex(A.reroute, 0.1) : hex(P.accent, 0.08), color: mirror.degraded ? '#fde68a' : '#dbeafe', fontFamily: 'var(--m)', fontSize: 10, letterSpacing: '0.08em' }}>
-          {mirror.mirrorMode.toUpperCase()} MIRROR | {mirror.sourceFreshnessSec == null ? 'FRESHNESS N/A' : `${mirror.sourceFreshnessSec}s`}
+          {`${hallogridTier(access).toUpperCase()} SURFACE`} | {mirror.sourceFreshnessSec == null ? 'FRESHNESS N/A' : `${mirror.sourceFreshnessSec}s`}
         </div>
         {!mobile && !access.isReadOnlyPreview ? (
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 10px', borderRadius: 999, border: `1px solid ${hex(A.run_now, 0.18)}`, background: hex(A.run_now, 0.08), color: '#d1fae5', fontFamily: 'var(--m)', fontSize: 10, letterSpacing: '0.08em' }}>
             <Shield size={12} />
-            {access.mode === 'pro_production' ? 'PRODUCTION AUTHORITY' : 'EVAL AUTHORITY'}
+            {hallogridAuthorityBadge(access)}
           </div>
         ) : null}
         {!mobile ? (
@@ -390,11 +416,13 @@ function UpgradeStrip({ access }: { access: HallOGridConsoleAccess }) {
       <div style={{ minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'var(--m)', fontSize: 10, letterSpacing: '0.12em', color: '#dbeafe' }}>
           <Sparkles size={12} />
-          {access.isReadOnlyPreview ? 'LIVE MIRROR | PRO UNLOCKS THE OPERATOR SURFACE' : 'PRO SURFACE | TENANT-AWARE AUTHORITY ACTIVE'}
+          {access.isReadOnlyPreview
+            ? 'FREEVIEW SURFACE | PRO AND ELITE ARE THE GOVERNED UPGRADE PATHS'
+            : `${hallogridTier(access).toUpperCase()} SURFACE | TENANT-AWARE AUTHORITY ACTIVE`}
         </div>
         <div style={{ marginTop: 6, fontSize: 13, color: P.t1, lineHeight: 1.6 }}>
           {access.isReadOnlyPreview
-            ? `This public mirror stays delayed and redacted. HallOGrid Pro unlocks ${access.proHighlights.join(', ')}.`
+            ? 'CO2 Grid Freeview is the public proof surface. CO2 Grid Pro adds the full decision card, HUD, trace, replay, and operator authority. CO2 Grid Elite adds alarms, policy tuning, enforcement export, anomaly detection, and team operations.'
             : `Entitlements active: ${access.entitlements.join(', ')}. Role: ${access.role.replace(/_/g, ' ')}.`}
         </div>
       </div>
@@ -449,15 +477,17 @@ function LockedSurfacePanel({
       <div>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 10px', borderRadius: 999, border: `1px solid ${hex(P.accent, 0.24)}`, background: hex(P.accent, 0.1), color: '#dbeafe', fontFamily: 'var(--m)', fontSize: 10, letterSpacing: '0.08em' }}>
           <Lock size={12} />
-          PRO SURFACE
+          PRO AND ELITE SURFACES
         </div>
         <div style={{ marginTop: 14, fontSize: 20, fontWeight: 700, color: P.t0 }}>
-          {selectedFrame ? 'Operator detail stays inside HallOGrid Pro.' : 'Select a governed record to see what Pro unlocks.'}
+          {selectedFrame
+            ? 'Operator detail stays inside CO2 Grid Pro and CO2 Grid Elite.'
+            : 'Select a governed record to see what CO2 Grid Pro and CO2 Grid Elite unlock.'}
         </div>
         <div style={{ marginTop: 8, fontSize: 13, color: P.t1, lineHeight: 1.7 }}>
           {selectedFrame
-            ? `This preview lets you inspect the live mirror. Full trace, replay, proof export, counterfactuals, override controls, and doctrine actions require Pro access for tenant-safe routing.`
-            : 'The public preview proves live credibility. The paid surface is where Platform/SRE teams inspect proof, manage doctrine, and govern real workloads.'}
+            ? 'CO2 Grid Freeview lets you inspect the public proof surface. Full trace, replay, proof export, counterfactuals, override controls, doctrine actions, alarms, and enforcement workflows stay inside CO2 Grid Pro and CO2 Grid Elite.'
+            : 'CO2 Grid Freeview proves live credibility. CO2 Grid Pro is the operator surface, and CO2 Grid Elite is the governance and assurance surface for real workloads.'}
         </div>
       </div>
 
@@ -718,6 +748,152 @@ function TelemetryStrip({ frames, mobile }: { frames: HallOGridFrame[]; mobile: 
   )
 }
 
+function SmartAdvisorOverlay({
+  report,
+  watchdog,
+  mobile,
+  open,
+  setOpen,
+}: {
+  report: SmartAdvisorReport
+  watchdog: WatchdogState
+  mobile: boolean
+  open: boolean
+  setOpen: (open: boolean) => void
+}) {
+  const accent =
+    watchdog.stale || report.insights.some((insight) => insight.severity === 'risk')
+      ? A.deny
+      : report.carbonTrend === 'improving'
+        ? A.run_now
+        : A.reroute
+
+  return (
+    <div
+      data-hallogrid-control="true"
+      style={{
+        pointerEvents: 'auto',
+        position: 'absolute',
+        right: 16,
+        bottom: mobile ? 58 : 56,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'flex-end',
+        gap: 10,
+      }}
+    >
+      {open ? (
+        <div
+          style={{
+            width: mobile ? 280 : 320,
+            padding: '14px 14px 12px',
+            borderRadius: 18,
+            border: `1px solid ${hex(accent, 0.26)}`,
+            background: hex('#010308', 0.88),
+            boxShadow: `0 0 28px ${hex(accent, 0.12)}`,
+            backdropFilter: 'blur(14px)',
+            WebkitBackdropFilter: 'blur(14px)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+            <div>
+              <div style={{ fontFamily: 'var(--m)', fontSize: 9, letterSpacing: '0.12em', color: '#dbeafe' }}>OFFLINE AI ADVISOR</div>
+              <div style={{ marginTop: 4, fontSize: 12, color: P.t2 }}>Browser-side intelligence over live CO2 Grid state.</div>
+            </div>
+            <div style={{ fontFamily: 'var(--m)', fontSize: 9, color: P.t3 }}>{shortHash(report.reportHash, 10)}</div>
+          </div>
+
+          <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8 }}>
+            <div style={{ padding: '9px 10px', borderRadius: 12, background: hex('#ffffff', 0.03), border: `1px solid ${P.border}` }}>
+              <div style={{ fontFamily: 'var(--m)', fontSize: 8, color: P.t3 }}>HEALTH</div>
+              <div style={{ marginTop: 4, fontSize: 15, fontWeight: 700, color: accent }}>{report.fleetHealthPct.toFixed(1)}%</div>
+            </div>
+            <div style={{ padding: '9px 10px', borderRadius: 12, background: hex('#ffffff', 0.03), border: `1px solid ${P.border}` }}>
+              <div style={{ fontFamily: 'var(--m)', fontSize: 8, color: P.t3 }}>TREND</div>
+              <div style={{ marginTop: 4, fontSize: 13, fontWeight: 700, color: report.carbonTrend === 'improving' ? A.run_now : report.carbonTrend === 'degrading' ? A.deny : A.reroute }}>
+                {report.carbonTrend.toUpperCase()}
+              </div>
+            </div>
+            <div style={{ padding: '9px 10px', borderRadius: 12, background: hex('#ffffff', 0.03), border: `1px solid ${P.border}` }}>
+              <div style={{ fontFamily: 'var(--m)', fontSize: 8, color: P.t3 }}>DENY RATE</div>
+              <div style={{ marginTop: 4, fontSize: 15, fontWeight: 700, color: report.denyRatePct >= 30 ? A.deny : '#dbeafe' }}>{report.denyRatePct.toFixed(1)}%</div>
+            </div>
+          </div>
+
+          <div
+            style={{
+              marginTop: 10,
+              padding: '9px 10px',
+              borderRadius: 12,
+              border: `1px solid ${hex(watchdog.stale ? A.deny : P.accent, 0.18)}`,
+              background: watchdog.stale ? hex(A.deny, 0.08) : hex(P.accent, 0.06),
+              color: watchdog.stale ? '#fecdd3' : '#dbeafe',
+              fontSize: 11,
+              lineHeight: 1.6,
+            }}
+          >
+            {watchdog.stale
+              ? `WATCHDOG HOLDING LAST VERIFIED SNAPSHOT | ${watchdog.ageSec}s stale`
+              : 'WATCHDOG CLEAR | live transport remains inside the verified envelope'}
+          </div>
+
+          <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {report.insights.map((insight) => {
+              const insightColor = insight.severity === 'risk' ? A.deny : insight.severity === 'watch' ? A.reroute : A.run_now
+
+              return (
+                <div key={insight.id} style={{ padding: '10px 11px', borderRadius: 12, background: hex('#ffffff', 0.025), border: `1px solid ${P.border}` }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ width: 8, height: 8, borderRadius: '999px', background: insightColor, boxShadow: `0 0 12px ${hex(insightColor, 0.4)}` }} />
+                    <div style={{ fontSize: 12, fontWeight: 700, color: P.t0 }}>{insight.label}</div>
+                    <div style={{ marginLeft: 'auto', fontFamily: 'var(--m)', fontSize: 9, color: insightColor }}>{insight.confidence.toFixed(1)}%</div>
+                  </div>
+                  <div style={{ marginTop: 6, fontSize: 10, color: P.t1, lineHeight: 1.6 }}>{insight.detail}</div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      ) : null}
+
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        style={{
+          position: 'relative',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 8,
+          padding: '8px 12px',
+          borderRadius: 999,
+          border: `1px solid ${hex(accent, 0.32)}`,
+          background: hex('#010308', 0.84),
+          color: '#dbeafe',
+          cursor: 'pointer',
+          boxShadow: `0 0 18px ${hex(accent, 0.12)}`,
+          fontFamily: 'var(--m)',
+          fontSize: 10,
+          letterSpacing: '0.08em',
+        }}
+        aria-expanded={open}
+      >
+        <span
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            inset: -4,
+            borderRadius: 999,
+            border: `1px solid ${hex(accent, 0.22)}`,
+            animation: watchdog.stale || report.insights.some((insight) => insight.severity === 'risk') ? 'hallogrid-pulse 2s ease-in-out infinite' : 'none',
+          }}
+        />
+        <Sparkles size={13} />
+        <span>{open ? 'HIDE SMART ADVISOR' : 'SMART ADVISOR'}</span>
+      </button>
+    </div>
+  )
+}
+
 function FeedCard({
   f,
   active,
@@ -880,6 +1056,8 @@ interface HallOGridTheaterProps {
   nodes: WorldRegionState[]
   flows: WorldRoutingFlow[]
   providers: ControlSurfaceProviderNode[]
+  advisorReport: SmartAdvisorReport
+  watchdogState: WatchdogState
   selectedRegion: string | null
   selectedFrame: HallOGridFrame | null
   projectionLagSec: number | null
@@ -893,6 +1071,8 @@ function HallOGridTheater({
   nodes,
   flows,
   providers,
+  advisorReport,
+  watchdogState,
   selectedRegion,
   selectedFrame,
   projectionLagSec,
@@ -912,6 +1092,7 @@ function HallOGridTheater({
   const [dragging, setDragging] = useState(false)
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
   const [hoveredRegion, setHoveredRegion] = useState<string | null>(null)
+  const [showAdvisor, setShowAdvisor] = useState(false)
   const focusActive = selectedRegion != null
 
   useEffect(() => {
@@ -1136,6 +1317,49 @@ function HallOGridTheater({
       color: projectionLagSec != null && projectionLagSec > 60 ? A.reroute : P.t1,
     },
   ]
+  const decisionActionColor = selectedFrame ? A[selectedFrame.action] : selectedState?.color ?? P.accent
+  const decisionVelocity =
+    selectedFrame?.metrics.signalConfidence != null
+      ? selectedFrame.metrics.signalConfidence.toFixed(1)
+      : selectedNode?.signalConfidence != null
+        ? selectedNode.signalConfidence.toFixed(1)
+        : '--'
+  const commandDeckMetrics = [
+    {
+      label: 'CARBON',
+      value: selectedFrame?.metrics.carbonReductionPct != null ? `${selectedFrame.metrics.carbonReductionPct.toFixed(1)}%` : '--',
+      accent: A.run_now,
+      note: 'avoided intensity',
+    },
+    {
+      label: 'WATER',
+      value: liters(selectedFrame?.metrics.waterImpactDeltaLiters),
+      accent: P.accent,
+      note: 'delta from baseline',
+    },
+    {
+      label: 'LATENCY',
+      value: ms(selectedFrame?.metrics.totalLatencyMs),
+      accent: A.reroute,
+      note: 'decision envelope',
+    },
+    {
+      label: 'TRUST',
+      value: selectedConfidenceLabel,
+      accent: confidenceColor(selectedConfidence),
+      note: 'signal confidence',
+    },
+  ] as const
+  const providerOrbitRead = providers.slice(0, 6)
+  const decisionFocusLabel = selectedNode?.label ?? selectedFrame?.region ?? 'Global posture'
+  const decisionHeadline =
+    selectedFrame?.explanation.headline ??
+    (selectedNode ? `${selectedNode.label} is holding ${selectedState?.label.toLowerCase() ?? 'live'} posture.` : 'Select a governed region to lock the operator posture.')
+  const decisionRuntimeChips = [
+    { label: 'TRACE', value: selectedFrame?.traceState === 'locked' ? 'LOCKED' : 'OPEN', accent: selectedFrame?.traceState === 'locked' ? A.run_now : P.t2 },
+    { label: 'REPLAY', value: selectedFrame?.replayState?.toUpperCase() ?? 'PENDING', accent: selectedFrame?.replayState === 'verified' ? A.run_now : selectedFrame?.replayState === 'mismatch' ? A.deny : P.t2 },
+    { label: 'PROOF', value: selectedFrame?.proofState?.toUpperCase() ?? 'AWAITING', accent: selectedFrame?.proofState === 'available' ? '#dbeafe' : P.t2 },
+  ] as const
 
   return (
     <div
@@ -1151,7 +1375,7 @@ function HallOGridTheater({
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'var(--m)', fontSize: 10, letterSpacing: '0.12em', color: '#dbeafe' }}>
             <Globe2 size={13} />
-            LIVE GRID THEATER
+            COMMAND CENTER
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: mobile ? 'flex-start' : 'flex-end' }}>
@@ -1253,6 +1477,23 @@ function HallOGridTheater({
                 <stop offset="100%" stopColor="transparent" />
               </radialGradient>
             </defs>
+            <path
+              d={WORLD_TOPO_PATH}
+              fill={hex(P.accent, 0.045)}
+              stroke={hex('#9ec5ff', 0.18)}
+              strokeWidth={mobile ? 1.1 : 1.3}
+              strokeLinejoin="round"
+              transform={`translate(${globeSize * 0.012}, ${globeSize * 0.018}) scale(${globeSize / 960})`}
+              opacity={0.92}
+            />
+            <path
+              d={WORLD_TOPO_PATH}
+              fill="none"
+              stroke={hex('#ffffff', 0.08)}
+              strokeWidth={mobile ? 0.7 : 0.85}
+              strokeDasharray="3 7"
+              transform={`translate(${globeSize * 0.012}, ${globeSize * 0.018}) scale(${globeSize / 960})`}
+            />
             <circle cx={center} cy={center} r={glowRadius} fill="url(#hallogrid-atmosphere-next)" />
             <circle cx={center} cy={center} r={radius} fill="url(#hallogrid-globe-core-next)" />
             <circle cx={center} cy={center} r={radius} fill="url(#hallogrid-weather-aura)" transform={`rotate(${-rotation * 0.4} ${center} ${center})`} />
@@ -1412,11 +1653,85 @@ function HallOGridTheater({
           </div>
 
           <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', transform: mobile ? 'none' : 'translateZ(40px)' }}>
-          <div data-hallogrid-control="true" style={{ pointerEvents: 'auto', position: 'absolute', right: 16, top: mobile ? 16 : selectedNode ? 144 : 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {!mobile ? (
+            <div
+              data-hallogrid-control="true"
+              style={{
+                pointerEvents: 'auto',
+                position: 'absolute',
+                left: 16,
+                top: 58,
+                width: expanded ? 220 : 196,
+                maxWidth: '28%',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 10,
+              }}
+            >
+              <div
+                style={{
+                  padding: '12px 13px',
+                  borderRadius: 18,
+                  background: hex('#010308', 0.78),
+                  border: `1px solid ${hex(P.accent, 0.24)}`,
+                  boxShadow: `0 0 24px ${hex(P.accent, 0.08)}`,
+                  backdropFilter: 'blur(12px)',
+                  WebkitBackdropFilter: 'blur(12px)',
+                }}
+              >
+                <div style={{ fontFamily: 'var(--m)', fontSize: 9, letterSpacing: '0.12em', color: '#dbeafe' }}>CO2 ROUTER ENGINE</div>
+                <div style={{ marginTop: 6, fontSize: 12, color: P.t2, lineHeight: 1.5 }}>Deterministic authorization posture from live CO2 Grid signals.</div>
+                <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
+                  {commandDeckMetrics.map((item) => (
+                    <div key={item.label} style={{ padding: '8px 9px', borderRadius: 12, background: hex('#ffffff', 0.03), border: `1px solid ${P.border}` }}>
+                      <div style={{ fontFamily: 'var(--m)', fontSize: 8, letterSpacing: '0.08em', color: P.t3 }}>{item.label}</div>
+                      <div style={{ marginTop: 4, fontSize: 14, fontWeight: 700, color: item.accent }}>{item.value}</div>
+                      <div style={{ marginTop: 2, fontSize: 9, color: P.t2 }}>{item.note}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div
+                style={{
+                  padding: '12px 13px',
+                  borderRadius: 18,
+                  background: hex('#010308', 0.78),
+                  border: `1px solid ${P.borderLit}`,
+                  boxShadow: `0 0 20px ${hex('#000000', 0.16)}`,
+                  backdropFilter: 'blur(12px)',
+                  WebkitBackdropFilter: 'blur(12px)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                  <div style={{ fontFamily: 'var(--m)', fontSize: 9, letterSpacing: '0.12em', color: '#dbeafe' }}>PROVIDER ORBIT</div>
+                  <div style={{ fontFamily: 'var(--m)', fontSize: 8, letterSpacing: '0.08em', color: P.t3 }}>{providers.length} LIVE</div>
+                </div>
+                <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {providerOrbitRead.map((provider) => {
+                    const accent = providerStatusColor(provider.status)
+                    return (
+                      <div key={provider.id} style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto', alignItems: 'center', gap: 8, padding: '8px 0', borderBottom: `1px solid ${hex('#ffffff', 0.04)}` }}>
+                        <span style={{ width: 8, height: 8, borderRadius: '999px', background: accent, boxShadow: `0 0 12px ${hex(accent, 0.4)}` }} />
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: 11, color: P.t1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{provider.label}</div>
+                          <div style={{ marginTop: 2, fontSize: 9, color: P.t2 }}>
+                            {provider.status.toUpperCase()} | {provider.freshnessSec == null ? 'freshness n/a' : `${provider.freshnessSec}s`}
+                          </div>
+                        </div>
+                        <div style={{ fontFamily: 'var(--m)', fontSize: 9, color: accent }}>{provider.latencyMs != null ? `${provider.latencyMs}ms` : '--'}</div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+          ) : null}
+          <div data-hallogrid-control="true" style={{ pointerEvents: 'auto', position: 'absolute', right: 16, top: mobile ? 16 : selectedFrame || selectedNode ? 220 : 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
             <button
               type="button"
               onClick={() => setZoom((current) => clamp(current + 0.2, 0.72, 2.4))}
-              style={{ width: 36, height: 36, borderRadius: '999px', border: `1px solid ${P.borderLit}`, background: hex('#000000', 0.5), color: P.t0, cursor: 'pointer', fontFamily: 'var(--m)', fontSize: 18 }}
+              style={{ width: 44, height: 44, borderRadius: '999px', border: `1px solid ${hex(P.accent, 0.34)}`, background: `linear-gradient(180deg, ${hex(P.accent, 0.18)} 0%, ${hex('#000000', 0.72)} 100%)`, color: P.t0, cursor: 'pointer', fontFamily: 'var(--m)', fontSize: 21, boxShadow: `0 0 18px ${hex(P.accent, 0.16)}` }}
               aria-label="Zoom in"
             >
               +
@@ -1424,7 +1739,7 @@ function HallOGridTheater({
             <button
               type="button"
               onClick={() => setZoom((current) => clamp(current - 0.2, 0.72, 2.4))}
-              style={{ width: 36, height: 36, borderRadius: '999px', border: `1px solid ${P.borderLit}`, background: hex('#000000', 0.5), color: P.t0, cursor: 'pointer', fontFamily: 'var(--m)', fontSize: 18 }}
+              style={{ width: 44, height: 44, borderRadius: '999px', border: `1px solid ${hex(P.accent, 0.28)}`, background: `linear-gradient(180deg, ${hex(P.accent, 0.14)} 0%, ${hex('#000000', 0.72)} 100%)`, color: P.t0, cursor: 'pointer', fontFamily: 'var(--m)', fontSize: 21, boxShadow: `0 0 16px ${hex(P.accent, 0.12)}` }}
               aria-label="Zoom out"
             >
               -
@@ -1443,15 +1758,26 @@ function HallOGridTheater({
               </div>
             ))}
           </div>
-          {!mobile && selectedNode ? (
-            <div style={{ pointerEvents: 'auto', position: 'absolute', top: 16, right: 16, width: expanded ? 208 : 184, maxWidth: '32%', padding: '10px 11px', borderRadius: 16, background: hex('#010308', 0.76), border: `1px solid ${selectedNode ? hex(worldStateColor(selectedNode), 0.26) : P.borderLit}`, boxShadow: selectedNode ? `0 0 24px ${hex(worldStateColor(selectedNode), 0.1)}` : 'none', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}>
-            <div style={{ fontFamily: 'var(--m)', fontSize: 9, letterSpacing: '0.12em', color: P.t3 }}>REGION LOCK</div>
+          {!mobile && (selectedFrame || selectedNode) ? (
+            <div style={{ pointerEvents: 'auto', position: 'absolute', top: 58, right: 72, width: expanded ? 224 : 198, maxWidth: '30%', padding: '12px 13px', borderRadius: 18, background: hex('#010308', 0.78), border: `1px solid ${hex(decisionActionColor, 0.26)}`, boxShadow: `0 0 26px ${hex(decisionActionColor, 0.1)}`, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
+              <div>
+                <div style={{ fontFamily: 'var(--m)', fontSize: 9, letterSpacing: '0.12em', color: P.t3 }}>DECISION VELOCITY</div>
+                <div style={{ marginTop: 6, display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                  <span style={{ fontSize: 28, fontWeight: 700, color: decisionActionColor }}>{decisionVelocity}</span>
+                  <span style={{ fontFamily: 'var(--m)', fontSize: 10, letterSpacing: '0.08em', color: P.t2 }}>CONF</span>
+                </div>
+              </div>
+              <div style={{ padding: '6px 10px', borderRadius: 999, border: `1px solid ${hex(decisionActionColor, 0.24)}`, background: hex(decisionActionColor, 0.1), color: decisionActionColor, fontFamily: 'var(--m)', fontSize: 9, letterSpacing: '0.08em' }}>
+                {selectedFrame ? ACTION_META[selectedFrame.action].label.toUpperCase() : selectedState?.label.toUpperCase() ?? 'LIVE'}
+              </div>
+            </div>
             <div style={{ marginTop: 5, display: 'flex', alignItems: 'baseline', gap: 7, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 15, fontWeight: 700, color: P.t0 }}>{selectedNode.label}</span>
+              <span style={{ fontSize: 15, fontWeight: 700, color: P.t0 }}>{decisionFocusLabel}</span>
               {selectedState ? <span style={{ fontFamily: 'var(--m)', fontSize: 10, letterSpacing: '0.08em', color: selectedState.color }}>{selectedState.label.toUpperCase()}</span> : null}
             </div>
             <div style={{ marginTop: 6, fontSize: 10, color: P.t1, lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-              {selectedDecisionRead}
+              {decisionHeadline}
             </div>
             <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 5 }}>
               <div style={{ padding: '6px 8px', borderRadius: 10, background: hex('#ffffff', 0.035), border: `1px solid ${P.border}` }}>
@@ -1471,10 +1797,18 @@ function HallOGridTheater({
                 <div style={{ marginTop: 3, fontSize: 10, color: blockedFocusFlowCount > 0 ? A.deny : '#dbeafe' }}>{selectedNode ? `${connectedFlows.length}/${blockedFocusFlowCount}` : `${flowPaths.length}`}</div>
               </div>
             </div>
+            <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 5 }}>
+              {decisionRuntimeChips.map((chip) => (
+                <div key={chip.label} style={{ padding: '6px 7px', borderRadius: 10, background: hex('#ffffff', 0.025), border: `1px solid ${P.border}` }}>
+                  <div style={{ fontFamily: 'var(--m)', fontSize: 8, color: P.t3 }}>{chip.label}</div>
+                  <div style={{ marginTop: 3, fontSize: 9, color: chip.accent }}>{chip.value}</div>
+                </div>
+              ))}
+            </div>
             </div>
           ) : null}
-          {!mobile && hoveredRegion && focusedNode && !selectedNode ? (
-            <div data-hallogrid-control="true" style={{ pointerEvents: 'auto', position: 'absolute', top: 16, right: 60, width: expanded ? 196 : 176, maxWidth: '30%', padding: '10px 11px', borderRadius: 16, background: hex('#010308', 0.72), border: `1px solid ${hex(worldStateColor(focusedNode), 0.22)}`, boxShadow: `0 0 20px ${hex(worldStateColor(focusedNode), 0.08)}`, backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}>
+          {!mobile && hoveredRegion && focusedNode ? (
+            <div data-hallogrid-control="true" style={{ pointerEvents: 'auto', position: 'absolute', top: 220, right: 72, width: expanded ? 196 : 176, maxWidth: '30%', padding: '10px 11px', borderRadius: 16, background: hex('#010308', 0.72), border: `1px solid ${hex(worldStateColor(focusedNode), 0.22)}`, boxShadow: `0 0 20px ${hex(worldStateColor(focusedNode), 0.08)}`, backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}>
               <div style={{ fontFamily: 'var(--m)', fontSize: 9, letterSpacing: '0.12em', color: P.t3 }}>HOVER LOCK</div>
               <div style={{ marginTop: 5, display: 'flex', alignItems: 'baseline', gap: 7, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 15, fontWeight: 700, color: P.t0 }}>{focusedNode.label}</span>
@@ -1483,6 +1817,7 @@ function HallOGridTheater({
               <div style={{ marginTop: 6, fontSize: 10, color: P.t1, lineHeight: 1.5 }}>{hoverStatusRead}</div>
             </div>
           ) : null}
+          <SmartAdvisorOverlay report={advisorReport} watchdog={watchdogState} mobile={mobile} open={showAdvisor} setOpen={setShowAdvisor} />
           <div style={{ position: 'absolute', left: 16, right: 16, bottom: 46, height: 3, borderRadius: 2, display: 'flex', overflow: 'hidden', background: hex('#ffffff', 0.05), pointerEvents: 'none' }}>
             <div style={{ flex: activeCount || 0, background: A.run_now, opacity: 0.78 }} />
             <div style={{ flex: guardedCount || 0, background: A.reroute, opacity: 0.78 }} />
@@ -2064,7 +2399,8 @@ function Inspector({
 
 export function CommandCenterShell() {
   const snapshotQuery = useHallOGridSnapshot()
-  const snapshot = snapshotQuery.data ?? FALLBACK_HALLOGRID_SNAPSHOT
+  const [lastHealthySnapshot, setLastHealthySnapshot] = useState<HallOGridSnapshot | null>(null)
+  const snapshot = snapshotQuery.data ?? lastHealthySnapshot ?? FALLBACK_HALLOGRID_SNAPSHOT
 
   const [sel, setSel] = useState<string | null>(null)
   const [mobile, setMobile] = useState(false)
@@ -2074,6 +2410,7 @@ export function CommandCenterShell() {
   const [focusedRegion, setFocusedRegion] = useState<string | null>(null)
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
   const [latestDrill, setLatestDrill] = useState<HallOGridDrillRun | null>(null)
+  const [watchdogState, setWatchdogState] = useState<WatchdogState>({ stale: false, ageSec: 0 })
 
   useEffect(() => {
     const onResize = () => setMobile(window.innerWidth < 960)
@@ -2082,6 +2419,12 @@ export function CommandCenterShell() {
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
   }, [])
+
+  useEffect(() => {
+    if (snapshotQuery.data?.transport.streamHealthy) {
+      setLastHealthySnapshot(snapshotQuery.data)
+    }
+  }, [snapshotQuery.data])
 
   useEffect(() => {
     if (!viewportReady) return
@@ -2135,6 +2478,23 @@ export function CommandCenterShell() {
   useEffect(() => {
     setLatestDrill(null)
   }, [sel])
+
+  useEffect(() => {
+    const updateWatchdog = () => {
+      const generatedAtMs = Number.isNaN(new Date(snapshot.generatedAt).getTime()) ? Date.now() : new Date(snapshot.generatedAt).getTime()
+      const ageSec = Math.max(0, Math.floor((Date.now() - generatedAtMs) / 1000))
+      setWatchdogState({ stale: ageSec > 20, ageSec })
+    }
+
+    updateWatchdog()
+    const interval = window.setInterval(updateWatchdog, 5000)
+    return () => window.clearInterval(interval)
+  }, [snapshot.generatedAt])
+
+  useEffect(() => {
+    if (!watchdogState.stale) return
+    console.info('[CO2 Grid Watchdog] Stale feed guarded — holding last verified snapshot.')
+  }, [watchdogState.stale])
 
   const handleGlobalMouseMove = (e: React.MouseEvent) => {
     if (mobile) return
@@ -2211,11 +2571,16 @@ export function CommandCenterShell() {
   }
 
   if (snapshotQuery.isLoading && !snapshotQuery.data) {
-    return <div className="rounded-[28px] border border-white/10 bg-white/[0.04] px-6 py-8 text-sm text-slate-300">Loading HallOGrid...</div>
+    return (
+      <div className="rounded-[28px] border border-white/10 bg-white/[0.04] px-6 py-8 text-sm text-slate-300">
+        Live CO2 Grid surface is initializing. The shell stays rendered while the control plane
+        resolves.
+      </div>
+    )
   }
 
   if (!snapshot) {
-    return <div className="rounded-[28px] border border-rose-400/20 bg-rose-400/10 px-6 py-8 text-sm text-rose-100">{snapshotQuery.error instanceof Error ? snapshotQuery.error.message : 'Failed to load HallOGrid.'}</div>
+    return <div className="rounded-[28px] border border-rose-400/20 bg-rose-400/10 px-6 py-8 text-sm text-rose-100">{snapshotQuery.error instanceof Error ? snapshotQuery.error.message : 'Failed to load CO2 Grid.'}</div>
   }
 
   const snapshotWarning =
@@ -2226,6 +2591,13 @@ export function CommandCenterShell() {
         : null
   const activeColor = frame ? A[frame.action] : P.accent
   const sceneTop = shellSceneTop(mobile)
+  const advisorReport = analyzeSmartAdvisor({
+    generatedAt: snapshot.generatedAt,
+    frames: snapshot.frames,
+    nodes: snapshot.world.nodes,
+    providers: snapshot.health.providers,
+    streamHealthy: snapshot.transport.streamHealthy,
+  })
 
   return (
     <div onMouseMove={handleGlobalMouseMove} style={{ background: P.bg0, color: P.t1, minHeight: '100vh', fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif", position: 'relative', overflowX: 'clip', overflowY: 'visible', isolation: 'isolate' }}>
@@ -2241,12 +2613,12 @@ export function CommandCenterShell() {
               {snapshotWarning}
             </div>
           ) : null}
-          <UpgradeStrip access={snapshot.access} />
-
           <HallOGridTheater
             nodes={snapshot.world.nodes}
             flows={snapshot.world.flows}
             providers={snapshot.health.providers}
+            advisorReport={advisorReport}
+            watchdogState={watchdogState}
             selectedRegion={focusedRegion ?? frame?.region ?? null}
             selectedFrame={frame}
             projectionLagSec={snapshot.projection.projectionLagSec}
@@ -2325,6 +2697,7 @@ export function CommandCenterShell() {
               </div>
             ) : null}
           </div>
+          <UpgradeStrip access={snapshot.access} />
         </div>
       </div>
 

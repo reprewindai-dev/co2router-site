@@ -13,6 +13,34 @@ const actionTone: Record<string, string> = {
   deny: 'border-rose-300/25 bg-rose-400/10 text-rose-100',
 }
 
+const stressRows = [
+  {
+    system: 'Globe frontend',
+    normal: 'Each browser session renders its own isolated surface and serves static assets from the CDN edge.',
+    stress: 'Frontend scale stays browser-bound, so one operator session does not degrade another.',
+  },
+  {
+    system: 'WebGL rendering',
+    normal: 'GPU particles render the world state without pushing region activity into the DOM.',
+    stress: 'Storm mode throttles ring emission automatically instead of letting the page saturate the CPU.',
+  },
+  {
+    system: 'Authorization engine',
+    normal: 'Redis-backed hot path resolution keeps repeated region queries near the 1 ms cache tier.',
+    stress: 'Horizontal pod scaling and decision batching preserve deterministic authorization under load.',
+  },
+  {
+    system: 'Enforcement',
+    normal: 'Gatekeeper enforcement stays cluster-local and attaches directly to the decision frame.',
+    stress: 'The engine does not call back per job start, so enforcement overhead does not fan out with execution volume.',
+  },
+  {
+    system: 'WebGL context loss',
+    normal: 'Long-running sessions degrade into an explicit UI failure state instead of freezing.',
+    stress: 'The operator gets a clean error card and reload path instead of a silent hang.',
+  },
+]
+
 export default async function ControlSurfacePage() {
   const snapshot = await getControlPlaneSnapshot()
 
@@ -91,6 +119,45 @@ export default async function ControlSurfacePage() {
                 Provider methodology data is unavailable.
               </div>
             )}
+          </div>
+        </div>
+      </section>
+
+      <section id="stress" className="surface-card p-6">
+        <div className="grid gap-6 lg:grid-cols-[0.72fr_1.28fr] lg:items-start">
+          <div className="space-y-4">
+            <div className="eyebrow">Performance &amp; stress</div>
+            <h2 className="text-3xl font-semibold text-white">Stress posture is explicit, not implied.</h2>
+            <p className="text-sm leading-7 text-slate-300">
+              CO2 Grid stays truthful under load because CO2 Router authorizes before execution and
+              each layer fails in a bounded way. This section mirrors the operator manual on the
+              public control surface.
+            </p>
+            <div className="rounded-2xl border border-amber-300/20 bg-amber-300/10 p-4 text-sm leading-7 text-amber-50">
+              Static assets stay edge-served, the authorization path stays cache-backed, and
+              enforcement remains cluster-local. Stress changes how the surface behaves, not what it
+              claims.
+            </div>
+          </div>
+
+          <div className="grid gap-4">
+            {stressRows.map((row) => (
+              <div key={row.system} className="rounded-3xl border border-white/10 bg-slate-950/50 p-5">
+                <div className="text-sm font-semibold uppercase tracking-[0.18em] text-cyan-200">
+                  {row.system}
+                </div>
+                <div className="mt-3 grid gap-4 text-sm leading-7 text-slate-300 md:grid-cols-2">
+                  <div>
+                    <div className="text-xs uppercase tracking-[0.2em] text-slate-500">Normal condition</div>
+                    <p className="mt-2">{row.normal}</p>
+                  </div>
+                  <div>
+                    <div className="text-xs uppercase tracking-[0.2em] text-slate-500">Stress condition</div>
+                    <p className="mt-2">{row.stress}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>

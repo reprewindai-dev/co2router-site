@@ -305,7 +305,7 @@ export async function getLandingSnapshot(): Promise<LandingSnapshot> {
       visible: true,
       generatedAt: liveSystem.generatedAt,
       lastUpdatedLabel: formatLastUpdated(liveSystem.generatedAt),
-      detail: 'Landing data is served from a public live mirror, not the operator console.',
+    detail: 'Landing data is served from CO2 Grid Freeview, not the paid operator surface.',
     },
     overview: {
       actionDistribution: buildActionDistribution(decisions),
@@ -315,8 +315,8 @@ export async function getLandingSnapshot(): Promise<LandingSnapshot> {
       proofContext: {
         proofRef: featuredDecision ? 'public proof sample' : null,
         governance: 'SAIQ policy-first governance',
-        traceRef: featuredDecision ? 'public live mirror' : null,
-        replay: 'public live mirror',
+    traceRef: featuredDecision ? 'CO2 Grid Freeview' : null,
+    replay: 'CO2 Grid Freeview',
         provenance:
           waterProviders.length > 0
             ? `${verifiedWaterDatasets}/${waterProviders.length} water authorities verified`

@@ -318,8 +318,8 @@ export async function getHallOGridSnapshot(): Promise<Omit<HallOGridSnapshot, 'a
   return {
     generatedAt: snapshot.generatedAt,
     selectedFrameId: snapshot.selectedDecisionFrameId,
-    title: 'CO2 Router Console',
-    subtitle: 'Powered by HallOGrid',
+    title: 'CO2 Grid',
+    subtitle: 'Powered by CO2 Router',
     projection: snapshot.projection,
     selectedFrame:
       selectedDecision != null ? buildFrameDetail(selectedDecision, selectedTrace, selectedReplay) : null,

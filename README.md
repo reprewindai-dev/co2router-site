@@ -1,8 +1,8 @@
-# CO2 Router Dashboard
+# CO2 Router Site
 
-This is the public control‑surface UI for CO2 Router. It presents live system
-state, recent decisions, trace/replay status, and governance visibility for the
-pre‑execution environmental authorization engine.
+This is the public product site for CO2 Router and HalOGrid. It presents the
+public doctrine, pricing, access path, and live operator-facing surfaces for
+the pre-execution environmental authorization engine.
 
 Public documentation lives in:
 `docs/public/` (repository root).

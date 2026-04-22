@@ -52,7 +52,7 @@ export default function SolutionsPage() {
         <div className="eyebrow">Need a pilot path?</div>
         <div className="mt-4 flex flex-wrap gap-3">
           <Link href="/access" className="rounded-full bg-cyan-300 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-200">
-            Request access
+            Request Pilot Access
           </Link>
           <Link href="/contact" className="rounded-full border border-white/15 px-5 py-3 text-sm font-semibold text-white transition hover:border-white/30 hover:bg-white/5">
             Talk to the team

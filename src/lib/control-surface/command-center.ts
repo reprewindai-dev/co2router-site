@@ -3,6 +3,7 @@ import 'server-only'
 import { fetchEngineJson, hasInternalApiKey } from './engine'
 import type {
   CiHealthSnapshot,
+  CiRouteResponse,
   CiSloSnapshot,
   CommandCenterDecisionItem,
   CommandCenterProjectionSnapshot,
@@ -15,6 +16,19 @@ import type {
   WorldRegionState,
   WorldRoutingFlow,
 } from '@/types/control-surface'
+
+const SAMPLE_ROUTE_REQUEST = {
+  preferredRegions: ['us-east-1', 'eu-west-1', 'us-west-2'],
+  carbonWeight: 0.55,
+  waterWeight: 0.35,
+  latencyWeight: 0.05,
+  costWeight: 0.05,
+  jobType: 'standard',
+  criticality: 'standard',
+  waterPolicyProfile: 'default',
+  allowDelay: true,
+  estimatedEnergyKwh: 2.5,
+} as const
 
 type DecisionRow = {
   decisionFrameId: string
@@ -210,6 +224,10 @@ function toWorldExecutionState(decision: DecisionRow): WorldExecutionState {
   const action = asAction(decision.action ?? decision.decisionAction)
   const reason = decision.reasonCode.toUpperCase()
 
+  if (action === 'delay' || action === 'throttle') {
+    return 'marginal'
+  }
+
   if (
     action === 'deny' ||
     reason.includes('DENY') ||
@@ -222,7 +240,6 @@ function toWorldExecutionState(decision: DecisionRow): WorldExecutionState {
   }
 
   if (
-    action === 'delay' ||
     decision.fallbackUsed ||
     decision.signalMode === 'fallback' ||
     decision.waterAuthorityMode === 'fallback'
@@ -251,6 +268,51 @@ function buildCommandCenterDecisionItem(decision: DecisionRow): CommandCenterDec
     waterAuthorityMode: decision.waterAuthorityMode ?? null,
     fallbackUsed: decision.fallbackUsed,
     systemState: toWorldExecutionState(decision),
+  }
+}
+
+function buildSampleDecisionItem(decision: CiRouteResponse): CommandCenterDecisionItem {
+  const reasonCode =
+    decision.reasonCode && decision.reasonCode !== 'UNKNOWN' ? decision.reasonCode : 'LIVE_SAMPLE'
+
+  return {
+    decisionFrameId: decision.decisionFrameId,
+    createdAt: decision.proofRecord.timestamp ?? new Date().toISOString(),
+    action: decision.decision,
+    reasonCode,
+    selectedRegion: decision.selectedRegion,
+    proofHash: decision.proofHash ?? null,
+    traceAvailable: false,
+    governanceSource:
+      typeof decision.policyTrace.policyVersion === 'string'
+        ? decision.policyTrace.policyVersion
+        : typeof decision.policyTrace.profile === 'string'
+          ? decision.policyTrace.profile
+          : null,
+    latencyTotalMs: decision.latencyMs?.total ?? null,
+    latencyComputeMs: decision.latencyMs?.compute ?? null,
+    signalConfidence: decision.signalConfidence ?? null,
+    signalMode: decision.signalMode ?? null,
+    accountingMethod: decision.accountingMethod ?? null,
+    waterAuthorityMode: decision.waterAuthority.authorityMode ?? null,
+    fallbackUsed: decision.fallbackUsed,
+    systemState:
+      decision.decision === 'deny'
+        ? 'blocked'
+        : decision.decision === 'delay' || decision.decision === 'throttle'
+          ? 'marginal'
+          : 'active',
+  }
+}
+
+async function fetchLiveSampleDecision() {
+  try {
+    return await fetchEngineJson<CiRouteResponse>('/ci/route', {
+      method: 'POST',
+      body: JSON.stringify(SAMPLE_ROUTE_REQUEST),
+    })
+  } catch {
+    return null
   }
 }
 
@@ -351,6 +413,25 @@ function buildProviders(
     )
   }
 
+  for (const canonicalKey of [
+    'WATTTIME_MOER',
+    'GRIDSTATUS',
+    'EIA_930',
+    'ONTARIO_IESO',
+    'QUEBEC_HYDRO',
+    'BC_GOV',
+    'GB_CARBON',
+    'DK_CARBON',
+    'FI_CARBON',
+    'EMBER_STRUCTURAL_BASELINE',
+  ]) {
+    if (carbonProviderBuckets.has(canonicalKey)) continue
+    carbonProviderBuckets.set(canonicalKey, {
+      key: canonicalKey,
+      snapshots: [],
+    })
+  }
+
   for (const canonicalKey of Array.from(freshnessMap.keys())) {
     if (!isCanonicalCarbonProvider(canonicalKey) || carbonProviderBuckets.has(canonicalKey)) {
       continue
@@ -374,23 +455,26 @@ function buildProviders(
     const metadataText = latestMetadata ? JSON.stringify(latestMetadata).toLowerCase() : ''
     const rateLimited =
       metadataText.includes('429') || metadataText.includes('rate limit') || metadataText.includes('quota')
+    const hasObservedSignals = record.snapshots.length > 0 || Boolean(fresh)
     const isStale =
       fresh && fresh.freshnessSec >= 0
         ? Boolean(fresh.isStale)
         : freshnessSec != null
           ? freshnessSec > resolveLiveProviderTtl(canonicalKey)
           : false
-    const statusReasonCode: ControlSurfaceProviderNode['statusReasonCode'] = isStale
-      ? rateLimited
-        ? 'DEGRADED_RATE_LIMIT'
-        : 'DEGRADED_STALE'
-      : 'HEALTHY_LIVE'
+    const statusReasonCode: ControlSurfaceProviderNode['statusReasonCode'] = !hasObservedSignals
+      ? 'DEGRADED_STALE'
+      : isStale
+        ? rateLimited
+          ? 'DEGRADED_RATE_LIMIT'
+          : 'DEGRADED_STALE'
+        : 'HEALTHY_LIVE'
 
     return {
       id: canonicalKey,
       label: providerLabel(canonicalKey),
       providerType: 'carbon' as const,
-      status: isStale ? 'degraded' : 'healthy',
+      status: !hasObservedSignals || isStale ? 'degraded' : 'healthy',
       statusReasonCode,
       statusLabel: humanizeStatusReason(statusReasonCode),
       freshnessSec,
@@ -398,13 +482,15 @@ function buildProviders(
       confidence: latestConfidence,
       mirrored: canonicalKey === 'EMBER_STRUCTURAL_BASELINE',
       lineageCount: record.snapshots.length,
-      mode: canonicalKey === 'EMBER_STRUCTURAL_BASELINE' ? 'mirrored' : isStale ? 'fallback' : 'live',
-      signalAuthority: canonicalKey.includes('WATTTIME') ? 'marginal' : isStale ? 'fallback' : 'average',
+      mode: canonicalKey === 'EMBER_STRUCTURAL_BASELINE' ? 'mirrored' : !hasObservedSignals || isStale ? 'fallback' : 'live',
+      signalAuthority: !hasObservedSignals ? 'fallback' : canonicalKey.includes('WATTTIME') ? 'marginal' : isStale ? 'fallback' : 'average',
       degradedReason: isStale
         ? rateLimited
           ? 'Provider is rate limited or quota constrained.'
           : 'Freshness breached the safe live-signal window.'
-        : null,
+        : !hasObservedSignals
+          ? 'Live provider signals have not populated yet.'
+          : null,
       mirrorVersion: typeof latestMetadata?.version === 'string' ? latestMetadata.version : null,
     } satisfies ControlSurfaceProviderNode
   })
@@ -639,6 +725,9 @@ function buildWorldNodes(
     selectedReplay?.persisted?.candidateEvaluations?.length
       ? selectedReplay.persisted.candidateEvaluations
       : selectedReplay?.replay.candidateEvaluations ?? []
+  const replaySelectedRegion =
+    selectedReplay?.persisted?.selectedRegion ?? selectedReplay?.replay.selectedRegion ?? null
+  const selectedAction = selectedReplay?.persisted?.decision ?? selectedReplay?.replay.decision ?? null
 
   for (const candidate of replayCandidates) {
     registerRegionSignal(
@@ -656,12 +745,42 @@ function buildWorldNodes(
         candidate.capacity?.pressureLevel === 'severe' ||
         candidate.capacity?.pressureLevel === 'elevated' ||
         (candidate.defensibleReasonCodes?.length ?? 0) > 0)
+    const isReplaySelected = replaySelectedRegion === candidate.region
+    const candidateAction = isReplaySelected
+      ? selectedAction === 'deny'
+        ? 'deny'
+        : selectedAction === 'delay'
+          ? 'delay'
+          : selectedAction === 'throttle'
+            ? 'throttle'
+            : selectedAction === 'reroute'
+              ? 'reroute'
+              : 'run_now'
+      : blocked
+        ? 'deny'
+        : guarded
+          ? 'reroute'
+          : 'run_now'
+    const candidateState: WorldExecutionState = isReplaySelected
+      ? candidateAction === 'deny'
+        ? 'blocked'
+        : candidateAction === 'delay' || candidateAction === 'throttle'
+          ? 'marginal'
+          : 'active'
+      : blocked
+        ? 'blocked'
+        : guarded
+          ? 'marginal'
+          : 'active'
 
     seen.set(candidate.region, {
       decisionFrameId: `${selectedReplay?.decisionFrameId ?? 'candidate'}:${candidate.region}`,
       createdAt: selectedReplay?.replayedAt ?? new Date().toISOString(),
-      action: blocked ? 'deny' : guarded ? 'reroute' : 'run_now',
+      action: candidateAction,
       reasonCode:
+        (isReplaySelected
+          ? selectedReplay?.persisted?.reasonCode ?? selectedReplay?.replay.reasonCode
+          : null) ??
         candidate.guardrailReasons?.[0] ??
         candidate.capacityReasonCodes?.[0] ??
         candidate.defensibleReasonCodes?.[0] ??
@@ -683,7 +802,7 @@ function buildWorldNodes(
         selectedReplay?.replay.waterAuthority.authorityMode ??
         null,
       fallbackUsed: Boolean(selectedReplay?.persisted?.fallbackUsed ?? selectedReplay?.replay.fallbackUsed),
-      systemState: blocked ? 'blocked' : guarded ? 'marginal' : 'active',
+      systemState: candidateState,
     })
   }
 
@@ -717,10 +836,6 @@ function buildWorldNodes(
   }
 
   const routeMeta = new Map<string, { routePressure: number; blockedFocusLanes: number }>()
-  const replaySelectedRegion =
-    selectedReplay?.persisted?.selectedRegion ?? selectedReplay?.replay.selectedRegion ?? null
-  const selectedAction = selectedReplay?.persisted?.decision ?? selectedReplay?.replay.decision ?? null
-
   if (baselineRegion && replaySelectedRegion) {
     const blocked = !(selectedAction === 'run_now' || selectedAction === 'reroute')
     routeMeta.set(baselineRegion, {
@@ -841,14 +956,33 @@ export async function getCommandCenterSnapshot(): Promise<CommandCenterSnapshot>
     })),
   ])
 
-  const recentDecisions = decisionFeed.decisions
+  let recentDecisions = decisionFeed.decisions
     .map(buildCommandCenterDecisionItem)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+  let sampleReplay: LiveSystemReplayResponse | null = null
+
+  if (recentDecisions.length === 0) {
+    const liveSample = await fetchLiveSampleDecision()
+    if (liveSample) {
+      recentDecisions = [buildSampleDecisionItem(liveSample)]
+      sampleReplay = {
+        decisionFrameId: liveSample.decisionFrameId,
+        persisted: null,
+        replay: liveSample,
+        consistent: true,
+        deterministicMatch: true,
+        traceBacked: false,
+        legacy: true,
+        mismatches: [],
+        replayedAt: new Date().toISOString(),
+      }
+    }
+  }
   const defaultSelected =
     recentDecisions.find((decision) => decision.traceAvailable) ?? recentDecisions[0] ?? null
 
   const [selectedTrace, selectedReplay] =
-    defaultSelected && hasInternalApiKey()
+    defaultSelected && defaultSelected.traceAvailable && hasInternalApiKey()
       ? await Promise.all([
           fetchEngineJson<DecisionTraceRawRecord>(
             `/ci/decisions/${encodeURIComponent(defaultSelected.decisionFrameId)}/trace/raw`,
@@ -861,7 +995,7 @@ export async function getCommandCenterSnapshot(): Promise<CommandCenterSnapshot>
             { internal: true }
           ).catch(() => null),
         ])
-      : [null, null]
+      : [null, sampleReplay]
 
   const providers = buildProviders(providerTrust, provenance)
   const worldNodes = buildWorldNodes(recentDecisions, selectedTrace, selectedReplay, providerTrust, providers)

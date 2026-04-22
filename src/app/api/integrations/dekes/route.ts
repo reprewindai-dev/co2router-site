@@ -26,7 +26,7 @@ async function fetchFromEngine(path: string) {
   })
 
   if (!response.ok) {
-    throw new Error(`ECOBE Engine error: ${response.status} ${response.statusText}`)
+    throw new Error(`CO2 Router engine error: ${response.status} ${response.statusText}`)
   }
 
   return response.json()

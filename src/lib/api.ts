@@ -141,7 +141,7 @@ api.interceptors.response.use(
 
       if (!err.response) {
         return Promise.reject(
-          new Error('Cannot reach CO2Router Engine -- check NEXT_PUBLIC_ECOBE_API_URL')
+          new Error('Cannot reach CO2 Router engine -- check the public API base URL')
         )
       }
 

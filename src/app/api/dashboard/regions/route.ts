@@ -49,7 +49,7 @@ async function fetchFromEngine(path: string) {
   })
 
   if (!response.ok) {
-    throw new Error(`ECOBE Engine error: ${response.status} ${response.statusText}`)
+    throw new Error(`CO2 Router engine error: ${response.status} ${response.statusText}`)
   }
 
   return (await response.json()) as GridSummaryResponse
@@ -84,9 +84,22 @@ export async function GET(request: Request) {
     return NextResponse.json(regionData)
   } catch (error) {
     console.error('Regions API error:', error)
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to fetch regions data' },
-      { status: 500 }
+    const response = NextResponse.json(
+      [
+        {
+          id: 'engine-unavailable',
+          name: 'Canonical engine unavailable',
+          carbonIntensity: null,
+          demand: 'Disconnected',
+          renewable: 'Unavailable',
+          confidence: 0,
+          source: 'offline',
+          timestamp: new Date().toISOString(),
+        },
+      ],
+      { status: 200 }
     )
+    response.headers.set('x-co2router-degraded', 'engine-unavailable')
+    return response
   }
 }

@@ -4,12 +4,13 @@ import { CommandCenterShell } from '@/components/command-center/CommandCenterShe
 import { createPageMetadata } from '@/lib/seo'
 
 export const metadata: Metadata = createPageMetadata({
-  title: 'Control Surface',
+  title: 'CO2 Grid Freeview',
   description:
-    'Live execution authority, SAIQ governance, trace, replay, provenance, and proof across the CO2 Router command center.',
+    'CO2 Grid Freeview is the public proof surface for CO2 Router, showing governed execution, world state, trace, replay, and proof posture without exposing operator controls.',
   path: '/console',
   keywords: [
-    'CO2 Router control surface',
+    'CO2 Router CO2 Grid Freeview',
+    'CO2 Grid public proof surface',
     'execution control plane',
     'trace replay provenance',
     'SAIQ governance',

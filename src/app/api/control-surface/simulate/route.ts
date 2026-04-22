@@ -244,7 +244,7 @@ export async function POST(request: Request) {
           ...(fullData.proofEnvelope ?? {}),
           detailMode: 'full',
           detailHydrationError:
-            error instanceof Error ? error.message : 'Unable to hydrate full proof details',
+            error instanceof Error ? error.message : 'Unable to load full proof details',
         }
       }
 

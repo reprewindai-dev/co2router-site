@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 
 import { fetchEngineJson, hasInternalApiKey } from '@/lib/control-surface/engine'
+import { FALLBACK_OVERVIEW_SNAPSHOT } from '@/lib/control-surface/fallbacks'
 import {
   dashboardTelemetryMetricNames,
   recordDashboardMetric,
@@ -116,6 +117,19 @@ type MetricsResponse = {
   totalDecisions: number
   fallbackRate: number
 }
+
+const SAMPLE_ROUTE_REQUEST = {
+  preferredRegions: ['us-east-1', 'eu-west-1', 'us-west-2'],
+  carbonWeight: 0.55,
+  waterWeight: 0.35,
+  latencyWeight: 0.05,
+  costWeight: 0.05,
+  jobType: 'standard',
+  criticality: 'standard',
+  waterPolicyProfile: 'default',
+  allowDelay: true,
+  estimatedEnergyKwh: 2.5,
+} as const
 
 function toSourceMode(decision: DecisionRow): 'live' | 'mirrored' | 'fallback' {
   if (decision.fallbackUsed) return 'fallback'
@@ -412,9 +426,7 @@ function chooseFeaturedDecision(
 
 async function getReplayBundle(decisions: DecisionFeed['decisions']) {
   const latest = decisions[0]
-  if (!latest) return null
-
-  if (hasInternalApiKey()) {
+  if (latest && hasInternalApiKey()) {
     try {
       return await fetchEngineJson<ReplayBundle>(
         `/ci/decisions/${encodeURIComponent(latest.decisionFrameId)}/replay`,
@@ -428,18 +440,7 @@ async function getReplayBundle(decisions: DecisionFeed['decisions']) {
 
   const replay = await fetchEngineJson<CiRouteResponse>('/ci/route', {
     method: 'POST',
-    body: JSON.stringify({
-      preferredRegions: ['us-east1', 'eu-west1', 'us-west1'],
-      carbonWeight: 0.55,
-      waterWeight: 0.35,
-      latencyWeight: 0.05,
-      costWeight: 0.05,
-      jobType: 'standard',
-      criticality: 'standard',
-      waterPolicyProfile: 'default',
-      allowDelay: true,
-      estimatedEnergyKwh: 2.5,
-    }),
+    body: JSON.stringify(SAMPLE_ROUTE_REQUEST),
   })
 
   return {
@@ -454,13 +455,43 @@ async function getReplayBundle(decisions: DecisionFeed['decisions']) {
 export async function GET() {
   const startedAt = performance.now()
   try {
-    const [health, slo, ledger, metrics, decisionFeed] = await Promise.all([
+    const [healthResult, sloResult, ledgerResult, metricsResult, decisionFeedResult] = await Promise.allSettled([
       fetchEngineJson<CiHealthSnapshot>('/ci/health'),
       fetchEngineJson<CiSloSnapshot>('/ci/slo'),
       fetchEngineJson<LedgerSummary>('/dashboard/carbon-ledger-summary?days=30'),
       fetchEngineJson<MetricsResponse>('/dashboard/metrics?window=24h'),
       fetchEngineJson<DecisionFeed>('/ci/decisions?limit=12'),
     ])
+
+    const health =
+      healthResult.status === 'fulfilled'
+        ? healthResult.value
+        : FALLBACK_OVERVIEW_SNAPSHOT.health
+    const slo =
+      sloResult.status === 'fulfilled'
+        ? sloResult.value
+        : FALLBACK_OVERVIEW_SNAPSHOT.slo
+    const ledger =
+      ledgerResult.status === 'fulfilled'
+        ? ledgerResult.value
+        : {
+            totalJobsRouted: 0,
+            carbonAvoidedPeriodKg: 0,
+            carbonReductionMultiplier: null,
+            highConfidenceDecisionPct: 0,
+            providerDisagreementRatePct: 0,
+          }
+    const metrics =
+      metricsResult.status === 'fulfilled'
+        ? metricsResult.value
+        : {
+            totalDecisions: 0,
+            fallbackRate: 0,
+          }
+    const decisionFeed =
+      decisionFeedResult.status === 'fulfilled'
+        ? decisionFeedResult.value
+        : { decisions: [] }
 
     const [providerTrustResult, outboxResult] = await Promise.allSettled([
       fetchEngineJson<ProviderTrustResponse>('/dashboard/provider-trust'),
@@ -481,11 +512,24 @@ export async function GET() {
       throw new Error('No live decision available for control surface')
     }
 
-    const decisions = decisionFeed.decisions.map(buildDecisionSummary)
+    const decisions =
+      decisionFeed.decisions.length > 0
+        ? decisionFeed.decisions.map(buildDecisionSummary)
+        : [buildSampleDecisionSummary(liveDecision)]
     const providers = buildProviders(providerTrust)
     const actionDistribution = buildActionDistribution(decisions)
     const timeline = buildTimeline(decisions, replay, outbox, providers)
     const scenarioPreviews = await getScenarioPreviews(liveDecision)
+    if (ledgerResult.status === 'rejected' || metricsResult.status === 'rejected') {
+      timeline.unshift({
+        id: 'dashboard-metrics-degraded',
+        type: 'ProviderDegraded',
+        label: 'Dashboard metrics degraded',
+        timestamp: new Date().toISOString(),
+        severity: 'warning',
+        detail: 'Decisioning stayed live, but one or more summary metric feeds did not load.',
+      })
+    }
     if (providerTrustResult.status === 'rejected') {
       timeline.unshift({
         id: 'provider-trust-degraded',
@@ -595,9 +639,50 @@ export async function GET() {
     recordDashboardMetric(dashboardTelemetryMetricNames.routeErrorCount, 'counter', 1, {
       route: 'overview',
     })
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to build control surface overview' },
-      { status: 500 }
-    )
+    const fallback = {
+      ...FALLBACK_OVERVIEW_SNAPSHOT,
+      generatedAt: new Date().toISOString(),
+      service: {
+        ...FALLBACK_OVERVIEW_SNAPSHOT.service,
+        detail: 'Canonical engine unavailable. Public fallback snapshot is active.',
+      },
+    }
+    const response = NextResponse.json(fallback, { status: 200 })
+    response.headers.set('x-co2router-degraded', 'engine-unavailable')
+    return response
+  }
+}
+
+function buildSampleDecisionSummary(liveDecision: CiRouteResponse): ControlSurfaceDecisionSummary {
+  return {
+    decisionFrameId: liveDecision.decisionFrameId,
+    createdAt: liveDecision.proofRecord.timestamp,
+    workloadLabel: 'Live routing sample',
+    action: liveDecision.decision,
+    decisionMode: liveDecision.decisionMode,
+    reasonCode: liveDecision.reasonCode,
+    selectedRegion: liveDecision.selectedRegion,
+    selectedRunner: liveDecision.selectedRunner,
+    carbonIntensity: liveDecision.selected.carbonIntensity,
+    baselineCarbonIntensity: liveDecision.baseline.carbonIntensity,
+    carbonReductionPct: liveDecision.savings.carbonReductionPct,
+    waterSelectedLiters: liveDecision.water.selectedLiters,
+    waterBaselineLiters: liveDecision.water.baselineLiters,
+    waterImpactDeltaLiters: liveDecision.savings.waterImpactDeltaLiters,
+    waterScarcityImpact: liveDecision.water.selectedScarcityImpact,
+    waterStressIndex: liveDecision.water.stressIndex,
+    signalConfidence: liveDecision.signalConfidence,
+    fallbackUsed: liveDecision.fallbackUsed,
+    sourceMode: liveDecision.fallbackUsed ? 'fallback' : 'live',
+    signalMode: liveDecision.signalMode,
+    accountingMethod: liveDecision.accountingMethod,
+    waterAuthorityMode: liveDecision.waterAuthority.authorityMode,
+    waterScenario: liveDecision.waterAuthority.scenario,
+    facilityId: liveDecision.waterAuthority.facilityId ?? null,
+    precedenceOverrideApplied: Boolean(liveDecision.policyTrace.precedenceOverrideApplied),
+    notBefore: liveDecision.notBefore,
+    proofHash: liveDecision.proofHash,
+    latencyMs: liveDecision.latencyMs ?? null,
+    summaryReason: liveDecision.decisionExplanation?.whyAction ?? 'Live routing sample ready.',
   }
 }

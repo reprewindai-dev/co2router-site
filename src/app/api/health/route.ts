@@ -1,5 +1,7 @@
-import { NextResponse } from 'next/server'
+import { proxyCanonicalEngineJson } from '@/lib/server-engine-route'
+
+export const dynamic = 'force-dynamic'
 
 export async function GET() {
-  return NextResponse.json({ status: 'ok', service: 'ecobe-dashboard', timestamp: new Date().toISOString() })
+  return proxyCanonicalEngineJson('/health')
 }

@@ -22,13 +22,14 @@ export function HeroMotionSurface({
   liveDecision: ControlSurfaceDecisionSummary | null
 }) {
   const actionMeta = liveDecision ? formatAction(liveDecision.action) : null
+  const isFallback = liveDecision?.fallbackUsed ?? false
   const workloadLabel = liveDecision?.workloadLabel ?? 'Current execution frame'
-  const baselineCarbon = liveDecision?.baselineCarbonIntensity
-  const waterStressIndex = liveDecision?.waterStressIndex
+  const baselineCarbon = !isFallback ? liveDecision?.baselineCarbonIntensity : null
+  const waterStressIndex = !isFallback ? liveDecision?.waterStressIndex : null
   const selectedRegion = liveDecision?.selectedRegion
-  const carbonDelta = liveDecision?.carbonReductionPct
-  const signalConfidence = liveDecision?.signalConfidence
-  const totalLatency = liveDecision?.latencyMs?.total
+  const carbonDelta = !isFallback ? liveDecision?.carbonReductionPct : null
+  const signalConfidence = !isFallback ? liveDecision?.signalConfidence : null
+  const totalLatency = !isFallback ? liveDecision?.latencyMs?.total : null
   const baselineCarbonLabel =
     baselineCarbon != null ? `${baselineCarbon} gCO2/kWh` : 'baseline carbon state'
   const waterAuthorityLabel =

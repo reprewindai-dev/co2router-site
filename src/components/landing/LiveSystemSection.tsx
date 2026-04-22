@@ -15,14 +15,19 @@ export function LiveSystemSection() {
   return (
     <section className="rounded-[32px] border border-white/10 bg-white/[0.03] p-6 sm:p-8">
       <div className="max-w-3xl">
-        <div className="text-[11px] uppercase tracking-[0.28em] text-cyan-300">Live System</div>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="text-[11px] uppercase tracking-[0.28em] text-cyan-300">Live System</div>
+          <div className="rounded-full border border-emerald-400/20 bg-emerald-400/8 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-200">
+            CO2 Grid Freeview
+          </div>
+        </div>
         <h2 className="mt-3 text-3xl font-black tracking-[-0.04em] text-white sm:text-4xl">
           Real execution authority. Real trace. Real replay.
         </h2>
         <p className="mt-4 text-sm leading-7 text-slate-300 sm:text-base">
-          This section is bound to live engine outputs. It exposes recent decisions, trace and
-          replay posture, SAIQ governance state, verified water datasets, and the current p95
-          latency window.
+          This section is bound to CO2 Grid Freeview, the public proof surface for CO2 Router. It
+          exposes recent decisions, trace and replay posture, SAIQ governance state, verified water
+          datasets, and the current p95 latency window.
         </p>
         {liveSystemQuery.error ? (
           <div className="mt-4 rounded-2xl border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm text-amber-100">

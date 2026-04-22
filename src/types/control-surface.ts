@@ -631,7 +631,7 @@ export interface HallOGridConsoleAccess {
   entitlements: HallOGridEntitlement[]
   role: HallOGridRole
   mode: 'public_preview' | 'pro_eval' | 'pro_production'
-  label: 'Live Mirror' | 'Operator Console'
+  label: 'CO2 Grid Freeview' | 'CO2 Grid Pro' | 'CO2 Grid Elite'
   isReadOnlyPreview: boolean
   canViewOperatorConsole: boolean
   canAccessControls: boolean

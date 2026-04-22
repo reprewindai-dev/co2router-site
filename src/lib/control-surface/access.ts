@@ -9,11 +9,8 @@ import type {
 } from '@/types/control-surface'
 
 const DEFAULT_UPGRADE_PROMPTS = [
-  'See counterfactuals',
-  'Unlock replay',
-  'Enable doctrine',
-  'Connect your workloads',
-  'Run a pilot',
+  'Request Pilot Access',
+  'View CO2 Grid pricing',
 ]
 
 const DEFAULT_PRO_HIGHLIGHTS = [
@@ -119,13 +116,18 @@ export function resolveHallOGridAccess(request?: Request): HallOGridConsoleAcces
     canViewOperatorConsole && (role === 'operator' || role === 'governance_admin' || role === 'org_admin')
   const canManageDoctrine = mode === 'pro_production' && (role === 'governance_admin' || role === 'org_admin')
   const canViewCompliance = entitlements.includes('compliance_pack')
+  const label: HallOGridConsoleAccess['label'] = isReadOnlyPreview
+    ? 'CO2 Grid Freeview'
+    : canManageDoctrine || canViewCompliance || role === 'governance_admin' || role === 'org_admin'
+      ? 'CO2 Grid Elite'
+      : 'CO2 Grid Pro'
 
   return {
     tenantId,
     entitlements,
     role,
     mode,
-    label: isReadOnlyPreview ? 'Live Mirror' : 'Operator Console',
+    label,
     isReadOnlyPreview,
     canViewOperatorConsole,
     canAccessControls,
@@ -134,7 +136,7 @@ export function resolveHallOGridAccess(request?: Request): HallOGridConsoleAcces
     redactionDelayMinutes: isReadOnlyPreview ? 90 : 0,
     upgradePrompts: DEFAULT_UPGRADE_PROMPTS,
     proHighlights: DEFAULT_PRO_HIGHLIGHTS,
-    upgradeUrl: '/purchase',
+    upgradeUrl: '/access',
   }
 }
 

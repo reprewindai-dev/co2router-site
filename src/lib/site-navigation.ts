@@ -11,11 +11,11 @@ export interface SiteLinkSection {
 export const primaryNavLinks: SiteLink[] = [
   { href: '/', label: 'Overview' },
   { href: '/design-partners', label: 'Design Partners' },
-  { href: '/console', label: 'Control Surface' },
-  { href: '/assurance', label: 'Assurance' },
+  { href: '/console', label: 'CO2 Grid Freeview' },
+  { href: '/pricing', label: 'CO2 Grid Pro / Elite' },
+  { href: '/access', label: 'Request Pilot Access' },
   { href: '/status', label: 'Status' },
   { href: '/methodology', label: 'Methodology' },
-  { href: '/blog', label: 'Blog' },
 ]
 
 export const footerLinkSections: SiteLinkSection[] = [
@@ -24,11 +24,11 @@ export const footerLinkSections: SiteLinkSection[] = [
     links: [
       { href: '/', label: 'Overview' },
       { href: '/design-partners', label: 'Design Partners' },
-      { href: '/console', label: 'Control Surface' },
-      { href: '/assurance', label: 'Assurance' },
+      { href: '/console', label: 'CO2 Grid Freeview' },
+      { href: '/pricing', label: 'CO2 Grid Pro / Elite' },
+      { href: '/access', label: 'Request Pilot Access' },
       { href: '/status', label: 'Status' },
       { href: '/methodology', label: 'Methodology' },
-      { href: '/blog', label: 'Blog' },
     ],
   },
   {

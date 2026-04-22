@@ -26,8 +26,8 @@ export function ProviderHealthMonitor() {
   return (
     <div className="bg-slate-900/50 rounded-xl border border-slate-800 p-6 space-y-5">
       <div>
-        <h3 className="text-lg font-semibold text-white">Provider Health</h3>
-        <p className="text-xs text-slate-500 mt-0.5">Signal validation layer</p>
+        <h3 className="text-lg font-semibold text-white">Live Provider Constellation</h3>
+        <p className="text-xs text-slate-500 mt-0.5">Canonical live provider state</p>
       </div>
 
       {isLoading && (

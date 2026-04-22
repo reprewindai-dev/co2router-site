@@ -26,7 +26,7 @@ async function fetchFromEngine(path: string) {
   })
 
   if (!response.ok) {
-    throw new Error(`ECOBE Engine error: ${response.status} ${response.statusText}`)
+    throw new Error(`CO2 Router engine error: ${response.status} ${response.statusText}`)
   }
 
   return response.json()
@@ -40,9 +40,19 @@ export async function GET(request: Request) {
     return NextResponse.json(data)
   } catch (error) {
     console.error('KPIs API error:', error)
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to fetch KPI data' },
-      { status: 500 }
+    const response = NextResponse.json(
+      {
+        totalJobsRouted: 0,
+        carbonAvoidedPeriodKg: 0,
+        carbonReductionMultiplier: null,
+        highConfidenceDecisionPct: 0,
+        providerDisagreementRatePct: 0,
+        degraded: true,
+        error: 'Canonical engine unavailable.',
+      },
+      { status: 200 }
     )
+    response.headers.set('x-co2router-degraded', 'engine-unavailable')
+    return response
   }
 }

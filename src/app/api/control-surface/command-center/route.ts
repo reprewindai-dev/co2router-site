@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 
 import { getCommandCenterSnapshot } from '@/lib/control-surface/command-center'
+import { FALLBACK_COMMAND_CENTER_SNAPSHOT } from '@/lib/control-surface/fallbacks'
 import { getCachedSnapshot } from '@/lib/control-surface/snapshot-cache'
 import {
   dashboardTelemetryMetricNames,
@@ -52,11 +53,17 @@ export async function GET() {
     recordDashboardMetric(dashboardTelemetryMetricNames.routeErrorCount, 'counter', 1, {
       route: 'command-center',
     })
-    return NextResponse.json(
-      {
-        error: error instanceof Error ? error.message : 'Failed to build command center snapshot',
+    const fallback = {
+      ...FALLBACK_COMMAND_CENTER_SNAPSHOT,
+      generatedAt: new Date().toISOString(),
+      header: {
+        ...FALLBACK_COMMAND_CENTER_SNAPSHOT.header,
+        detail: 'Canonical engine unavailable. Frontend fallback snapshot is active.',
       },
-      { status: 500 }
-    )
+    }
+    const response = NextResponse.json(fallback, { status: 200 })
+    response.headers.set('x-co2router-degraded', 'engine-unavailable')
+    response.headers.set('Cache-Control', SNAPSHOT_CACHE_CONTROL)
+    return response
   }
 }
