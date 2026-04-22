@@ -3,7 +3,7 @@ import { getBrokerBaseUrl } from '@/lib/broker-url'
 import { getInternalApiKey as resolveInternalApiKey } from '@/lib/internal-api-key'
 
 const DECISION_SIGNATURE_PATHS = new Set(['/ci/route', '/ci/authorize', '/ci/carbon-route'])
-const DEFAULT_MCP_TIMEOUT_MS = 12_000
+const DEFAULT_MCP_TIMEOUT_MS = 8_000
 
 export function getMcpBrokerBaseUrl() {
   return getBrokerBaseUrl().replace(/\/api\/v1\/?$/, '')

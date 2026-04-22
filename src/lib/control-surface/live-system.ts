@@ -60,7 +60,7 @@ type SloResponse = {
 }
 
 const REQUIRED_DATASETS = ['aqueduct', 'aware', 'wwf', 'nrel'] as const
-const FAST_DECISION_FEED_TIMEOUT_MS = 7_000
+const FAST_DECISION_FEED_TIMEOUT_MS = 4_000
 
 function buildFallbackLiveSystemSnapshot(): LiveSystemSnapshot {
   const generatedAt = new Date().toISOString()
@@ -218,12 +218,12 @@ export async function getLiveSystemSnapshot(): Promise<LiveSystemSnapshot> {
           fetchEngineJson<LiveSystemTraceResponse>(
             `/ci/decisions/${encodeURIComponent(latestDecision.decisionFrameId)}/trace`,
             undefined,
-            { internal: true }
+            { internal: true, timeoutMs: 4_000 }
           ),
           fetchEngineJson<LiveSystemReplayResponse>(
             `/ci/decisions/${encodeURIComponent(latestDecision.decisionFrameId)}/replay`,
             undefined,
-            { internal: true }
+            { internal: true, timeoutMs: 4_000 }
           ),
         ])
       : null

@@ -150,7 +150,7 @@ const REGION_ANCHORS: Record<string, { label: string; x: number; y: number }> = 
   'ap-northeast-1': { label: 'AP NorthEast 1', x: 83, y: 18 },
 }
 
-const FAST_DECISION_FEED_TIMEOUT_MS = 8_000
+const FAST_DECISION_FEED_TIMEOUT_MS = 4_000
 const LIVE_PROVIDER_TTL_SEC: Record<string, number> = {
   WATTTIME_MOER: 600,
   GRIDSTATUS: 1800,
@@ -939,12 +939,12 @@ export async function getCommandCenterSnapshot(
             fetchEngineJson<DecisionTraceRawRecord>(
               `/ci/decisions/${encodeURIComponent(defaultSelected.decisionFrameId)}/trace/raw`,
               undefined,
-              { internal: true }
+              { internal: true, timeoutMs: 4_000 }
             ).catch(() => null),
             fetchEngineJson<LiveSystemReplayResponse>(
               `/ci/decisions/${encodeURIComponent(defaultSelected.decisionFrameId)}/replay`,
               undefined,
-              { internal: true }
+              { internal: true, timeoutMs: 4_000 }
             ).catch(() => null),
           ])
         : [null, null]
