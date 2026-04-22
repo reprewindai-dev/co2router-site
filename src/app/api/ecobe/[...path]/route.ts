@@ -93,10 +93,9 @@ async function proxy(request: Request, ctx: { params: Promise<{ path?: string[] 
       | 'HEAD'
       | 'OPTIONS',
     headers,
-    data: bodyBuffer,
+    data: bodyBuffer as unknown as ArrayBuffer | undefined,
     responseType: 'arraybuffer',
     validateStatus: () => true,
-    maxRedirects: 0,
   })
 
   const response = new NextResponse(upstream.data, {

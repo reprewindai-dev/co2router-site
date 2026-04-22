@@ -1,3 +1,5 @@
+import { getServerEngineBaseUrl } from '@/lib/server-engine-url'
+
 type WorkloadType = 'build' | 'test' | 'batch' | 'inference' | 'etl'
 
 type GreenRoutingResult = {
@@ -73,8 +75,9 @@ export type DemoRouteResponse = {
   generatedAt: string
 }
 
-const ENGINE_BASE_URL =
-  process.env.ECOBE_API_URL || 'http://localhost:3000'
+function getEngineBaseUrl() {
+  return getServerEngineBaseUrl()
+}
 
 const DEFAULT_CANDIDATE_REGIONS = ['eastus', 'westus2', 'northeurope', 'norwayeast']
 
@@ -136,7 +139,7 @@ function toConfidence(qualityTier: 'high' | 'medium' | 'low' | undefined) {
 }
 
 async function postEngineJson<T>(path: string, body: Record<string, unknown>): Promise<T> {
-  const response = await fetch(`${ENGINE_BASE_URL}${path}`, {
+  const response = await fetch(`${getEngineBaseUrl()}${path}`, {
     method: 'POST',
     headers: {
       'content-type': 'application/json',

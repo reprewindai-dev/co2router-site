@@ -6,11 +6,8 @@ function normalizeBaseUrl(value: string) {
   return value.replace(/\/api\/v1\/?$/, '').replace(/\/$/, '')
 }
 
-function isManagedProductionRuntime() {
-  return (
-    process.env.NODE_ENV === 'production' &&
-    Boolean(process.env.VERCEL || process.env.RENDER || process.env.RENDER_INSTANCE_ID)
-  )
+function isProductionBuild() {
+  return process.env.NODE_ENV === 'production' && process.env.NEXT_PHASE === 'phase-production-build'
 }
 
 export function getServerEngineBaseUrl() {
@@ -24,9 +21,13 @@ export function getServerEngineBaseUrl() {
     return normalizeBaseUrl(configuredUrl)
   }
 
-  if (isManagedProductionRuntime()) {
+  if (isProductionBuild()) {
+    return LOCAL_ENGINE_URL
+  }
+
+  if (process.env.NODE_ENV === 'production') {
     throw new Error(
-      'ECOBE_API_URL must be set in production and should point to the Render backend origin.'
+      'ECOBE_API_URL must be set in production and should point to the canonical CO2 Router engine origin.'
     )
   }
 
