@@ -151,6 +151,7 @@ const REGION_ANCHORS: Record<string, { label: string; x: number; y: number }> = 
 }
 
 const FAST_DECISION_FEED_TIMEOUT_MS = 4_000
+const ENABLE_LIVE_DEEP_TRACE = process.env.CO2ROUTER_ENABLE_LIVE_TRACE === 'true'
 const LIVE_PROVIDER_TTL_SEC: Record<string, number> = {
   WATTTIME_MOER: 600,
   GRIDSTATUS: 1800,
@@ -934,7 +935,7 @@ export async function getCommandCenterSnapshot(
       recentDecisions.find((decision) => decision.traceAvailable) ?? recentDecisions[0] ?? null
 
     const [selectedTrace, selectedReplay] =
-      defaultSelected && hasInternalApiKey()
+      defaultSelected && hasInternalApiKey() && ENABLE_LIVE_DEEP_TRACE
         ? await Promise.all([
             fetchEngineJson<DecisionTraceRawRecord>(
               `/ci/decisions/${encodeURIComponent(defaultSelected.decisionFrameId)}/trace/raw`,

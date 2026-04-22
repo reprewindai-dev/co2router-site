@@ -61,6 +61,7 @@ type SloResponse = {
 
 const REQUIRED_DATASETS = ['aqueduct', 'aware', 'wwf', 'nrel'] as const
 const FAST_DECISION_FEED_TIMEOUT_MS = 4_000
+const ENABLE_LIVE_DEEP_TRACE = process.env.CO2ROUTER_ENABLE_LIVE_TRACE === 'true'
 
 function buildFallbackLiveSystemSnapshot(): LiveSystemSnapshot {
   const generatedAt = new Date().toISOString()
@@ -213,7 +214,7 @@ export async function getLiveSystemSnapshot(): Promise<LiveSystemSnapshot> {
   const latestDecision = recentDecisions[0] ?? null
 
   const traceResult =
-    latestDecision && hasInternalApiKey()
+    latestDecision && hasInternalApiKey() && ENABLE_LIVE_DEEP_TRACE
       ? await Promise.allSettled([
           fetchEngineJson<LiveSystemTraceResponse>(
             `/ci/decisions/${encodeURIComponent(latestDecision.decisionFrameId)}/trace`,
