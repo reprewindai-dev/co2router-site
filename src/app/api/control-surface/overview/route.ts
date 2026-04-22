@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 
 import { fetchEngineJson, hasInternalApiKey } from '@/lib/control-surface/engine'
 import { STATIC_WATER_BUNDLE_TTL_SEC } from '@/lib/control-surface/freshness'
+import { FALLBACK_OVERVIEW } from '@/lib/control-surface/fallbacks'
 import {
   dashboardTelemetryMetricNames,
   recordDashboardMetric,
@@ -132,6 +133,193 @@ function deriveFallbackRate(decisions: ControlSurfaceDecisionSummary[]) {
   if (decisions.length === 0) return 0
   const fallbackCount = decisions.filter((decision) => decision.fallbackUsed).length
   return Number((fallbackCount / decisions.length).toFixed(4))
+}
+
+const OVERVIEW_ROUTE_TIMEOUT_MS = 4_500
+
+function buildFallbackOverviewResponse(totalMs: number, reason: string) {
+  const liveDecision = {
+    decision: 'run_now',
+    decisionMode: 'runtime_authorization',
+    reasonCode: 'OVERVIEW_FALLBACK',
+    decisionFrameId: 'overview-fallback',
+    selectedRunner: 'fallback-runner',
+    selectedRegion: 'us-east-1',
+    recommendation: 'Overview data is hydrating from the live control plane.',
+    signalConfidence: 0,
+    fallbackUsed: true,
+    signalMode: 'fallback',
+    accountingMethod: 'average',
+    notBefore: null,
+    proofHash: 'unavailable',
+    waterAuthority: {
+      authorityMode: 'fallback',
+      scenario: 'current',
+      confidence: 0,
+      supplierSet: [],
+      evidenceRefs: [],
+      bundleHash: null,
+      manifestHash: null,
+    },
+    policyTrace: {},
+    baseline: {
+      region: 'us-east-1',
+      carbonIntensity: 0,
+      waterImpactLiters: 0,
+      waterScarcityImpact: 0,
+    },
+    selected: {
+      region: 'us-east-1',
+      carbonIntensity: 0,
+      waterImpactLiters: 0,
+      waterScarcityImpact: 0,
+    },
+    savings: {
+      carbonReductionPct: 0,
+      waterImpactDeltaLiters: 0,
+    },
+    water: {
+      selectedLiters: 0,
+      baselineLiters: 0,
+      selectedScarcityImpact: 0,
+      baselineScarcityImpact: 0,
+      intensityLPerKwh: 0,
+      stressIndex: 0,
+      qualityIndex: null,
+      droughtRiskIndex: null,
+      confidence: 0,
+      source: ['fallback'],
+      datasetVersion: {},
+      guardrailTriggered: false,
+      fallbackUsed: true,
+    },
+    workflowOutputs: {},
+    candidateEvaluations: [],
+    proofRecord: {
+      job_id: 'overview-fallback',
+      baseline_region: 'us-east-1',
+      selected_region: 'us-east-1',
+      carbon_delta: 0,
+      water_delta: 0,
+      signals_used: ['fallback'],
+      timestamp: new Date().toISOString(),
+      dataset_versions: {},
+      confidence_score: 0,
+      proof_hash: 'unavailable',
+      provider_snapshot_refs: [],
+    },
+    latencyMs: {
+      total: 0,
+      compute: 0,
+      providerResolution: 0,
+      cacheStatus: 'fallback',
+      influencedDecision: false,
+      providers: {
+        electricityMaps: null,
+        wattTime: null,
+        validation: null,
+      },
+      budget: {
+        totalP95Ms: 0,
+        computeP95Ms: 0,
+      },
+      withinEnvelope: false,
+    },
+  } as CiRouteResponse
+
+  const overview: ControlSurfaceOverview = {
+    generatedAt: new Date().toISOString(),
+    service: {
+      status: 'degraded',
+      proofPosture: 'Fallback overview served while live data hydrates.',
+      detail: reason,
+    },
+    impact: {
+      totalDecisions: 0,
+      carbonAvoidedKg: 0,
+      carbonReductionMultiplier: null,
+      waterShiftedLiters: 0,
+      costOptimizedUsd: 0,
+      delayedDecisions: 0,
+    },
+    liveDecision,
+    replay: FALLBACK_OVERVIEW.replay,
+    decisions: [],
+    actionDistribution: FALLBACK_OVERVIEW.actionDistribution,
+    providers: FALLBACK_OVERVIEW.providers,
+    scenarioPreviews: [],
+    timeline: [],
+    metrics: {
+      fallbackRate: 1,
+      highConfidenceDecisionPct: 0,
+      providerDisagreementRatePct: 0,
+      p50TotalMs: 0,
+      p50ComputeMs: 0,
+      p95TotalMs: 0,
+      p95ComputeMs: 0,
+      p99TotalMs: 0,
+      p99ComputeMs: 0,
+      currentTotalMs: 0,
+      currentComputeMs: 0,
+    },
+    health: {
+      status: 'degraded',
+      timestamp: new Date().toISOString(),
+      checks: {
+        database: false,
+        waterArtifacts: {
+          bundlePresent: false,
+          manifestPresent: false,
+          schemaCompatible: false,
+          regionCount: 0,
+          sourceCount: 0,
+          datasetHashesPresent: false,
+        },
+      },
+      errors: ['Overview fallback served while live data hydrates.'],
+      sloBudgetMs: {
+        totalP95Ms: 0,
+        computeP95Ms: 0,
+      },
+    },
+    slo: {
+      samples: 0,
+      p50: { totalMs: 0, computeMs: 0 },
+      p95: { totalMs: 0, computeMs: 0 },
+      p99: { totalMs: 0, computeMs: 0 },
+      current: { totalMs: 0, computeMs: 0 },
+      budget: { totalP95Ms: 0, computeP95Ms: 0 },
+      withinBudget: { total: false, compute: false },
+    },
+    outbox: null,
+    simulationDefaults: {
+      preferredRegions: ['us-east1', 'eu-west1', 'us-west1'],
+      waterPolicyProfile: 'default',
+      jobType: 'standard',
+      criticality: 'standard',
+      carbonWeight: 0.55,
+      waterWeight: 0.35,
+      latencyWeight: 0.05,
+      costWeight: 0.05,
+      allowDelay: true,
+      estimatedEnergyKwh: 2.5,
+    },
+  }
+
+  const serialized = JSON.stringify(overview)
+  const responseBytes = Buffer.byteLength(serialized)
+  const response = new NextResponse(serialized, {
+    status: 200,
+    headers: {
+      'content-type': 'application/json',
+    },
+  })
+  response.headers.set('x-co2router-snapshot-cache', 'fallback')
+  response.headers.set('x-co2router-response-bytes', String(responseBytes))
+  response.headers.set('x-co2router-overview-mode', 'fallback')
+  response.headers.set('Cache-Control', 'no-store, max-age=0')
+  response.headers.set('Server-Timing', `total;dur=${totalMs.toFixed(1)}`)
+  return response
 }
 
 function toSourceMode(decision: DecisionRow): 'live' | 'mirrored' | 'fallback' {
@@ -550,7 +738,7 @@ async function getReplayBundle(decisions: DecisionFeed['decisions']) {
   }
 }
 
-export async function GET() {
+async function buildOverviewResponse() {
   const startedAt = performance.now()
   try {
     const describeFailure = (error: unknown) => (error instanceof Error ? error.message : 'Unknown engine failure.')
@@ -811,4 +999,20 @@ export async function GET() {
       { status: 500 }
     )
   }
+}
+
+export async function GET() {
+  const startedAt = performance.now()
+  const fallbackPromise = new Promise<NextResponse>((resolve) => {
+    setTimeout(() => {
+      resolve(
+        buildFallbackOverviewResponse(
+          performance.now() - startedAt,
+          'Overview snapshot timed out while live data continued hydrating.'
+        )
+      )
+    }, OVERVIEW_ROUTE_TIMEOUT_MS)
+  })
+
+  return Promise.race([buildOverviewResponse(), fallbackPromise])
 }
