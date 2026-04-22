@@ -6,10 +6,10 @@ import { createPageMetadata } from '@/lib/seo'
 export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = createPageMetadata({
-  title: 'HaloGrid Compare',
-  description: 'Switch between HaloGrid builds (Opus vs Google Pro) for stability and UX review.',
+  title: 'CO2 Grid Compare',
+  description: 'Switch between CO2 Grid builds (Opus vs Google Pro) for stability and UX review.',
   path: '/console/compare',
-  keywords: ['HaloGrid compare', 'command center', 'control surface'],
+  keywords: ['CO2 Grid compare', 'command center', 'control surface'],
 })
 
 export default async function HaloGridComparePage(props: {
@@ -31,7 +31,7 @@ export default async function HaloGridComparePage(props: {
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <div className="sticky top-0 z-50 border-b border-white/10 bg-slate-950/80 backdrop-blur">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
-          <div className="text-sm font-semibold tracking-tight">HaloGrid Compare</div>
+        <div className="text-sm font-semibold tracking-tight">CO2 Grid Compare</div>
           <div className="flex items-center gap-2 text-xs">
             <a
               className={`rounded-full border px-3 py-1 ${

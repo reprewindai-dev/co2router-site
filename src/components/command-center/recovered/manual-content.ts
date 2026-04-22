@@ -8,9 +8,9 @@
 export const HALOGRID_MANUAL_SECTIONS: HalogridManualSection[] = [
   {
     id: 'overview',
-    title: 'What HalOGrid Is',
+    title: 'What CO2 Grid Is',
     paragraphs: [
-      'HalOGrid is the CO2 Router command-center surface for deterministic environmental authorization. Compute does not run until it is authorized. The system issues a binding decision before execution, not a recommendation after the fact.',
+      'CO2 Grid is the CO2 Router command-center surface for deterministic environmental authorization. Compute does not run until it is authorized. The system issues a binding decision before execution, not a recommendation after the fact.',
       'Every decision is sealed with a proof hash, tied to replayable signal state, and exposed through a surface that shows operators why the engine chose a region, why it blocked a route, and what the current world posture means for execution.',
     ],
     bullets: [
@@ -39,7 +39,7 @@ export const HALOGRID_MANUAL_SECTIONS: HalogridManualSection[] = [
     id: 'five-actions',
     title: 'Five Actions',
     paragraphs: [
-      'Every decision resolves to one of five binding actions. These are not advisory labels. They are the execution authority surfaced by the CO2 Router engine and rendered directly inside HalOGrid.',
+      'Every decision resolves to one of five binding actions. These are not advisory labels. They are the execution authority surfaced by the CO2 Router engine and rendered directly inside CO2 Grid.',
     ],
     bullets: [
       'Run Now: execute in the current approved lane',
@@ -53,15 +53,15 @@ export const HALOGRID_MANUAL_SECTIONS: HalogridManualSection[] = [
     id: 'controls',
     title: 'Controls',
     paragraphs: [
-      'The recovered HalOGrid console preserves the original operator interaction model while staying truthful to live data. The theater supports drag-to-pan, discrete zoom levels, direct region selection, panel collapse, and Globe Only presentation mode.',
+      'The recovered CO2 Grid console preserves the original operator interaction model while staying truthful to live data. The theater supports drag-to-pan, discrete zoom levels, direct region selection, panel collapse, and Globe Only presentation mode.',
     ],
     bullets: [
       'Drag the theater to pan the map surface',
       'Use mouse wheel or zoom controls to move between Wide, Mid, and Close',
       'Click a region node to lock the decision card',
       'Collapse either side panel independently or switch to Globe Only',
-      'In Globe Only mode, click the HalOGrid logo to toggle Ghost Mode',
-      'Triple-click the HalOGrid logo in Elite to reveal the policy surface',
+      'In Globe Only mode, click the CO2 Grid logo to toggle Ghost Mode',
+      'Triple-click the CO2 Grid logo in Elite to reveal the policy surface',
     ],
   },
   {
@@ -80,7 +80,7 @@ export const HALOGRID_MANUAL_SECTIONS: HalogridManualSection[] = [
     id: 'hud',
     title: 'HUD Elements',
     paragraphs: [
-      'The HUD is always driven from the live HallOGrid snapshot. It summarizes fleet health, carbon pressure, blocked posture, decision velocity, queue pressure, provider stress, and current operator confidence without requiring additional clicks.',
+      'The HUD is always driven from the live CO2 Grid snapshot. It summarizes fleet health, carbon pressure, blocked posture, decision velocity, queue pressure, provider stress, and current operator confidence without requiring additional clicks.',
     ],
     bullets: [
       'Active, marginal, and blocked region counts summarize world posture',
@@ -161,11 +161,11 @@ export const HALOGRID_MANUAL_SECTIONS: HalogridManualSection[] = [
     id: 'hidden-elite',
     title: 'Hidden Elite Features',
     paragraphs: [
-      'HalOGrid keeps discoverable power-user behavior in the product without faking backend capability. These controls are designed for operators and presenters who want a cleaner surface or faster access to governance posture.',
+      'CO2 Grid keeps discoverable power-user behavior in the product without faking backend capability. These controls are designed for operators and presenters who want a cleaner surface or faster access to governance posture.',
     ],
     bullets: [
-      'Ghost Mode: click the HalOGrid mark in Presentation mode to drop the top rail',
-      'Policy Tuner reveal: triple-click the HalOGrid mark in Elite to open read-only governance weights',
+      'Ghost Mode: click the CO2 Grid mark in Presentation mode to drop the top rail',
+      'Policy Tuner reveal: triple-click the CO2 Grid mark in Elite to open read-only governance weights',
       'Decision Forensics: pin a lane and inspect normalized candidates in the inspector rail',
       'Proof posture: proof hash, replay, and evidence reference counts stay visible in the inspector',
     ],
@@ -187,7 +187,7 @@ export const HALOGRID_MANUAL_SECTIONS: HalogridManualSection[] = [
     id: 'team-chat',
     title: 'Team Chat',
     paragraphs: [
-      'Team Chat is preserved as an Elite shell because it is part of the original HalOGrid experience. In this recovery build it must remain truthful: if no live team-communications backend exists for the tenant, the panel states that clearly instead of simulating operator messages.',
+      'Team Chat is preserved as an Elite shell because it is part of the original CO2 Grid experience. In this recovery build it must remain truthful: if no live team-communications backend exists for the tenant, the panel states that clearly instead of simulating operator messages.',
     ],
     bullets: [
       'No fake team traffic is generated',
@@ -249,7 +249,7 @@ export const HALOGRID_MANUAL_SECTIONS: HalogridManualSection[] = [
     id: 'controls-reference',
     title: 'Controls Reference',
     paragraphs: [
-      'HalOGrid is designed so the entire surface can be reduced to the globe, expanded back into a full command workspace, or shifted into a presentation state without losing access to the selected decision.',
+      'CO2 Grid is designed so the entire surface can be reduced to the globe, expanded back into a full command workspace, or shifted into a presentation state without losing access to the selected decision.',
     ],
     bullets: [
       'Hover a lane to preview live proof posture at the cursor',
@@ -276,7 +276,7 @@ export const HALOGRID_MANUAL_SECTIONS: HalogridManualSection[] = [
     id: 'operator-notes',
     title: 'Operator Notes',
     paragraphs: [
-      'HalOGrid is now restored as the authoritative command-center console on top of the existing CO2 Router stack. The route, backend connection, and Vercel deployment stay inside the source app. The recovered UI is no longer a disconnected demo.',
+      'CO2 Grid is now restored as the authoritative command-center console on top of the existing CO2 Router stack. The route, backend connection, and Vercel deployment stay inside the source app. The recovered UI is no longer a disconnected demo.',
     ],
     bullets: [
       'Console route lives inside the source-backed production app',
@@ -289,7 +289,7 @@ export const HALOGRID_MANUAL_SECTIONS: HalogridManualSection[] = [
     id: 'performance-stress',
     title: 'Performance And Stress',
     paragraphs: [
-      'The rebuilt HalOGrid theater is always 3D. When fleet posture becomes noisy, the scene reduces ring density and glow intensity through storm-mode tuning rather than dropping into a degraded 2D fallback.',
+      'The rebuilt CO2 Grid theater is always 3D. When fleet posture becomes noisy, the scene reduces ring density and glow intensity through storm-mode tuning rather than dropping into a degraded 2D fallback.',
     ],
     bullets: [
       'Storm mode reduces visual clutter under blocked or degraded posture',

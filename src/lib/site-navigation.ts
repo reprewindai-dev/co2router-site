@@ -19,7 +19,7 @@ const commercialPrimaryNavLinks: SiteLink[] = [
 
 const technicalPrimaryNavLinks: SiteLink[] = [
   { href: '/', label: 'Technical Overview' },
-  { href: '/console', label: 'HaloGrid' },
+  { href: '/console', label: 'CO2 Grid' },
   { href: '/developers/architecture', label: 'Architecture' },
   { href: '/system/replay', label: 'Replay' },
   { href: '/developers/quickstart', label: 'Quickstart' },
@@ -59,7 +59,7 @@ const commercialFooterLinkSections: SiteLinkSection[] = [
   {
     title: 'Technical',
     links: [
-      { href: '/console', label: 'HaloGrid' },
+      { href: '/console', label: 'CO2 Grid' },
       { href: '/developers/quickstart', label: 'Quickstart' },
       { href: '/developers/api', label: 'API' },
       { href: '/developers/architecture', label: 'Architecture' },
@@ -69,7 +69,7 @@ const commercialFooterLinkSections: SiteLinkSection[] = [
 
 const technicalFooterLinkSections: SiteLinkSection[] = [
   {
-    title: 'HaloGrid',
+    title: 'CO2 Grid',
     links: [
       { href: '/', label: 'Technical Overview' },
       { href: '/console', label: 'Control Surface' },
@@ -123,7 +123,7 @@ export function getHeaderSubtitle(audience: 'commercial' | 'technical') {
 
 export function getFooterTagline(audience: 'commercial' | 'technical') {
   return audience === 'technical'
-    ? 'Inspect HaloGrid, proof, replay, and deterministic execution authority.'
+    ? 'Inspect CO2 Grid, proof, replay, and deterministic execution authority.'
     : 'Authorize compute before it runs. Prove every decision.'
 }
 

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CO2 Router — HaloGrid Command Console</title>
+<title>CO2 Router — CO2 Grid Command Console</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -1285,7 +1285,7 @@ input[type=range].red::-webkit-slider-thumb { background: var(--red); box-shadow
 <!-- VISOR OVERLAY -->
 <div class="visor-overlay" id="visor-overlay">
   <button class="visor-close" onclick="closeVisor()">✕ EXIT VISOR</button>
-  <div class="visor-title">HALOGRID SMART VISOR — POSTURE STATUS</div>
+  <div class="visor-title">CO2 GRID SMART VISOR — POSTURE STATUS</div>
   <div class="visor-posture" id="visor-posture">ENFORCING</div>
   <div class="visor-decisions">
     <span id="visor-count">—</span> decisions in the last 60 minutes
@@ -3340,7 +3340,7 @@ async function pollHealth(){
     state.ui.errors.health = null;
   } catch (err){
     state.ui.errors.health = String(err?.message || err);
-    console.warn('HaloGrid health poll failed:', err);
+    console.warn('CO2 Grid health poll failed:', err);
   } finally {
     state.ui.loading.health = false;
     renderAll();
@@ -3355,7 +3355,7 @@ async function pollDashboardHealth(){
     state.ui.dashboard.error = null;
   } catch (err){
     state.ui.dashboard.error = String(err?.message || err);
-    console.warn('HaloGrid dashboard health poll failed:', err);
+    console.warn('CO2 Grid dashboard health poll failed:', err);
   } finally {
     renderBuildMarker();
   }
@@ -3368,7 +3368,7 @@ async function pollDecisions(){
       overview = await fetchDashboardJson(OVERVIEW_API);
       state.overview = overview;
     } catch (overviewErr){
-      console.warn('HaloGrid overview poll failed, falling back to command center:', overviewErr);
+      console.warn('CO2 Grid overview poll failed, falling back to command center:', overviewErr);
     }
 
     let commandCenter = state.commandCenter;
@@ -3392,7 +3392,7 @@ async function pollDecisions(){
     state.ui.errors.decisions = null;
   } catch (err){
     state.ui.errors.decisions = String(err?.message || err);
-    console.warn('HaloGrid decisions poll failed:', err);
+    console.warn('CO2 Grid decisions poll failed:', err);
   } finally {
     state.ui.loading.decisions = false;
     renderAll();
@@ -3413,7 +3413,7 @@ async function pollAnalytics(){
   } catch (err){
     state.ui.errors.analytics = String(err?.message || err);
     state.analyticsSample = null;
-    console.warn('HaloGrid analytics poll failed:', err);
+    console.warn('CO2 Grid analytics poll failed:', err);
   } finally {
     state.ui.loading.analytics = false;
     renderAll();

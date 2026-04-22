@@ -11,11 +11,11 @@ export async function generateMetadata(): Promise<Metadata> {
 
   if (audience === 'technical') {
     return createPageMetadata({
-      title: 'Technical Overview',
+      title: 'CO2 Grid Overview',
       description:
-        'HaloGrid, architecture, proof, replay, provenance, and developer entrypoints for the CO2 Router technical surface.',
+        'CO2 Grid, architecture, proof, replay, provenance, and developer entrypoints for the CO2 Router operator surface.',
       path: '/',
-      keywords: ['HaloGrid', 'technical overview', 'control surface', 'replay', 'architecture'],
+      keywords: ['CO2 Grid', 'technical overview', 'control surface', 'replay', 'architecture'],
     })
   }
 

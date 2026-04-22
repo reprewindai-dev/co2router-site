@@ -1234,7 +1234,7 @@ export function HaloGridShell() {
             ENGINE UNREACHABLE
           </div>
           <div className="mt-2 text-lg font-black" style={{ color: theme.textStrong }}>
-            HalOGrid unavailable
+            CO2 Grid unavailable
           </div>
           <div className="mt-3 text-[13px] leading-6" style={{ color: theme.muted }}>
             {isEngineDown
@@ -1285,7 +1285,7 @@ export function HaloGridShell() {
             <Shield className="h-6 w-6 animate-pulse" style={{ color: theme.sky }} />
           </div>
           <div className="mt-5 text-[10px] tracking-[0.28em]" style={{ color: theme.sky }}>
-            HALOGRID COMMAND CENTER
+            CO2 GRID COMMAND CENTER
           </div>
           <div className="mt-2 text-lg font-black" style={{ color: theme.textStrong }}>
             Connecting to engine...
@@ -1352,7 +1352,7 @@ export function HaloGridShell() {
             className="text-[11px] tracking-[0.32em]"
             style={{ color: theme.sky }}
           >
-            HALOGRID COMMAND CENTER
+            CO2 GRID COMMAND CENTER
           </div>
           <div
             className="mt-3 text-xl font-black"
@@ -1832,7 +1832,7 @@ export function HaloGridShell() {
               <div className="absolute inset-0 flex items-center justify-center" style={{ background: 'rgba(2,6,23,0.18)' }}>
                 <div className="text-center">
                   <div className="text-[16px] font-black tracking-[0.35em]" style={{ color: theme.sky, textShadow: `0 0 40px ${theme.sky}` }}>
-                    HALOGRID FREEVIEW
+                    CO2 GRID FREEVIEW
                   </div>
                   <div className="mt-3 text-[12px] tracking-[0.15em]" style={{ color: theme.muted }}>
                     See the proof. Upgrade for full authority.
@@ -2715,7 +2715,7 @@ export function HaloGridShell() {
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <div className="text-[10px] tracking-[0.28em]" style={{ color: theme.sky }}>
-                    HALOGRID READY
+                    CO2 GRID READY
                   </div>
                   <div className="mt-2 text-[clamp(1.8rem,3vw,2.6rem)] font-black leading-tight" style={{ color: theme.textStrong }}>
                     Premium command center restored.

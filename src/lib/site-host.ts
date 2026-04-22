@@ -1,9 +1,14 @@
 export type SiteAudience = 'commercial' | 'technical'
 
 export const commercialSiteUrl = 'https://co2router.com'
-export const technicalSiteUrl = 'https://co2router.tech'
+export const technicalSiteUrl = 'https://console.co2router.com'
 
-const technicalHosts = new Set(['co2router.tech', 'www.co2router.tech'])
+const technicalHosts = new Set([
+  'co2router.tech',
+  'www.co2router.tech',
+  'console.co2router.com',
+  'www.console.co2router.com',
+])
 const commercialHosts = new Set(['co2router.com', 'www.co2router.com'])
 
 export function normalizeHost(rawHost: string | null | undefined) {

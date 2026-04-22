@@ -4,10 +4,10 @@ export function TechnicalHomePage() {
   const panels = [
     {
       eyebrow: 'Flagship Surface',
-      title: 'HaloGrid command center',
+      title: 'CO2 Grid command center',
       body: 'Inspect live execution authority, operator context, proof posture, and decision-state rendering in the technical control surface.',
       href: '/console',
-      cta: 'Open HaloGrid',
+      cta: 'Open CO2 Grid',
     },
     {
       eyebrow: 'Architecture',
@@ -29,7 +29,7 @@ export function TechnicalHomePage() {
     {
       title: 'Technical surfaces',
       links: [
-        { href: '/console', label: 'HaloGrid / Control Surface' },
+        { href: '/console', label: 'CO2 Grid / Control Surface' },
         { href: '/status', label: 'Operational status' },
         { href: '/system/decision-engine', label: 'Decision engine' },
         { href: '/system/provenance', label: 'Provenance' },
@@ -55,10 +55,10 @@ export function TechnicalHomePage() {
               Technical Overview
             </div>
             <h1 className="mt-3 text-4xl font-black tracking-[-0.05em] text-white sm:text-5xl">
-              HaloGrid is the technical interface for CO2 Router.
+              CO2 Grid is the technical interface for CO2 Router.
             </h1>
             <p className="mt-5 max-w-3xl text-sm leading-8 text-slate-300 sm:text-base">
-              This domain is the system-facing surface: HaloGrid, architecture, doctrine order,
+              This domain is the system-facing surface: CO2 Grid, architecture, doctrine order,
               proof, replay, provenance, and developer entry points. It exists to prove how the
               control plane works, not to retell the commercial story.
             </p>
@@ -67,7 +67,7 @@ export function TechnicalHomePage() {
                 href="/console"
                 className="rounded-2xl bg-gradient-to-r from-emerald-300 via-cyan-300 to-sky-400 px-5 py-3 text-sm font-bold uppercase tracking-[0.18em] text-slate-950"
               >
-                Open HaloGrid
+                Open CO2 Grid
               </Link>
               <Link
                 href="/developers/quickstart"
@@ -84,10 +84,10 @@ export function TechnicalHomePage() {
             </div>
             <div className="mt-4 space-y-3 text-sm leading-7 text-slate-300">
               <div className="rounded-2xl border border-white/8 bg-slate-950/60 px-4 py-3">
-                Hostname: <span className="font-semibold text-white">co2router.tech</span>
+                Hostname: <span className="font-semibold text-white">console.co2router.com</span>
               </div>
               <div className="rounded-2xl border border-white/8 bg-slate-950/60 px-4 py-3">
-                Canonical HaloGrid route: <span className="font-semibold text-white">/console</span>
+                Canonical CO2 Grid route: <span className="font-semibold text-white">/console</span>
               </div>
               <div className="rounded-2xl border border-white/8 bg-slate-950/60 px-4 py-3">
                 Core evidence: architecture, trace, replay, provenance, live control data, and

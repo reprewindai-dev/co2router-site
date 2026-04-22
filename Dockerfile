@@ -10,13 +10,15 @@ FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-# ECOBE_API_URL: server-side rewrite URL used by next.config.js.
-# Canonical production upstream is the Render deployment unless intentionally overridden.
-ARG ECOBE_API_URL=""
-ENV ECOBE_API_URL=${ECOBE_API_URL}
-# Client-side API URL uses the dashboard-side rewrite proxy.
-ARG NEXT_PUBLIC_ECOBE_API_URL="/api/ecobe"
-ENV NEXT_PUBLIC_ECOBE_API_URL=${NEXT_PUBLIC_ECOBE_API_URL}
+# MCP_API_URL: server-side broker URL used by the App Router proxy routes.
+# Canonical production upstream is the approved controller/MVP deployment unless intentionally overridden.
+ARG MCP_API_URL=""
+ENV MCP_API_URL=${MCP_API_URL}
+ENV ECOBE_API_URL=${MCP_API_URL}
+# Client-side API URL uses the broker proxy.
+ARG NEXT_PUBLIC_MCP_API_URL="/api/ecobe"
+ENV NEXT_PUBLIC_MCP_API_URL=${NEXT_PUBLIC_MCP_API_URL}
+ENV NEXT_PUBLIC_ECOBE_API_URL=${NEXT_PUBLIC_MCP_API_URL}
 RUN npm run build
 
 FROM base AS runner
