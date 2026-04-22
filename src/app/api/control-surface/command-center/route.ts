@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 
 import { getCommandCenterSnapshot } from '@/lib/control-surface/command-center'
+import { FALLBACK_COMMAND_CENTER_SNAPSHOT } from '@/lib/control-surface/fallbacks'
 import { getCachedSnapshot } from '@/lib/control-surface/snapshot-cache'
 import {
   dashboardTelemetryMetricNames,
@@ -11,15 +12,43 @@ export const dynamic = 'force-dynamic'
 
 const COMMAND_CENTER_CACHE_TTL_MS = 5_000
 const SNAPSHOT_CACHE_CONTROL = 'no-store, max-age=0'
+const ROUTE_RESPONSE_TIMEOUT_MS = 5_000
+
+function buildFallbackResponse(totalMs: number) {
+  const snapshot = FALLBACK_COMMAND_CENTER_SNAPSHOT
+  const serialized = JSON.stringify(snapshot)
+  const responseBytes = Buffer.byteLength(serialized)
+
+  const response = new NextResponse(serialized, {
+    status: 200,
+    headers: {
+      'content-type': 'application/json',
+    },
+  })
+  response.headers.set('x-co2router-snapshot-cache', 'fallback')
+  response.headers.set('x-co2router-command-mode', snapshot.runtime.mode)
+  response.headers.set('x-co2router-response-bytes', String(responseBytes))
+  response.headers.set('Cache-Control', SNAPSHOT_CACHE_CONTROL)
+  response.headers.set('Server-Timing', `total;dur=${totalMs.toFixed(1)}`)
+  return response
+}
 
 export async function GET() {
   const startedAt = performance.now()
   try {
-    const { value: cachedSnapshot, cacheStatus, lastSuccessfulAt, errorMessage } = await getCachedSnapshot(
+    const snapshotPromise = getCachedSnapshot(
       'command-center',
       COMMAND_CENTER_CACHE_TTL_MS,
       getCommandCenterSnapshot
     )
+    const timeoutPromise = new Promise<null>((resolve) => {
+      setTimeout(() => resolve(null), ROUTE_RESPONSE_TIMEOUT_MS)
+    })
+    const snapshotResult = await Promise.race([snapshotPromise, timeoutPromise])
+    if (!snapshotResult) {
+      return buildFallbackResponse(performance.now() - startedAt)
+    }
+    const { value: cachedSnapshot, cacheStatus, lastSuccessfulAt, errorMessage } = snapshotResult
     const snapshot =
       cacheStatus === 'stale'
         ? {
