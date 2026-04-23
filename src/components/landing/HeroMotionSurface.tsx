@@ -99,10 +99,10 @@ export function HeroMotionSurface({
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link
-              href="/console"
+              href="/access"
               className="rounded-2xl bg-gradient-to-r from-emerald-300 via-cyan-300 to-sky-400 px-5 py-3 text-sm font-bold uppercase tracking-[0.18em] text-slate-950 transition hover:brightness-105"
             >
-              Open Live Demo
+              Try Free
             </Link>
             <Link
               href="/methodology"

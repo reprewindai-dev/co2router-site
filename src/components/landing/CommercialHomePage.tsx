@@ -81,10 +81,10 @@ export function CommercialHomePage() {
           </div>
         </div>
         <a
-          href="/console"
+          href="/access"
           className="rounded-full border border-cyan-200/40 bg-cyan-300 px-5 py-2 text-sm font-semibold text-slate-950 transition hover:bg-cyan-200"
         >
-          Open Live Demo
+          Try Free
         </a>
       </section>
 
@@ -133,7 +133,7 @@ export function CommercialHomePage() {
                 className="rounded-[24px] border border-white/8 bg-white/[0.03] p-4"
               >
                 <div className="text-[11px] uppercase tracking-[0.18em] text-slate-500">
-                  stable shell
+                  live site
                 </div>
                 <div className="mt-2 text-lg font-semibold text-white">{item.title}</div>
                 <div className="mt-3 text-sm leading-7 text-slate-300">{item.detail}</div>
@@ -151,10 +151,8 @@ export function CommercialHomePage() {
             </span>
           </h2>
           <p className="mt-4 text-sm leading-7 text-slate-300 sm:text-base">
-            A workload asks to run. CO2 Router co-evaluates carbon, water, latency, and cost.
-            SAIQ governance and policy constraints return one of five binding actions before
-            execution. The executor follows the decision. Proof, trace, replay, and provenance stay
-            attached to the same frame.
+            A workload asks to run. CO2 Router routes public demo traffic through ecobe-mvp and
+            keeps the commercial surface focused on pricing, proof, and the free trial entrypoint.
           </p>
         </div>
         <div className="mt-8">

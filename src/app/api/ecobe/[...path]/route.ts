@@ -32,7 +32,7 @@ function getMcpBrokerBaseUrl() {
 }
 
 function getMcpTimeoutMs() {
-  const raw = process.env.ECOBE_ENGINE_TIMEOUT_MS
+const raw = process.env.MCP_TIMEOUT_MS || process.env.CO2ROUTER_MCP_TIMEOUT_MS
   const parsed = raw ? Number(raw) : NaN
   if (!Number.isFinite(parsed) || parsed <= 0) return 12_000
   return Math.min(Math.max(parsed, 2_000), 60_000)

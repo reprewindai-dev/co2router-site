@@ -28,8 +28,6 @@ import type {
   GridSignalSummary,
   GridOpportunities,
   GridImportLeakage,
-  DesignPartnerApplicationPayload,
-  DesignPartnerApplicationResponse,
 } from '@/types'
 
 const API_BASE = process.env.NEXT_PUBLIC_MCP_API_URL || '/api/ecobe'
@@ -528,16 +526,6 @@ export const ecobeApi = {
 
 
   // â”€â”€ Health â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  async applyForDesignPartnerProgram(
-    payload: DesignPartnerApplicationPayload
-  ): Promise<DesignPartnerApplicationResponse> {
-    const { data } = await api.post<DesignPartnerApplicationResponse>(
-      '/design-partners/applications',
-      payload
-    )
-    return data
-  },
-
   async health() {
     const { data } = await api.get('/health')
     return data

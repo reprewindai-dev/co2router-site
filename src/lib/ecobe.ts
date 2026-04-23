@@ -101,7 +101,7 @@ function getInternalHeaders() {
 }
 
 function getMcpTimeoutMs() {
-  const raw = process.env.ECOBE_ENGINE_TIMEOUT_MS || process.env.CO2ROUTER_ENGINE_TIMEOUT_MS
+  const raw = process.env.MCP_TIMEOUT_MS || process.env.CO2ROUTER_MCP_TIMEOUT_MS
   if (!raw) return 12_000
   const parsed = Number(raw)
   if (!Number.isFinite(parsed)) return 12_000

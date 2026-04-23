@@ -18,7 +18,7 @@ type ProbeResult = {
 }
 
 function getTimeoutMs() {
-  const raw = process.env.ECOBE_ENGINE_TIMEOUT_MS || process.env.CO2ROUTER_ENGINE_TIMEOUT_MS
+  const raw = process.env.MCP_TIMEOUT_MS || process.env.CO2ROUTER_MCP_TIMEOUT_MS
   if (!raw) return PROBE_TIMEOUT_MS
   const parsed = Number(raw)
   if (!Number.isFinite(parsed)) return PROBE_TIMEOUT_MS

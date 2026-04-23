@@ -10,11 +10,8 @@ export const defaultOgImage = '/co2router-poster.svg'
 
 export const coreSitePaths = [
   '/',
-  '/design-partners',
-  '/design-partners/one-pager',
   '/pricing',
   '/access',
-  '/console',
   '/assurance',
   '/status',
   '/methodology',

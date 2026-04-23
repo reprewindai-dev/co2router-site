@@ -1,12 +1,13 @@
 import Link from 'next/link'
 
 export function TechnicalHomePage() {
+  const consoleUrl = 'https://console.co2router.com'
   const panels = [
     {
       eyebrow: 'Flagship Surface',
       title: 'CO2 Grid command center',
-      body: 'Inspect live execution authority, operator context, proof posture, and decision-state rendering in the technical control surface.',
-      href: '/console',
+      body: 'Inspect live execution authority, operator context, proof posture, and decision-state rendering in the canonical technical control surface.',
+      href: consoleUrl,
       cta: 'Open CO2 Grid',
     },
     {
@@ -29,7 +30,7 @@ export function TechnicalHomePage() {
     {
       title: 'Technical surfaces',
       links: [
-        { href: '/console', label: 'CO2 Grid / Control Surface' },
+        { href: consoleUrl, label: 'CO2 Grid / Control Surface' },
         { href: '/status', label: 'Operational status' },
         { href: '/system/decision-engine', label: 'Decision engine' },
         { href: '/system/provenance', label: 'Provenance' },
@@ -64,7 +65,7 @@ export function TechnicalHomePage() {
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link
-                href="/console"
+                href={consoleUrl}
                 className="rounded-2xl bg-gradient-to-r from-emerald-300 via-cyan-300 to-sky-400 px-5 py-3 text-sm font-bold uppercase tracking-[0.18em] text-slate-950"
               >
                 Open CO2 Grid
@@ -87,7 +88,7 @@ export function TechnicalHomePage() {
                 Hostname: <span className="font-semibold text-white">console.co2router.com</span>
               </div>
               <div className="rounded-2xl border border-white/8 bg-slate-950/60 px-4 py-3">
-                Canonical CO2 Grid route: <span className="font-semibold text-white">/console</span>
+                Canonical CO2 Grid source: <span className="font-semibold text-white">console.co2router.com</span>
               </div>
               <div className="rounded-2xl border border-white/8 bg-slate-950/60 px-4 py-3">
                 Core evidence: architecture, trace, replay, provenance, live control data, and

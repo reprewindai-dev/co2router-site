@@ -9,7 +9,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     url: path === '/' ? siteUrl : `${siteUrl}${path}`,
     lastModified: now,
     changeFrequency: path === '/' ? 'weekly' : 'monthly',
-    priority: path === '/' ? 1 : path === '/console' || path === '/methodology' ? 0.9 : 0.7,
+    priority: path === '/' ? 1 : path === '/methodology' ? 0.9 : 0.7,
   })) satisfies MetadataRoute.Sitemap
 
   return staticRoutes

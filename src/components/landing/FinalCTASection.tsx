@@ -16,10 +16,10 @@ export function FinalCTASection() {
         </p>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           <Link
-            href="/console"
+            href="/access"
             className="rounded-2xl bg-gradient-to-r from-emerald-300 via-cyan-300 to-sky-400 px-5 py-3 text-sm font-bold uppercase tracking-[0.18em] text-slate-950"
           >
-            Open Live Demo
+            Try Free
           </Link>
           <a
             href="#live-decision"

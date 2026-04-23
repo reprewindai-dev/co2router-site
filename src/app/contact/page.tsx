@@ -13,7 +13,7 @@ export default function ContactPage() {
               Route the first production conversation through a real system.
             </h1>
             <p className="max-w-2xl text-base leading-8 text-slate-300 md:text-lg">
-              Use this channel for design-partner outreach, deployment support, or security reporting.
+              Use this channel for free-trial support, deployment support, or security reporting.
               Messages route through the production mail pipeline to the operating inbox.
             </p>
           </div>
@@ -21,7 +21,7 @@ export default function ContactPage() {
             <div className="rounded-3xl border border-white/10 bg-slate-950/60 p-4">
               <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Sales</div>
               <p className="mt-3 text-sm leading-7 text-slate-200">
-                Design partners, pilot scoping, and execution-governance rollout.
+                Free trial onboarding, pricing, and execution-governance rollout.
               </p>
             </div>
             <div className="rounded-3xl border border-white/10 bg-slate-950/60 p-4">

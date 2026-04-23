@@ -10,7 +10,7 @@ export interface SiteLinkSection {
 
 const commercialPrimaryNavLinks: SiteLink[] = [
   { href: '/', label: 'Overview' },
-  { href: '/design-partners', label: 'Design Partners' },
+  { href: '/access', label: 'Free Trial' },
   { href: '/assurance', label: 'Assurance' },
   { href: '/pricing', label: 'Pricing' },
   { href: '/company/about', label: 'Company' },
@@ -19,7 +19,7 @@ const commercialPrimaryNavLinks: SiteLink[] = [
 
 const technicalPrimaryNavLinks: SiteLink[] = [
   { href: '/', label: 'Technical Overview' },
-  { href: '/console', label: 'CO2 Grid' },
+  { href: 'https://console.co2router.com', label: 'CO2 Grid' },
   { href: '/developers/architecture', label: 'Architecture' },
   { href: '/system/replay', label: 'Replay' },
   { href: '/developers/quickstart', label: 'Quickstart' },
@@ -31,7 +31,7 @@ const commercialFooterLinkSections: SiteLinkSection[] = [
     title: 'Product',
     links: [
       { href: '/', label: 'Overview' },
-      { href: '/design-partners', label: 'Design Partners' },
+      { href: '/access', label: 'Free Trial' },
       { href: '/assurance', label: 'Assurance' },
       { href: '/pricing', label: 'Pricing' },
       { href: '/methodology', label: 'Methodology' },
@@ -58,7 +58,7 @@ const commercialFooterLinkSections: SiteLinkSection[] = [
   {
     title: 'Technical',
     links: [
-      { href: '/console', label: 'CO2 Grid' },
+      { href: 'https://console.co2router.com', label: 'CO2 Grid' },
       { href: '/developers/quickstart', label: 'Quickstart' },
       { href: '/developers/api', label: 'API' },
       { href: '/developers/architecture', label: 'Architecture' },
@@ -71,8 +71,8 @@ const technicalFooterLinkSections: SiteLinkSection[] = [
     title: 'CO2 Grid',
     links: [
       { href: '/', label: 'Technical Overview' },
-      { href: '/console', label: 'Control Surface' },
-      { href: '/console/compare', label: 'Compare Builds' },
+      { href: 'https://console.co2router.com', label: 'Control Surface' },
+      { href: 'https://console.co2router.com', label: 'Compare Builds' },
       { href: '/status', label: 'Status' },
     ],
   },
@@ -132,8 +132,8 @@ export const footerLinkSections: SiteLinkSection[] = commercialFooterLinkSection
 
 export const legacyProductLinks: SiteLink[] = [
   { href: '/', label: 'Overview' },
-  { href: '/design-partners', label: 'Design Partners' },
-  { href: '/console', label: 'Control Surface' },
+  { href: '/access', label: 'Free Trial' },
+  { href: 'https://console.co2router.com', label: 'Control Surface' },
   { href: '/assurance', label: 'Assurance' },
   { href: '/pricing', label: 'Pricing' },
   { href: '/status', label: 'Status' },

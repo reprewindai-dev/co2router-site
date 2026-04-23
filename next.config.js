@@ -5,7 +5,7 @@ const MCP_BROKER_URL = (process.env.MCP_API_URL || process.env.ECOBE_MVP_URL || 
 
 const HALOGRID_CONSOLE_URL = (
   process.env.HALOGRID_CONSOLE_URL ||
-  'https://halogrid.vercel.app'
+  'https://console.co2router.com'
 ).replace(/\/$/, '')
 
 const nextConfig = {
