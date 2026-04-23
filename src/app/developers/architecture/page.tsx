@@ -17,9 +17,9 @@ export default function DevelopersArchitecturePage() {
     <InformationPageShell
       eyebrow="Developers / Architecture"
       title="One deterministic chain from signals to proof."
-      summary="The public architecture is intentionally direct: signals are normalized, SAIQ and policy shape the decision, the engine returns one binding action, and proof stays attached to the resulting frame."
+      summary="The public architecture is intentionally direct: signals are normalized, SAIQ and policy shape the decision, the core returns one binding action, and proof stays attached to the resulting frame."
       secondaryHref="/system/decision-engine"
-      secondaryLabel="View Decision Engine"
+      secondaryLabel="View Decision Core"
     >
       <section className="rounded-[32px] border border-white/10 bg-white/[0.03] p-6 sm:p-8">
         <DecisionFlowDiagram />

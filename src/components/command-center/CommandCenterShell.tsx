@@ -11,7 +11,7 @@ import React, {
   type ReactNode,
 } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useHallOGridSnapshot, useHallOGridFrame } from '@/lib/hooks/control-surface';
+import { useControlSurfaceSnapshot, useControlSurfaceFrame } from '@/lib/hooks/control-surface';
 import type { WorldRegionState, WorldRoutingFlow, CommandCenterDecisionItem } from '@/types/control-surface';
 
 /*
@@ -61,7 +61,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   state: ErrorBoundaryState = { hasError: false };
   static getDerivedStateFromError(): ErrorBoundaryState { return { hasError: true }; }
   componentDidCatch(error: Error, info: ErrorInfo) {
-    if (process.env.NODE_ENV !== 'production') console.error('[HalloGrid]', error, info);
+    if (process.env.NODE_ENV !== 'production') console.error('[ControlSurface]', error, info);
   }
   render() {
     return this.state.hasError ? this.props.fallback : this.props.children;
@@ -294,7 +294,7 @@ function Row({ label, value, color, highlight }: { label: string; value: string;
 
 // ─── MASTER SHELL COMPONENT ───
 export function CommandCenterShell() {
-  const snapshotQuery = useHallOGridSnapshot();
+  const snapshotQuery = useControlSurfaceSnapshot();
   const snapshot = snapshotQuery.data;
   const reducedMotion = useReducedMotion();
 
@@ -313,7 +313,7 @@ export function CommandCenterShell() {
   const isPrimary = Boolean(
     snapshot?.selectedDecisionFrameId && sel === snapshot.selectedDecisionFrameId
   );
-  const detailQuery = useHallOGridFrame(sel, {
+  const detailQuery = useControlSurfaceFrame(sel, {
     enabled: Boolean(sel) && !isPrimary,
     refetchInterval: false,
   });

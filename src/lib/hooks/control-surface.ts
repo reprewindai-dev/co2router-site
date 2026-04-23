@@ -153,10 +153,10 @@ export function useSendTeamChatMessage() {
   })
 }
 
-// HallOGrid Pro API — enhanced control plane hooks
-export function useHallOGridSnapshot() {
+// Control surface Pro API hooks
+export function useControlSurfaceSnapshot() {
   return useQuery<CommandCenterSnapshot>({
-    queryKey: ['hallogrid-snapshot'],
+    queryKey: ['control-surface-snapshot'],
     queryFn: () => getJson<CommandCenterSnapshot>('/api/control-surface/command-center'),
     staleTime: 15_000,
     refetchInterval: 15_000,
@@ -165,7 +165,7 @@ export function useHallOGridSnapshot() {
   })
 }
 
-export function useHallOGridFrame(
+export function useControlSurfaceFrame(
   decisionFrameId: string | null,
   options?: { enabled?: boolean; refetchInterval?: number | false }
 ) {
@@ -173,7 +173,7 @@ export function useHallOGridFrame(
     trace: DecisionTraceRawRecord | null
     replay: LiveSystemReplayResponse | null
   }>({
-    queryKey: ['hallogrid-frame', decisionFrameId],
+    queryKey: ['control-surface-frame', decisionFrameId],
     queryFn: async () => {
       const [trace, replay] = await Promise.all([
         decisionFrameId

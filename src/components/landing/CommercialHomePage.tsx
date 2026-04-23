@@ -77,7 +77,7 @@ export function CommercialHomePage() {
         <div>
           <div className="text-[11px] uppercase tracking-[0.22em] text-cyan-200">Live Control Plane</div>
           <div className="mt-1 text-sm text-slate-100 sm:text-base">
-            Open the CO2 Grid live demo, inspect the current routing frame, and verify proof posture.
+            Open the CO2 Router live demo, inspect the current routing frame, and verify proof posture.
           </div>
         </div>
         <a

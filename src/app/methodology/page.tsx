@@ -153,7 +153,7 @@ export default function MethodologyPage() {
             What CO2 Router does differently
           </div>
           <h2 className="mt-3 text-3xl font-black tracking-[-0.04em] text-white sm:text-4xl">
-            One decision engine. Five binding outcomes.
+            One decision core. Five binding outcomes.
           </h2>
           <p className="mt-4 text-sm leading-7 text-slate-300 sm:text-base">
             CO2 Router unifies real-time signal evaluation, deterministic decisioning, enforcement

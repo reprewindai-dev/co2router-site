@@ -19,7 +19,7 @@ const commercialPrimaryNavLinks: SiteLink[] = [
 
 const technicalPrimaryNavLinks: SiteLink[] = [
   { href: '/', label: 'Technical Overview' },
-  { href: 'https://console.co2router.com', label: 'CO2 Grid' },
+  { href: 'https://console.co2router.com', label: 'Console' },
   { href: '/developers/architecture', label: 'Architecture' },
   { href: '/system/replay', label: 'Replay' },
   { href: '/developers/quickstart', label: 'Quickstart' },
@@ -58,7 +58,7 @@ const commercialFooterLinkSections: SiteLinkSection[] = [
   {
     title: 'Technical',
     links: [
-      { href: 'https://console.co2router.com', label: 'CO2 Grid' },
+      { href: 'https://console.co2router.com', label: 'Console' },
       { href: '/developers/quickstart', label: 'Quickstart' },
       { href: '/developers/api', label: 'API' },
       { href: '/developers/architecture', label: 'Architecture' },
@@ -68,7 +68,7 @@ const commercialFooterLinkSections: SiteLinkSection[] = [
 
 const technicalFooterLinkSections: SiteLinkSection[] = [
   {
-    title: 'CO2 Grid',
+    title: 'Console',
     links: [
       { href: '/', label: 'Technical Overview' },
       { href: 'https://console.co2router.com', label: 'Control Surface' },
@@ -88,7 +88,7 @@ const technicalFooterLinkSections: SiteLinkSection[] = [
   {
     title: 'System',
     links: [
-      { href: '/system/decision-engine', label: 'Decision Engine' },
+      { href: '/system/decision-engine', label: 'Decision Core' },
       { href: '/system/saiq-governance', label: 'SAIQ Governance' },
       { href: '/system/trace-ledger', label: 'Trace Ledger' },
       { href: '/system/replay', label: 'Replay' },
@@ -116,13 +116,13 @@ export function getFooterLinkSections(audience: 'commercial' | 'technical'): Sit
 
 export function getHeaderSubtitle(audience: 'commercial' | 'technical') {
   return audience === 'technical'
-    ? 'Technical Control Plane Interface'
+    ? 'Technical Console'
     : 'Decision Infrastructure Interface'
 }
 
 export function getFooterTagline(audience: 'commercial' | 'technical') {
   return audience === 'technical'
-    ? 'Inspect CO2 Grid, proof, replay, and deterministic execution authority.'
+    ? 'Inspect the console, proof, replay, and deterministic execution authority.'
     : 'Authorize compute before it runs. Prove every decision.'
 }
 

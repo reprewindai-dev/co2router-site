@@ -12,19 +12,19 @@ const evaluationOrder = [
 ]
 
 export const metadata: Metadata = createPageMetadata({
-  title: 'Decision Engine',
+  title: 'Decision Core',
   description:
-    'The CO2 Router decision engine authorizes compute before execution and returns one binding action with proof and trace state attached.',
+    'The CO2 Router decision core authorizes compute before execution and returns one binding action with proof and trace state attached.',
   path: '/system/decision-engine',
-  keywords: ['decision engine', 'authorize compute', 'binding action'],
+  keywords: ['decision core', 'authorize compute', 'binding action'],
 })
 
 export default function SystemDecisionEnginePage() {
   return (
     <InformationPageShell
-      eyebrow="System / Decision Engine"
+      eyebrow="System / Decision Core"
       title="Decisions happen before compute is admitted."
-      summary="CO2 Router is an authorization system. The engine returns a binding action before execution, then records proof and trace state against the resulting frame."
+      summary="CO2 Router is an authorization system. The core returns a binding action before execution, then records proof and trace state against the resulting frame."
       secondaryHref="/console"
       secondaryLabel="Open Control Surface"
     >

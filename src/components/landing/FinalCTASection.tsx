@@ -11,7 +11,7 @@ export function FinalCTASection() {
           Control it.
         </h2>
         <p className="mt-4 text-sm leading-7 text-slate-300 sm:text-base">
-          Open the live Control Surface, inspect the proof posture, and watch the system decide
+          Open the live console, inspect the proof posture, and watch the system decide
           where compute runs before the workload ever starts.
         </p>
         <div className="mt-8 flex flex-wrap justify-center gap-3">

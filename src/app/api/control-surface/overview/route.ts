@@ -840,10 +840,10 @@ async function buildOverviewSnapshot() {
       timeline.unshift({
         id: 'engine-health-degraded',
         type: 'ProviderDegraded',
-        label: 'Engine health snapshot degraded',
+        label: 'Control surface health snapshot degraded',
         timestamp: new Date().toISOString(),
         severity: 'warning',
-        detail: healthError ? `Engine health endpoint degraded: ${healthError}` : 'Engine health endpoint is unavailable or timed out.',
+        detail: healthError ? `Control surface health endpoint degraded: ${healthError}` : 'Control surface health endpoint is unavailable or timed out.',
       })
     }
 
@@ -851,10 +851,10 @@ async function buildOverviewSnapshot() {
       timeline.unshift({
         id: 'engine-slo-degraded',
         type: 'ProviderDegraded',
-        label: 'Engine latency surface degraded',
+        label: 'Control surface latency degraded',
         timestamp: new Date().toISOString(),
         severity: 'warning',
-        detail: sloError ? `Engine SLO endpoint degraded: ${sloError}` : 'Engine SLO endpoint is unavailable or timed out.',
+        detail: sloError ? `Control surface SLO endpoint degraded: ${sloError}` : 'Control surface SLO endpoint is unavailable or timed out.',
       })
     }
     if (providerTrustResult.status === 'rejected') {

@@ -150,7 +150,7 @@ export function HeroMotionSurface({
                 transition={{ duration: 2.6, repeat: Infinity, ease: 'easeInOut' }}
               >
                 <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs uppercase tracking-[0.24em] text-slate-300">
-                  decision engine
+                  decision core
                 </div>
               </motion.div>
               <div className="rounded-2xl border border-white/8 bg-gradient-to-br from-white/8 to-transparent p-4">

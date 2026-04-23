@@ -5,10 +5,10 @@ export function TechnicalHomePage() {
   const panels = [
     {
       eyebrow: 'Flagship Surface',
-      title: 'CO2 Grid command center',
+      title: 'CO2 Router console',
       body: 'Inspect live execution authority, operator context, proof posture, and decision-state rendering in the canonical technical control surface.',
       href: consoleUrl,
-      cta: 'Open CO2 Grid',
+      cta: 'Open Console',
     },
     {
       eyebrow: 'Architecture',
@@ -30,9 +30,9 @@ export function TechnicalHomePage() {
     {
       title: 'Technical surfaces',
       links: [
-        { href: consoleUrl, label: 'CO2 Grid / Control Surface' },
+        { href: consoleUrl, label: 'Console / Control Surface' },
         { href: '/status', label: 'Operational status' },
-        { href: '/system/decision-engine', label: 'Decision engine' },
+        { href: '/system/decision-engine', label: 'Decision core' },
         { href: '/system/provenance', label: 'Provenance' },
       ],
     },
@@ -56,10 +56,10 @@ export function TechnicalHomePage() {
               Technical Overview
             </div>
             <h1 className="mt-3 text-4xl font-black tracking-[-0.05em] text-white sm:text-5xl">
-              CO2 Grid is the technical interface for CO2 Router.
+              CO2 Router is the technical interface.
             </h1>
             <p className="mt-5 max-w-3xl text-sm leading-8 text-slate-300 sm:text-base">
-              This domain is the system-facing surface: CO2 Grid, architecture, doctrine order,
+              This domain is the system-facing surface: console, architecture, doctrine order,
               proof, replay, provenance, and developer entry points. It exists to prove how the
               control plane works, not to retell the commercial story.
             </p>
@@ -68,7 +68,7 @@ export function TechnicalHomePage() {
                 href={consoleUrl}
                 className="rounded-2xl bg-gradient-to-r from-emerald-300 via-cyan-300 to-sky-400 px-5 py-3 text-sm font-bold uppercase tracking-[0.18em] text-slate-950"
               >
-                Open CO2 Grid
+                Open Console
               </Link>
               <Link
                 href="/developers/quickstart"
@@ -88,7 +88,7 @@ export function TechnicalHomePage() {
                 Hostname: <span className="font-semibold text-white">console.co2router.com</span>
               </div>
               <div className="rounded-2xl border border-white/8 bg-slate-950/60 px-4 py-3">
-                Canonical CO2 Grid source: <span className="font-semibold text-white">console.co2router.com</span>
+                Canonical console source: <span className="font-semibold text-white">console.co2router.com</span>
               </div>
               <div className="rounded-2xl border border-white/8 bg-slate-950/60 px-4 py-3">
                 Core evidence: architecture, trace, replay, provenance, live control data, and
