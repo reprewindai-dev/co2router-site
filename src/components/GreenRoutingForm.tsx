@@ -246,7 +246,11 @@ export function GreenRoutingForm() {
                     step="0.1"
                     value={formData[key]}
                     onChange={(event) => setFormData({ ...formData, [key]: Number(event.target.value) })}
-                    className="w-full accent-emerald-500"
+                    className="premium-range w-full"
+                    style={{
+                      background: `linear-gradient(to right, #10b981 0%, #10b981 ${(formData[key] ?? 0) * 100}%, rgba(255,255,255,0.12) ${(formData[key] ?? 0) * 100}%, rgba(255,255,255,0.12) 100%)`,
+                      ['--slider-accent' as string]: '#10b981',
+                    }}
                   />
                 </div>
               ))}

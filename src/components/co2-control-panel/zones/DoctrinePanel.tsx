@@ -10,27 +10,30 @@ interface WeightSliderProps {
   onChange: (value: number) => void
   color: string
   icon: string
+  variant: 'carbon' | 'water' | 'latency' | 'cost'
 }
 
-function WeightSlider({ label, value, onChange, color, icon }: WeightSliderProps) {
+function WeightSlider({ label, value, onChange, color, icon, variant }: WeightSliderProps) {
   return (
-    <div className="weight-slider">
-      <div className="slider-header">
-        <span className="slider-icon">{icon}</span>
-        <span className="slider-label">{label}</span>
-        <span className="slider-value" style={{ color }}>{value}%</span>
+      <div className="weight-control">
+        <div className="slider-header">
+          <span className="slider-icon">{icon}</span>
+          <span className="slider-label">{label}</span>
+          <span className="slider-value" style={{ color }}>{value}%</span>
+        </div>
+      <div className="slider-container">
+        <div className={`slider-fill ${variant}`} style={{ width: `${value}%` }} />
+        <input
+          aria-label={label}
+          type="range"
+          min="0"
+          max="100"
+          step="1"
+          value={value}
+          onChange={(e) => onChange(parseInt(e.target.value))}
+          className="slider-input"
+        />
       </div>
-      <input
-        type="range"
-        min="0"
-        max="100"
-        value={value}
-        onChange={(e) => onChange(parseInt(e.target.value))}
-        className="slider-input"
-        style={{ 
-          background: `linear-gradient(to right, ${color} 0%, ${color} ${value}%, rgba(255,255,255,0.1) ${value}%, rgba(255,255,255,0.1) 100%)` 
-        }}
-      />
     </div>
   )
 }
@@ -267,6 +270,7 @@ export function DoctrinePanel({
                 onChange={(v) => handleWeightChange('carbon', v)}
                 color="#00ff88"
                 icon="🌱"
+                variant="carbon"
               />
               <WeightSlider
                 label="Water Conservation"
@@ -274,6 +278,7 @@ export function DoctrinePanel({
                 onChange={(v) => handleWeightChange('water', v)}
                 color="#00aaff"
                 icon="💧"
+                variant="water"
               />
               <WeightSlider
                 label="Latency Performance"
@@ -281,6 +286,7 @@ export function DoctrinePanel({
                 onChange={(v) => handleWeightChange('latency', v)}
                 color="#ffaa00"
                 icon="⚡"
+                variant="latency"
               />
               <WeightSlider
                 label="Cost Efficiency"
@@ -288,6 +294,7 @@ export function DoctrinePanel({
                 onChange={(v) => handleWeightChange('cost', v)}
                 color="#ff66aa"
                 icon="💰"
+                variant="cost"
               />
             </div>
             

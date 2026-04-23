@@ -279,6 +279,71 @@ body {
 .hg-arc-dash { animation: hg-arc-dash 1.2s linear infinite; }
 .hg-atmosphere { animation: hg-atmosphere 4s ease-in-out infinite; }
 
+.premium-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 44px;
+  background: transparent;
+  cursor: pointer;
+  touch-action: pan-x;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.premium-range:focus-visible {
+  outline: none;
+}
+
+.premium-range::-webkit-slider-runnable-track {
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.premium-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 26px;
+  height: 26px;
+  margin-top: -8px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 4px solid var(--slider-accent, #10b981);
+  box-shadow: 0 0 0 6px rgba(16, 185, 129, 0.16), 0 8px 18px rgba(0, 0, 0, 0.35);
+}
+
+.premium-range::-moz-range-track {
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.premium-range::-moz-range-thumb {
+  width: 26px;
+  height: 26px;
+  border: 4px solid var(--slider-accent, #10b981);
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow: 0 0 0 6px rgba(16, 185, 129, 0.16), 0 8px 18px rgba(0, 0, 0, 0.35);
+}
+
+@media (pointer: coarse) {
+  .premium-range {
+    height: 52px;
+  }
+
+  .premium-range::-webkit-slider-thumb {
+    width: 30px;
+    height: 30px;
+    margin-top: -10px;
+  }
+
+  .premium-range::-moz-range-thumb {
+    width: 30px;
+    height: 30px;
+  }
+}
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;
