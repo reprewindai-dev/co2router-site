@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { fetchEngineJson, hasInternalApiKey } from '@/lib/control-surface/engine'
 import { STATIC_WATER_BUNDLE_TTL_SEC } from '@/lib/control-surface/freshness'
 import { FALLBACK_OVERVIEW } from '@/lib/control-surface/fallbacks'
+import { getCachedSnapshot, peekCachedSnapshot } from '@/lib/control-surface/snapshot-cache'
 import {
   dashboardTelemetryMetricNames,
   recordDashboardMetric,
@@ -23,6 +24,10 @@ import type {
 } from '@/types/control-surface'
 
 export const dynamic = 'force-dynamic'
+
+const OVERVIEW_CACHE_TTL_MS = 365 * 24 * 60 * 60 * 1000
+const OVERVIEW_ROUTE_TIMEOUT_MS = 4_500
+const SNAPSHOT_CACHE_CONTROL = 'no-store, max-age=0'
 
 type DecisionRow = {
   decisionFrameId: string
@@ -134,8 +139,6 @@ function deriveFallbackRate(decisions: ControlSurfaceDecisionSummary[]) {
   const fallbackCount = decisions.filter((decision) => decision.fallbackUsed).length
   return Number((fallbackCount / decisions.length).toFixed(4))
 }
-
-const OVERVIEW_ROUTE_TIMEOUT_MS = 4_500
 
 function buildFallbackOverviewResponse(totalMs: number, reason: string) {
   const liveDecision = {
@@ -738,8 +741,7 @@ async function getReplayBundle(decisions: DecisionFeed['decisions']) {
   }
 }
 
-async function buildOverviewResponse() {
-  const startedAt = performance.now()
+async function buildOverviewSnapshot() {
   try {
     const describeFailure = (error: unknown) => (error instanceof Error ? error.message : 'Unknown engine failure.')
 
@@ -969,15 +971,81 @@ async function buildOverviewResponse() {
       },
     }
 
-    const serialized = JSON.stringify(overview)
+    return overview
+  } catch (error) {
+    console.error('Control surface overview error:', error)
+    throw error
+  }
+}
+
+export async function GET() {
+  const startedAt = performance.now()
+  try {
+    const snapshotPromise = getCachedSnapshot(
+      'control-surface-overview',
+      OVERVIEW_CACHE_TTL_MS,
+      () => buildOverviewSnapshot()
+    )
+    const timeoutPromise = new Promise<null>((resolve) => {
+      setTimeout(() => resolve(null), OVERVIEW_ROUTE_TIMEOUT_MS)
+    })
+    const snapshotResult = await Promise.race([snapshotPromise, timeoutPromise])
+
+    if (!snapshotResult) {
+      const cached = peekCachedSnapshot<ControlSurfaceOverview>('control-surface-overview')
+      if (cached?.value) {
+        const serialized = JSON.stringify(cached.value)
+        const totalMs = performance.now() - startedAt
+        const responseBytes = Buffer.byteLength(serialized)
+
+        recordDashboardMetric(dashboardTelemetryMetricNames.routeDurationMs, 'histogram', totalMs, {
+          route: 'overview',
+          cacheStatus: 'stale',
+        })
+        recordDashboardMetric(dashboardTelemetryMetricNames.routeResponseBytes, 'histogram', responseBytes, {
+          route: 'overview',
+          cacheStatus: 'stale',
+        })
+        recordDashboardMetric(dashboardTelemetryMetricNames.routeCacheCount, 'counter', 1, {
+          route: 'overview',
+          cacheStatus: 'stale',
+        })
+
+        const response = new NextResponse(serialized, {
+          status: 200,
+          headers: {
+            'content-type': 'application/json',
+          },
+        })
+        response.headers.set('x-co2router-response-bytes', String(responseBytes))
+        response.headers.set('x-co2router-snapshot-cache', 'stale')
+        response.headers.set('Cache-Control', SNAPSHOT_CACHE_CONTROL)
+        response.headers.set('Server-Timing', `total;dur=${totalMs.toFixed(1)}`)
+        return response
+      }
+
+      return buildFallbackOverviewResponse(
+        performance.now() - startedAt,
+        'Overview snapshot timed out while live data continued hydrating.'
+      )
+    }
+
+    const { value: snapshot, cacheStatus } = snapshotResult
+    const serialized = JSON.stringify(snapshot)
     const totalMs = performance.now() - startedAt
     const responseBytes = Buffer.byteLength(serialized)
 
     recordDashboardMetric(dashboardTelemetryMetricNames.routeDurationMs, 'histogram', totalMs, {
       route: 'overview',
+      cacheStatus,
     })
     recordDashboardMetric(dashboardTelemetryMetricNames.routeResponseBytes, 'histogram', responseBytes, {
       route: 'overview',
+      cacheStatus,
+    })
+    recordDashboardMetric(dashboardTelemetryMetricNames.routeCacheCount, 'counter', 1, {
+      route: 'overview',
+      cacheStatus,
     })
 
     const response = new NextResponse(serialized, {
@@ -987,9 +1055,39 @@ async function buildOverviewResponse() {
       },
     })
     response.headers.set('x-co2router-response-bytes', String(responseBytes))
+    response.headers.set('x-co2router-snapshot-cache', cacheStatus)
+    response.headers.set('Cache-Control', SNAPSHOT_CACHE_CONTROL)
     response.headers.set('Server-Timing', `total;dur=${totalMs.toFixed(1)}`)
     return response
   } catch (error) {
+    const cached = peekCachedSnapshot<ControlSurfaceOverview>('control-surface-overview')
+    if (cached?.value) {
+      const serialized = JSON.stringify(cached.value)
+      const totalMs = performance.now() - startedAt
+      const responseBytes = Buffer.byteLength(serialized)
+
+      recordDashboardMetric(dashboardTelemetryMetricNames.routeDurationMs, 'histogram', totalMs, {
+        route: 'overview',
+        cacheStatus: 'stale',
+      })
+      recordDashboardMetric(dashboardTelemetryMetricNames.routeResponseBytes, 'histogram', responseBytes, {
+        route: 'overview',
+        cacheStatus: 'stale',
+      })
+
+      const response = new NextResponse(serialized, {
+        status: 200,
+        headers: {
+          'content-type': 'application/json',
+        },
+      })
+      response.headers.set('x-co2router-response-bytes', String(responseBytes))
+      response.headers.set('x-co2router-snapshot-cache', 'stale')
+      response.headers.set('Cache-Control', SNAPSHOT_CACHE_CONTROL)
+      response.headers.set('Server-Timing', `total;dur=${totalMs.toFixed(1)}`)
+      return response
+    }
+
     console.error('Control surface overview error:', error)
     recordDashboardMetric(dashboardTelemetryMetricNames.routeErrorCount, 'counter', 1, {
       route: 'overview',
@@ -999,20 +1097,4 @@ async function buildOverviewResponse() {
       { status: 500 }
     )
   }
-}
-
-export async function GET() {
-  const startedAt = performance.now()
-  const fallbackPromise = new Promise<NextResponse>((resolve) => {
-    setTimeout(() => {
-      resolve(
-        buildFallbackOverviewResponse(
-          performance.now() - startedAt,
-          'Overview snapshot timed out while live data continued hydrating.'
-        )
-      )
-    }, OVERVIEW_ROUTE_TIMEOUT_MS)
-  })
-
-  return Promise.race([buildOverviewResponse(), fallbackPromise])
 }

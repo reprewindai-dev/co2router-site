@@ -10,7 +10,7 @@ import {
 
 export const dynamic = 'force-dynamic'
 
-const LIVE_SYSTEM_CACHE_TTL_MS = 5_000
+const LIVE_SYSTEM_CACHE_TTL_MS = 365 * 24 * 60 * 60 * 1000
 const SNAPSHOT_CACHE_CONTROL = 'no-store, max-age=0'
 const ROUTE_RESPONSE_TIMEOUT_MS = 5_000
 

@@ -207,8 +207,14 @@ export async function getLiveSystemSnapshot(): Promise<LiveSystemSnapshot> {
         }))
       : []
 
-  if (decisionsResult.status === 'rejected' || recentDecisions.length === 0) {
-    return buildFallbackLiveSystemSnapshot()
+  if (decisionsResult.status === 'rejected') {
+    throw decisionsResult.reason instanceof Error
+      ? decisionsResult.reason
+      : new Error('Live decision feed is unavailable.')
+  }
+
+  if (recentDecisions.length === 0) {
+    throw new Error('Live decision feed returned no recent decisions.')
   }
 
   const latestDecision = recentDecisions[0] ?? null

@@ -17,7 +17,8 @@ import type {
   TeamChatSnapshot,
 } from '@/types/control-surface'
 
-const REFRESH_INTERVAL_MS = 30_000
+const PRIMARY_SIGNAL_REFRESH_MS = 365 * 24 * 60 * 60 * 1000
+const SECONDARY_SIGNAL_REFRESH_MS = 15_000
 
 async function getJson<T>(url: string, init?: RequestInit) {
   const response = await fetch(url, {
@@ -41,8 +42,8 @@ export function useControlSurfaceOverview() {
   return useQuery<ControlSurfaceOverview>({
     queryKey: ['control-surface-overview'],
     queryFn: () => getJson<ControlSurfaceOverview>('/api/control-surface/overview'),
-    staleTime: REFRESH_INTERVAL_MS,
-    refetchInterval: REFRESH_INTERVAL_MS,
+    staleTime: PRIMARY_SIGNAL_REFRESH_MS,
+    refetchInterval: false,
   })
 }
 
@@ -65,7 +66,7 @@ export function useDecisionTrace(
     queryKey: ['control-surface-trace', decisionFrameId],
     queryFn: () => getJson<DecisionTraceRawRecord>(`/api/control-surface/trace/${decisionFrameId}`),
     enabled: Boolean(decisionFrameId) && (options?.enabled ?? true),
-    staleTime: REFRESH_INTERVAL_MS,
+    staleTime: PRIMARY_SIGNAL_REFRESH_MS,
     refetchInterval: options?.refetchInterval,
   })
 }
@@ -78,7 +79,7 @@ export function useReplayBundle(
     queryKey: ['control-surface-replay', decisionFrameId],
     queryFn: () => getJson<ReplayBundle>(`/api/control-surface/replay/${decisionFrameId}`),
     enabled: Boolean(decisionFrameId) && (options?.enabled ?? true),
-    staleTime: REFRESH_INTERVAL_MS,
+    staleTime: PRIMARY_SIGNAL_REFRESH_MS,
     refetchInterval: options?.refetchInterval,
   })
 }
@@ -87,8 +88,8 @@ export function useLiveSystemSnapshot() {
   return useQuery<LiveSystemSnapshot>({
     queryKey: ['control-surface-live-system'],
     queryFn: () => getJson<LiveSystemSnapshot>('/api/control-surface/live-system'),
-    staleTime: REFRESH_INTERVAL_MS,
-    refetchInterval: REFRESH_INTERVAL_MS,
+    staleTime: PRIMARY_SIGNAL_REFRESH_MS,
+    refetchInterval: false,
     retry: 1,
     retryDelay: 2_000,
   })
@@ -99,8 +100,8 @@ export function useEngineDiagnostics(enabled = true) {
     queryKey: ['control-surface-engine-diagnostics'],
     queryFn: () => getJson<EngineDiagnosticsSnapshot>('/api/control-surface/engine-diagnostics'),
     enabled,
-    staleTime: 15_000,
-    refetchInterval: enabled ? 15_000 : false,
+    staleTime: SECONDARY_SIGNAL_REFRESH_MS,
+    refetchInterval: false,
     retry: 1,
     retryDelay: 2_000,
   })
