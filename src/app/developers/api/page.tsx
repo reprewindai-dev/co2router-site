@@ -50,7 +50,7 @@ const publicApiGroups = [
 const brokeredGroups = [
   {
     title: 'Routing',
-    lines: ['/api/v1/route/green', '/api/v1/route', '/api/v1/route-simple'],
+    lines: ['/api/v1/sandbox/run', '/api/v1/route/green', '/api/v1/route', '/api/v1/route-simple'],
   },
   {
     title: 'Grid intelligence',
