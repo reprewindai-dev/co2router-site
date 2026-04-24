@@ -113,14 +113,16 @@ export function CicdWorkloadDemo() {
   return (
     <section className="rounded-[32px] border border-cyan-300/15 bg-[linear-gradient(180deg,rgba(2,8,23,0.88),rgba(15,23,42,0.82))] p-6 sm:p-8">
       <div className="max-w-3xl">
-        <div className="text-[11px] uppercase tracking-[0.28em] text-cyan-300">CI/CD live demo</div>
+        <div className="text-[11px] uppercase tracking-[0.28em] text-cyan-300">
+          Make it or break it demo
+        </div>
         <h2 className="mt-3 text-3xl font-black tracking-[-0.04em] text-white sm:text-4xl">
           Submit one workload and watch the engine decide.
         </h2>
         <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-300 sm:text-base">
-          This is the real demo wedge. Pick a CI/CD workload, choose the candidate regions, and
-          CO2 Router returns the decision, the recommended delay window, and the proof-backed
-          explanation from the live routing path.
+          This is the make it or break it demo wedge. Pick a CI/CD workload, choose the candidate
+          regions, and CO2 Router returns the decision, the recommended delay window, and the
+          proof-backed explanation from the live routing path.
         </p>
       </div>
 
@@ -228,7 +230,7 @@ export function CicdWorkloadDemo() {
       </div>
 
       <div className="mt-6 text-xs uppercase tracking-[0.2em] text-slate-500">
-        Real backend route: <span className="text-cyan-200">POST /api/demo/route</span> · No fake decision generator · CI/CD only
+        Real backend route: <span className="text-cyan-200">POST /api/demo/route</span>. No fake decision generator. CI/CD only.
       </div>
     </section>
   )
