@@ -10,6 +10,7 @@ import type {
   DashboardDecision,
   RegionMapping,
   RegionForecast,
+  RegionStructuralProfile,
   OptimalWindow,
   DecisionReplayResult,
   DisclosureBatchResponse,
@@ -68,6 +69,69 @@ type CompactDashboardSavings = {
   totalAvoidedG?: number
   reductionPct?: number
   dailyTrend?: Array<{ date: string; baselineG: number; chosenG: number; avoidedG: number; decisions: number }>
+}
+
+type GridStructuralProfileResponse = {
+  region: string
+  available: boolean
+  profile: {
+    region: string
+    entityCode: string | null
+    structuralCarbonBaseline: number | null
+    carbonTrendDirection: 'up' | 'down' | 'flat' | null
+    demandTrendTwh: number | null
+    demandPerCapita: number | null
+    fossilDependenceScore: number | null
+    renewableDependenceScore: number | null
+    generationMixProfile: Record<string, number> | null
+    windCapacityGw: number | null
+    solarCapacityGw: number | null
+    windCapacityTrend: number | null
+    solarCapacityTrend: number | null
+    confidenceRole: string
+    source: string
+    updatedAt: string
+  } | null
+}
+
+function normalizeTrendDirection(value: number | null | undefined): RegionStructuralProfile['windCapacityTrend'] {
+  if (value == null || Number.isNaN(value)) return 'stable'
+  if (value > 0) return 'increasing'
+  if (value < 0) return 'decreasing'
+  return 'stable'
+}
+
+function normalizeStructuralProfile(
+  payload: GridStructuralProfileResponse
+): RegionStructuralProfile | null {
+  if (!payload.available || !payload.profile) {
+    return null
+  }
+
+  const profile = payload.profile
+
+  return {
+    region: profile.region,
+    structuralCarbonBaseline: profile.structuralCarbonBaseline,
+    carbonTrendDirection:
+      profile.carbonTrendDirection === 'up'
+        ? 'increasing'
+        : profile.carbonTrendDirection === 'down'
+          ? 'decreasing'
+          : 'stable',
+    demandTrendTwh: profile.demandTrendTwh,
+    demandPerCapita: profile.demandPerCapita,
+    fossilDependenceScore: profile.fossilDependenceScore,
+    renewableDependenceScore: profile.renewableDependenceScore,
+    generationMixProfile: profile.generationMixProfile,
+    windCapacityGw: profile.windCapacityGw,
+    solarCapacityGw: profile.solarCapacityGw,
+    windCapacityTrend: normalizeTrendDirection(profile.windCapacityTrend),
+    solarCapacityTrend: normalizeTrendDirection(profile.solarCapacityTrend),
+    confidenceRole: profile.confidenceRole,
+    source: profile.source,
+    updatedAt: profile.updatedAt,
+  }
 }
 
 function normalizeDashboardSavings(
@@ -450,6 +514,18 @@ export const ecobeApi = {
       return data
     } catch (error) {
       console.error('Failed to fetch grid region detail:', error)
+      throw error
+    }
+  },
+
+  async getGridStructuralProfile(region: string): Promise<RegionStructuralProfile | null> {
+    try {
+      const { data } = await api.get<GridStructuralProfileResponse>(
+        `/intelligence/grid/structural-profile/${encodeURIComponent(region)}`
+      )
+      return normalizeStructuralProfile(data)
+    } catch (error) {
+      console.error('Failed to fetch grid structural profile:', error)
       throw error
     }
   },

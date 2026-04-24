@@ -23,7 +23,7 @@ function buildSnapshot(): HallOGridSnapshot {
       entitlements: ['public_preview'],
       role: 'viewer',
       mode: 'public_preview',
-      label: 'HalOGrid Freeview',
+      label: 'CO2 Grid Freeview',
       isReadOnlyPreview: true,
       canViewOperatorConsole: false,
       canAccessControls: false,

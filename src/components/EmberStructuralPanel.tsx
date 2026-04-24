@@ -4,7 +4,14 @@ import { useState } from 'react'
 import { ecobeApi } from '@/lib/api'
 import type { RegionStructuralProfile } from '@/types'
 
-const REGIONS = ['US', 'DE', 'FR', 'GB', 'JP', 'SG']
+const REGIONS = [
+  { label: 'US', region: 'USA' },
+  { label: 'DE', region: 'DEU' },
+  { label: 'FR', region: 'FRA' },
+  { label: 'GB', region: 'GBR' },
+  { label: 'JP', region: 'JPN' },
+  { label: 'SG', region: 'SGP' },
+] as const
 
 export function EmberStructuralPanel() {
   const [profiles, setProfiles] = useState<Record<string, RegionStructuralProfile | null>>({})
@@ -18,11 +25,10 @@ export function EmberStructuralPanel() {
       await Promise.all(
         REGIONS.map(async (region) => {
           try {
-            const data = await ecobeApi.getGridRegionDetail(region)
-            // Map to structural profile shape if available
-            results[region] = data?.structuralProfile ?? null
+            const data = await ecobeApi.getGridStructuralProfile(region.region)
+            results[region.label] = data
           } catch {
-            results[region] = null
+            results[region.label] = null
           }
         })
       )
@@ -64,18 +70,18 @@ export function EmberStructuralPanel() {
       {loaded && Object.keys(profiles).length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {REGIONS.map((region) => {
-            const p = profiles[region]
+            const p = profiles[region.label]
             if (!p) {
               return (
-                <div key={region} className="bg-slate-800/50 rounded-lg p-4">
-                  <div className="font-mono text-sm text-slate-300 mb-2">{region}</div>
+                <div key={region.label} className="bg-slate-800/50 rounded-lg p-4">
+                  <div className="font-mono text-sm text-slate-300 mb-2">{region.label}</div>
                   <p className="text-xs text-slate-500">No Ember data available</p>
                 </div>
               )
             }
             return (
-              <div key={region} className="bg-slate-800/50 rounded-lg p-4 space-y-2">
-                <div className="font-mono text-sm text-slate-200">{region}</div>
+              <div key={region.label} className="bg-slate-800/50 rounded-lg p-4 space-y-2">
+                <div className="font-mono text-sm text-slate-200">{region.label}</div>
                 <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
                   <span className="text-slate-500">Carbon Baseline</span>
                   <span className="text-slate-200 text-right">
