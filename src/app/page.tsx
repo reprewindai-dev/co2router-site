@@ -10,6 +10,7 @@ import { SignalDoctrineSection } from '@/components/landing/SignalDoctrineSectio
 import { PricingOrControlSection } from '@/components/landing/PricingOrControlSection'
 import { FinalCTASection } from '@/components/landing/FinalCTASection'
 import { LiveSystemSection } from '@/components/landing/LiveSystemSection'
+import { CicdWorkloadDemo } from '@/components/landing/CicdWorkloadDemo'
 import { FALLBACK_OVERVIEW } from '@/lib/control-surface/fallbacks'
 import { useControlSurfaceOverview } from '@/lib/hooks/control-surface'
 
@@ -244,6 +245,8 @@ export default function LandingPage() {
       <section className="rounded-[32px] border border-white/10 bg-white/[0.03] p-6 sm:p-8">
         <DecisionFlowDiagram />
       </section>
+
+      <CicdWorkloadDemo />
 
       <DecisionExampleCard decision={featuredDecision} proofContext={proofContext} />
 
