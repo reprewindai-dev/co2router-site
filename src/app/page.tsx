@@ -20,11 +20,11 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 
   return createPageMetadata({
-    title: 'Overview',
+    title: 'Decide if your jobs run — before they run',
     description:
-      'CO2 Router authorizes compute before execution using carbon, water, and policy constraints, then attaches proof, trace, replay, and provenance to every decision.',
+      'Run a job, see what happens, and watch CO2 Router return five outcomes from a live demo.',
     path: '/',
-    keywords: ['CO2 Router', 'environmental execution control plane', 'carbon-aware routing'],
+    keywords: ['CO2 Router', 'interactive demo', 'CI/CD', 'job routing'],
   })
 }
 
