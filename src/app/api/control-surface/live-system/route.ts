@@ -12,8 +12,6 @@ export const dynamic = 'force-dynamic'
 
 const LIVE_SYSTEM_CACHE_TTL_MS = 365 * 24 * 60 * 60 * 1000
 const SNAPSHOT_CACHE_CONTROL = 'no-store, max-age=0'
-const ROUTE_RESPONSE_TIMEOUT_MS = 9_000
-
 function buildFallbackResponse(totalMs: number) {
   const snapshot = FALLBACK_LIVE_SYSTEM_SNAPSHOT
   const serialized = JSON.stringify(snapshot)
@@ -35,18 +33,11 @@ function buildFallbackResponse(totalMs: number) {
 export async function GET() {
   const startedAt = performance.now()
   try {
-    const snapshotPromise = getCachedSnapshot(
+    const snapshotResult = await getCachedSnapshot(
       'live-system',
       LIVE_SYSTEM_CACHE_TTL_MS,
       () => getLiveSystemSnapshot()
     )
-    const timeoutPromise = new Promise<null>((resolve) => {
-      setTimeout(() => resolve(null), ROUTE_RESPONSE_TIMEOUT_MS)
-    })
-    const snapshotResult = await Promise.race([snapshotPromise, timeoutPromise])
-    if (!snapshotResult) {
-      return buildFallbackResponse(performance.now() - startedAt)
-    }
     const { value: snapshot, cacheStatus } = snapshotResult
     const serialized = JSON.stringify(snapshot)
     const totalMs = performance.now() - startedAt

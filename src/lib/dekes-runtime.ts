@@ -68,10 +68,18 @@ async function fetchMcpJson<T>(path: string, useInternalKey = false): Promise<T 
     headers['x-api-key'] = internalKey
   }
 
-  const response = await fetch(`${baseUrl}${path}`, {
-    headers,
-    cache: 'no-store',
-  })
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 5_000)
+  let response: Response
+  try {
+    response = await fetch(`${baseUrl}${path}`, {
+      headers,
+      cache: 'no-store',
+      signal: controller.signal,
+    })
+  } finally {
+    clearTimeout(timeout)
+  }
 
   if (!response.ok) {
     throw new Error(`MCP broker request failed for ${path} (${response.status})`)

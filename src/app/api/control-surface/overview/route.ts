@@ -26,7 +26,6 @@ import type {
 export const dynamic = 'force-dynamic'
 
 const OVERVIEW_CACHE_TTL_MS = 365 * 24 * 60 * 60 * 1000
-const OVERVIEW_ROUTE_TIMEOUT_MS = 9_000
 const SNAPSHOT_CACHE_CONTROL = 'no-store, max-age=0'
 
 type DecisionRow = {
@@ -981,55 +980,11 @@ async function buildOverviewSnapshot() {
 export async function GET() {
   const startedAt = performance.now()
   try {
-    const snapshotPromise = getCachedSnapshot(
+    const snapshotResult = await getCachedSnapshot(
       'control-surface-overview',
       OVERVIEW_CACHE_TTL_MS,
       () => buildOverviewSnapshot()
     )
-    const timeoutPromise = new Promise<null>((resolve) => {
-      setTimeout(() => resolve(null), OVERVIEW_ROUTE_TIMEOUT_MS)
-    })
-    const snapshotResult = await Promise.race([snapshotPromise, timeoutPromise])
-
-    if (!snapshotResult) {
-      const cached = peekCachedSnapshot<ControlSurfaceOverview>('control-surface-overview')
-      if (cached?.value) {
-        const serialized = JSON.stringify(cached.value)
-        const totalMs = performance.now() - startedAt
-        const responseBytes = Buffer.byteLength(serialized)
-
-        recordDashboardMetric(dashboardTelemetryMetricNames.routeDurationMs, 'histogram', totalMs, {
-          route: 'overview',
-          cacheStatus: 'stale',
-        })
-        recordDashboardMetric(dashboardTelemetryMetricNames.routeResponseBytes, 'histogram', responseBytes, {
-          route: 'overview',
-          cacheStatus: 'stale',
-        })
-        recordDashboardMetric(dashboardTelemetryMetricNames.routeCacheCount, 'counter', 1, {
-          route: 'overview',
-          cacheStatus: 'stale',
-        })
-
-        const response = new NextResponse(serialized, {
-          status: 200,
-          headers: {
-            'content-type': 'application/json',
-          },
-        })
-        response.headers.set('x-co2router-response-bytes', String(responseBytes))
-        response.headers.set('x-co2router-snapshot-cache', 'stale')
-        response.headers.set('Cache-Control', SNAPSHOT_CACHE_CONTROL)
-        response.headers.set('Server-Timing', `total;dur=${totalMs.toFixed(1)}`)
-        return response
-      }
-
-      return buildFallbackOverviewResponse(
-        performance.now() - startedAt,
-        'Overview snapshot timed out while live data continued hydrating.'
-      )
-    }
-
     const { value: snapshot, cacheStatus } = snapshotResult
     const serialized = JSON.stringify(snapshot)
     const totalMs = performance.now() - startedAt
