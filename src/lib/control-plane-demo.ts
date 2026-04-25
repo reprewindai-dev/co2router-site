@@ -39,15 +39,17 @@ function normalizeScenario(value?: string) {
   return value && value.trim().length > 0 ? value.trim() : 'nightly_analytics_batch'
 }
 
-async function postMcpJson<T>(path: string, body: Record<string, unknown>): Promise<T> {
-  const response = await fetch(`${getMcpBaseUrl()}${path}`, {
-    method: 'POST',
+async function getMcpJson<T>(path: string, searchParams: Record<string, string>): Promise<T> {
+  const url = new URL(`${getMcpBaseUrl()}${path}`)
+  for (const [key, value] of Object.entries(searchParams)) {
+    url.searchParams.set(key, value)
+  }
+
+  const response = await fetch(url, {
+    method: 'GET',
     headers: {
-      'content-type': 'application/json',
       accept: 'application/json',
     },
-    body: JSON.stringify(body),
-    cache: 'no-store',
   })
 
   if (!response.ok) {
@@ -62,7 +64,7 @@ export async function buildDemoRoutingDecision(
 ): Promise<DemoRouteResponse> {
   const scenario = normalizeScenario(input.scenario)
 
-  return postMcpJson<DemoRouteResponse>('/api/v1/sandbox/run', {
+  return getMcpJson<DemoRouteResponse>('/api/v1/sandbox/run', {
     scenario,
   })
 }
