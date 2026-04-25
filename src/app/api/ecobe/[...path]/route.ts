@@ -1,13 +1,13 @@
 import crypto from 'crypto'
 import axios from 'axios'
 import { NextResponse } from 'next/server'
-import { getServerEngineBaseUrl } from '@/lib/server-engine-url'
+import { getServerMcpBaseUrl } from '@/lib/server-mcp-url'
 
 const FORWARDED_HEADERS = ['accept', 'content-type', 'authorization', 'x-request-id', 'x-ecobe-signature'] as const
 const SIGNED_DECISION_PATHS = new Set(['ci/route', 'ci/authorize', 'ci/carbon-route'])
 
 function getEngineBaseUrl() {
-  return getServerEngineBaseUrl()
+  return getServerMcpBaseUrl()
 }
 
 function isCuratedProofInspectionPath(joined: string) {
@@ -61,9 +61,10 @@ async function proxy(request: Request, ctx: { params: Promise<{ path?: string[] 
 
   if (useInternalKey) {
     const internalKey = process.env.ECOBE_INTERNAL_API_KEY
+      || process.env.MCP_INTERNAL_API_KEY
     if (!internalKey) {
       return NextResponse.json(
-        { error: 'Dashboard internal engine authentication is not configured.' },
+        { error: 'Dashboard internal broker authentication is not configured.' },
         { status: 503 }
       )
     }

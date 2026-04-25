@@ -1,10 +1,10 @@
 import crypto from 'crypto'
-import { getServerEngineBaseUrl } from '@/lib/server-engine-url'
+import { getServerMcpBaseUrl } from '@/lib/server-mcp-url'
 
 const DECISION_SIGNATURE_PATHS = new Set(['/ci/route', '/ci/authorize', '/ci/carbon-route'])
 
 export function getEngineBaseUrl() {
-  return getServerEngineBaseUrl()
+  return getServerMcpBaseUrl()
 }
 
 function getInternalApiKey() {

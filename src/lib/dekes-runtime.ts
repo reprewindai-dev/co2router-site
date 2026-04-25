@@ -6,7 +6,7 @@ import type {
   DekesIntegrationSummaryResponse,
 } from '@/types'
 import { deriveQualityTier, getDecisionSource, isDecisionDelayed } from '@/lib/decisions'
-import { getServerEngineBaseUrl } from '@/lib/server-engine-url'
+import { getServerMcpBaseUrl } from '@/lib/server-mcp-url'
 
 type EngineSystemStatus = {
   status?: string
@@ -24,7 +24,7 @@ type DekesRuntimeReadModel = {
 }
 
 function getEngineBaseUrl() {
-  return getServerEngineBaseUrl()
+  return getServerMcpBaseUrl()
 }
 
 async function fetchEngineJson<T>(path: string, useInternalKey = false): Promise<T | null> {

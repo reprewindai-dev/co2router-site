@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server'
-import { getServerEngineBaseUrl } from '@/lib/server-engine-url'
+import { getServerMcpBaseUrl } from '@/lib/server-mcp-url'
 
-const ECOBE_ENGINE_URL = getServerEngineBaseUrl()
+const ECOBE_ENGINE_URL = getServerMcpBaseUrl()
 
 const ECOBE_ENGINE_API_KEY =
+  process.env.MCP_INTERNAL_API_KEY ||
   process.env.DEKES_API_KEY ||
   process.env.ECOBE_API_KEY ||
   process.env.CO2ROUTER_API_KEY

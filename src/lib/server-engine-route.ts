@@ -1,14 +1,14 @@
 import 'server-only'
 
 import { NextResponse } from 'next/server'
-import { getServerEngineBaseUrl } from '@/lib/server-engine-url'
+import { getServerMcpBaseUrl } from '@/lib/server-mcp-url'
 
 type CanonicalEngineRequestInit = RequestInit & {
   internal?: boolean
 }
 
 function getInternalApiKey() {
-  return process.env.ECOBE_INTERNAL_API_KEY || process.env.CO2ROUTER_INTERNAL_API_KEY || null
+  return process.env.MCP_INTERNAL_API_KEY || process.env.ECOBE_INTERNAL_API_KEY || process.env.CO2ROUTER_INTERNAL_API_KEY || null
 }
 
 function getTrustedBrokerId() {
@@ -36,7 +36,7 @@ async function fetchCanonicalEngineJson(path: string, init: CanonicalEngineReque
     headers.set('x-ecobe-broker-id', getTrustedBrokerId())
   }
 
-  const response = await fetch(`${getServerEngineBaseUrl()}${normalizePath(path)}`, {
+  const response = await fetch(`${getServerMcpBaseUrl()}${normalizePath(path)}`, {
     ...requestInit,
     headers,
     cache: 'no-store',
@@ -70,7 +70,7 @@ export async function proxyCanonicalEngineJson(
     return NextResponse.json(upstream.payload, {
       status: upstream.status,
       headers: {
-        'x-co2router-engine-origin': getServerEngineBaseUrl(),
+        'x-co2router-engine-origin': getServerMcpBaseUrl(),
       },
     })
   } catch (error) {

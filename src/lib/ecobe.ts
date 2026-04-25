@@ -1,4 +1,4 @@
-import { getServerEngineBaseUrl } from '@/lib/server-engine-url'
+import { getServerMcpBaseUrl } from '@/lib/server-mcp-url'
 
 function titleCaseWords(value: string) {
   return value
@@ -81,11 +81,11 @@ function buildMethodologyProviders(
 }
 
 function getEngineBaseUrl() {
-  return getServerEngineBaseUrl()
+  return getServerMcpBaseUrl()
 }
 
 function getInternalHeaders() {
-  const internalKey = process.env.ECOBE_INTERNAL_API_KEY
+  const internalKey = process.env.MCP_INTERNAL_API_KEY || process.env.ECOBE_INTERNAL_API_KEY
   return internalKey ? { 'x-ecobe-internal-key': internalKey } : {}
 }
 
