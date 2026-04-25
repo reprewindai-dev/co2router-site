@@ -1,5 +1,4 @@
 import crypto from 'crypto'
-import axios from 'axios'
 import { NextResponse } from 'next/server'
 
 import { getBrokerBaseUrl } from '@/lib/broker-url'
@@ -18,6 +17,7 @@ const HOP_BY_HOP_HEADERS = [
   'transfer-encoding',
   'upgrade',
   'content-length',
+  'content-encoding',
 ]
 
 const mcpLimiter = new RateLimiter({
@@ -155,30 +155,28 @@ async function proxy(request: Request, ctx: { params: Promise<{ path?: string[] 
     }
   }
 
-  const upstream = await axios.request<ArrayBuffer>({
-    url: targetUrl.toString(),
-    method: request.method as
-      | 'GET'
-      | 'POST'
-      | 'PUT'
-      | 'PATCH'
-      | 'DELETE'
-      | 'HEAD'
-      | 'OPTIONS',
-    headers,
-    data: bodyBuffer
-      ? bodyBuffer.buffer.slice(bodyBuffer.byteOffset, bodyBuffer.byteOffset + bodyBuffer.byteLength)
-      : undefined,
-    responseType: 'arraybuffer',
-    validateStatus: () => true,
-    timeout: getMcpTimeoutMs(),
-  })
+  const abortController = new AbortController()
+  const timeout = setTimeout(() => abortController.abort(), getMcpTimeoutMs())
+
+  let upstream: Response
+  try {
+    upstream = await fetch(targetUrl, {
+      method: request.method,
+      headers,
+      body: bodyBuffer,
+      cache: 'no-store',
+      redirect: 'manual',
+      signal: abortController.signal,
+    })
+  } finally {
+    clearTimeout(timeout)
+  }
 
   if (shouldSliceDecisions) {
-    const contentType = String((upstream.headers as Record<string, string>)['content-type'] ?? '')
+    const contentType = String(upstream.headers.get('content-type') ?? '')
     if (contentType.includes('application/json')) {
       try {
-        const decoded = Buffer.from(upstream.data).toString('utf8')
+        const decoded = await upstream.text()
         const json = JSON.parse(decoded) as { decisions?: unknown[]; total?: number; limit?: number }
         const decisions = Array.isArray(json?.decisions) ? json.decisions : []
         const sliced = decisions.slice(0, requestedDecisionLimit as number)
@@ -203,12 +201,17 @@ async function proxy(request: Request, ctx: { params: Promise<{ path?: string[] 
     }
   }
 
-  const responseHeaders = new Headers(upstream.headers as HeadersInit)
+  const responseHeaders = new Headers()
+  upstream.headers.forEach((value, key) => {
+    if (!HOP_BY_HOP_HEADERS.includes(key.toLowerCase())) {
+      responseHeaders.set(key, value)
+    }
+  })
   for (const header of HOP_BY_HOP_HEADERS) {
     responseHeaders.delete(header)
   }
 
-  const responseBody = Buffer.isBuffer(upstream.data) ? upstream.data : Buffer.from(upstream.data)
+  const responseBody = Buffer.from(await upstream.arrayBuffer())
   const response = new NextResponse(responseBody, {
     status: upstream.status,
     headers: responseHeaders,
