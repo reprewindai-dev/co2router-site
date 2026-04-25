@@ -6,7 +6,7 @@ import type {
   DekesIntegrationSummaryResponse,
 } from '@/types'
 import { deriveQualityTier, getDecisionSource, isDecisionDelayed } from '@/lib/decisions'
-import { getBrokerBaseUrl } from '@/lib/broker-url'
+import { getServerBrokerBaseUrl } from '@/lib/broker-url'
 import { getInternalApiKey } from '@/lib/internal-api-key'
 
 type CiDecisionFeed = {
@@ -47,7 +47,7 @@ type DekesRuntimeReadModel = {
 }
 
 function getMcpBrokerBaseUrl() {
-  return getBrokerBaseUrl()
+  return getServerBrokerBaseUrl()
 }
 
 async function fetchMcpJson<T>(path: string, useInternalKey = false): Promise<T | null> {

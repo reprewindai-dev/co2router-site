@@ -9,6 +9,12 @@ function normalizeEnvValue(value: string | null | undefined) {
   return trimmed
 }
 
+function normalizeAbsoluteUrl(value: string | null | undefined) {
+  const normalized = normalizeEnvValue(value).replace(/\/$/, '')
+  if (!normalized) return ''
+  return /^https?:\/\//i.test(normalized) ? normalized : ''
+}
+
 export function getBrokerBaseUrl() {
   const raw =
     process.env.ECOBE_API_URL ||
@@ -21,8 +27,27 @@ export function getBrokerBaseUrl() {
   return normalizeEnvValue(raw).replace(/\/$/, '')
 }
 
+export function getServerBrokerBaseUrl() {
+  const directEngineBase =
+    normalizeAbsoluteUrl(process.env.ECOBE_API_URL) ||
+    normalizeAbsoluteUrl(process.env.MCP_API_URL) ||
+    normalizeAbsoluteUrl(process.env.ECOBE_MVP_URL)
+
+  if (directEngineBase) {
+    return directEngineBase
+  }
+
+  const browserBase = getBrokerBaseUrl()
+  if (/^https?:\/\//i.test(browserBase)) {
+    return browserBase
+  }
+
+  return 'https://co2router.tech'
+}
+
 export function getBrokerHost() {
-  const baseUrl = getBrokerBaseUrl()
+  const baseUrl =
+    typeof window === 'undefined' ? getServerBrokerBaseUrl() : getBrokerBaseUrl()
   if (!baseUrl) return null
 
   try {

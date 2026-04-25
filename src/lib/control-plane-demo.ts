@@ -1,4 +1,4 @@
-import { getBrokerBaseUrl } from '@/lib/broker-url'
+import { getServerBrokerBaseUrl } from '@/lib/broker-url'
 import type { GreenRoutingResult, PolicyDelayResponse } from '@/types'
 
 export type DemoRouteRequest = {
@@ -44,19 +44,34 @@ type GreenRoutingRequest = {
 }
 
 async function getMcpJson<T>(path: string, body: GreenRoutingRequest): Promise<T> {
-  const baseUrl = getBrokerBaseUrl()
+  const baseUrl = getServerBrokerBaseUrl()
   if (!baseUrl) {
     throw new Error('Broker base URL is not configured')
   }
 
-  const response = await fetch(new URL(path, baseUrl), {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      accept: 'application/json',
-    },
-    body: JSON.stringify(body),
-  })
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 5_000)
+
+  let response: Response
+  try {
+    response = await fetch(new URL(path, baseUrl), {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        accept: 'application/json',
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+      cache: 'no-store',
+    })
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new Error('Demo decision request timed out')
+    }
+    throw error
+  } finally {
+    clearTimeout(timeout)
+  }
 
   if (!response.ok) {
     const detail = await response.text()

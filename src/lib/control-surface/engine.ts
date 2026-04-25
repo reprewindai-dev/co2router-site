@@ -1,12 +1,12 @@
 import crypto from 'crypto'
-import { getBrokerBaseUrl } from '@/lib/broker-url'
+import { getServerBrokerBaseUrl } from '@/lib/broker-url'
 import { getInternalApiKey as resolveInternalApiKey } from '@/lib/internal-api-key'
 
 const DECISION_SIGNATURE_PATHS = new Set(['/ci/route', '/ci/authorize', '/ci/carbon-route'])
 const DEFAULT_MCP_TIMEOUT_MS = 4_000
 
 export function getMcpBrokerBaseUrl() {
-  return getBrokerBaseUrl().replace(/\/api\/v1\/?$/, '')
+  return getServerBrokerBaseUrl().replace(/\/api\/v1\/?$/, '')
 }
 
 export function getEngineBaseUrl() {

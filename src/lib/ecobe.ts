@@ -1,4 +1,4 @@
-import { getBrokerBaseUrl } from '@/lib/broker-url'
+import { getServerBrokerBaseUrl } from '@/lib/broker-url'
 import { getInternalApiKey } from '@/lib/internal-api-key'
 
 function titleCaseWords(value: string) {
@@ -82,7 +82,7 @@ function buildMethodologyProviders(
 }
 
 function getMcpBrokerBaseUrl() {
-  return getBrokerBaseUrl().replace(/\/api\/v1\/?$/, '')
+  return getServerBrokerBaseUrl().replace(/\/api\/v1\/?$/, '')
 }
 
 function getEngineBaseUrl() {
