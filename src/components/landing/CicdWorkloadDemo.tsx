@@ -3,10 +3,13 @@
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 
-import { ecobeApi, type GreenRoutingRequest } from '@/lib/api'
+import type { GreenRoutingRequest } from '@/lib/api'
 import { DecisionCard } from '@/components/landing/DecisionCard'
 import { decisionExamples } from '@/lib/demo-data'
 import type { GreenRoutingResult, PolicyDelayResponse } from '@/types'
+
+const LIVE_ENGINE_BASE_URL =
+  process.env.NEXT_PUBLIC_ECOBE_ENGINE_URL ?? 'https://ecobe-engineclaude-co2router.onrender.com/api/v1'
 
 const SAMPLE_REQUEST: GreenRoutingRequest = {
   preferredRegions: ['us-east-1', 'eu-west-1', 'eu-central-1'],
@@ -43,9 +46,22 @@ export function CicdWorkloadDemo() {
       const startedAt = performance.now()
 
       try {
-        const response = await ecobeApi.routeGreen(SAMPLE_REQUEST)
+        const response = await fetch(new URL('/route/green', LIVE_ENGINE_BASE_URL), {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            accept: 'application/json',
+          },
+          body: JSON.stringify(SAMPLE_REQUEST),
+        })
+
+        if (!response.ok) {
+          throw new Error(`Live engine returned ${response.status}`)
+        }
+
+        const data = (await response.json()) as DemoResult
         if (!isMounted) return
-        setResult(response)
+        setResult(data)
         setLoadMs(Math.round(performance.now() - startedAt))
       } catch (cause) {
         if (!isMounted) return
@@ -69,9 +85,9 @@ export function CicdWorkloadDemo() {
     if (isLoading) return 'Fetching live decision...'
     if (!result) return 'Live demo idle'
     if (isPolicyDelay(result)) {
-      return `${result.action === 'delay' ? 'Delayed' : 'Live policy result'} • ${result.retryAfterMinutes} min retry`
+      return `${result.action === 'delay' ? 'Delayed' : 'Live policy result'} | ${result.retryAfterMinutes} min retry`
     }
-    return `${result.selectedRegion} • ${result.carbonIntensity} gCO2/kWh • ${formatLatency(result.estimatedLatency)}`
+    return `${result.selectedRegion} | ${result.carbonIntensity} gCO2/kWh | ${formatLatency(result.estimatedLatency)}`
   }, [error, isLoading, result])
 
   return (
@@ -102,27 +118,31 @@ export function CicdWorkloadDemo() {
             </p>
           </div>
 
-          <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-slate-300">
-            <span className="font-semibold text-white">Live:</span> {liveSummary}
+          <div className="mt-5 overflow-hidden rounded-[28px] border border-cyan-300/20 bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.18),rgba(6,11,20,0.95))] p-5">
+            <div className="text-[11px] uppercase tracking-[0.28em] text-cyan-200">Live decision</div>
+            <div className="mt-3 text-3xl font-black tracking-[-0.05em] text-white">
+              {error ? 'Broker connection failed' : isLoading ? 'Fetching live decision...' : result && isPolicyDelay(result) ? 'Delayed' : 'Runs now'}
+            </div>
+            <div className="mt-2 text-sm leading-7 text-slate-200">{liveSummary}</div>
+
+            {result && !isPolicyDelay(result) ? (
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                <Metric label="Decision time" value={loadMs ? `${loadMs} ms` : 'n/a'} />
+                <Metric label="Selected region" value={result.selectedRegion} />
+                <Metric label="Carbon intensity" value={`${result.carbonIntensity} gCO2/kWh`} />
+                <Metric label="Confidence" value={result.assurance?.confidenceLabel ?? result.qualityTier} />
+              </div>
+            ) : null}
+
+            {result && isPolicyDelay(result) ? (
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                <Metric label="Decision time" value={loadMs ? `${loadMs} ms` : 'n/a'} />
+                <Metric label="Retry after" value={`${result.retryAfterMinutes} min`} />
+                <Metric label="Current best" value={`${result.currentBest.region} / ${result.currentBest.carbonIntensity} gCO2/kWh`} />
+                <Metric label="Policy" value={result.policy.requireGreenRouting ? 'green routing required' : 'policy hold'} />
+              </div>
+            ) : null}
           </div>
-
-          {result && !isPolicyDelay(result) ? (
-            <div className="mt-5 grid gap-3 sm:grid-cols-2">
-              <Metric label="Decision time" value={loadMs ? `${loadMs} ms` : 'n/a'} />
-              <Metric label="Selected region" value={result.selectedRegion} />
-              <Metric label="Carbon intensity" value={`${result.carbonIntensity} gCO2/kWh`} />
-              <Metric label="Confidence" value={result.assurance?.confidenceLabel ?? result.qualityTier} />
-            </div>
-          ) : null}
-
-          {result && isPolicyDelay(result) ? (
-            <div className="mt-5 grid gap-3 sm:grid-cols-2">
-              <Metric label="Decision time" value={loadMs ? `${loadMs} ms` : 'n/a'} />
-              <Metric label="Retry after" value={`${result.retryAfterMinutes} min`} />
-              <Metric label="Current best" value={`${result.currentBest.region} / ${result.currentBest.carbonIntensity} gCO2/kWh`} />
-              <Metric label="Policy" value={result.policy.requireGreenRouting ? 'green routing required' : 'policy hold'} />
-            </div>
-          ) : null}
 
           <div className="mt-5 space-y-3">
             {decisionExamples.map((decision) => (
@@ -152,13 +172,13 @@ export function CicdWorkloadDemo() {
           <div className="mt-8 flex flex-wrap gap-3">
             <Link
               href="/access"
-              className="inline-flex h-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] px-5 text-sm font-semibold uppercase tracking-[0.18em] text-white transition hover:border-cyan-300/40"
+              className="inline-flex h-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] px-5 text-sm font-semibold uppercase tracking-[0.18em] text-white transition hover:border-cyan-300/40 whitespace-nowrap"
             >
               Try your own scenario
             </Link>
             <Link
               href="/contact"
-              className="inline-flex h-12 items-center justify-center rounded-2xl bg-gradient-to-r from-emerald-300 via-cyan-300 to-sky-400 px-5 text-sm font-bold uppercase tracking-[0.18em] text-slate-950 transition hover:brightness-105"
+              className="inline-flex h-12 items-center justify-center rounded-2xl bg-gradient-to-r from-emerald-300 via-cyan-300 to-sky-400 px-5 text-sm font-bold uppercase tracking-[0.18em] text-slate-950 transition hover:brightness-105 whitespace-nowrap"
             >
               Get early access
             </Link>
