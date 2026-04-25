@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { heroScenarioOrder, heroScenarios, type HeroScenarioId } from '@/lib/hero-scenarios'
 
@@ -22,7 +22,11 @@ const toneGlows: Record<HeroScenarioId, string> = {
   deny: 'shadow-[0_0_0_1px_rgba(251,113,133,0.22),0_0_40px_rgba(251,113,133,0.08)]',
 }
 
-export function CicdWorkloadDemo() {
+type CicdWorkloadDemoProps = {
+  externalRunSignal?: number
+}
+
+export function CicdWorkloadDemo({ externalRunSignal = 0 }: CicdWorkloadDemoProps) {
   const [activeScenarioId, setActiveScenarioId] = useState<HeroScenarioId>('reroute')
   const [phase, setPhase] = useState(0)
 
@@ -57,14 +61,19 @@ export function CicdWorkloadDemo() {
   const proofIsVisible = phase >= 6
   const controlsEnabled = phase >= 8
 
-  const runNextScenario = () => {
+  const runNextScenario = useCallback(() => {
     const currentIndex = heroScenarioOrder.indexOf(activeScenarioId)
     const nextScenario = heroScenarioOrder[(currentIndex + 1) % heroScenarioOrder.length]
     setActiveScenarioId(nextScenario)
-  }
+  }, [activeScenarioId])
+
+  useEffect(() => {
+    if (externalRunSignal <= 0) return
+    runNextScenario()
+  }, [externalRunSignal])
 
   return (
-    <section className="lg:min-h-[760px]">
+    <section id="hero-live-demo" className="lg:min-h-[760px]">
       <div
         className={`h-full rounded-[36px] border border-white/10 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.1),transparent_34%),linear-gradient(180deg,rgba(13,17,24,0.96),rgba(4,6,12,0.98))] p-4 transition-all duration-700 ${toneGlows[activeScenarioId]} sm:p-6`}
       >

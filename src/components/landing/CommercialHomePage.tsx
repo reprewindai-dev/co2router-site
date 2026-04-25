@@ -1,8 +1,13 @@
+'use client'
+
 import Link from 'next/link'
+import { useState } from 'react'
 
 import { CicdWorkloadDemo } from '@/components/landing/CicdWorkloadDemo'
 
 export function CommercialHomePage() {
+  const [demoRunSignal, setDemoRunSignal] = useState(0)
+
   return (
     <div className="mx-auto max-w-7xl space-y-8 px-4 pb-12 pt-3 sm:px-6 lg:px-8">
       <header className="flex flex-wrap items-center justify-between gap-4 rounded-full border border-white/8 bg-white/[0.03] px-5 py-3 backdrop-blur-xl">
@@ -51,12 +56,13 @@ export function CommercialHomePage() {
           </p>
 
           <div className="mt-8 flex flex-wrap gap-3">
-            <Link
-              href="/access"
+            <button
+              type="button"
+              onClick={() => setDemoRunSignal((value) => value + 1)}
               className="inline-flex h-12 items-center justify-center rounded-2xl bg-gradient-to-r from-emerald-300 via-cyan-300 to-sky-400 px-5 text-sm font-bold uppercase tracking-[0.18em] text-slate-950 transition duration-200 hover:translate-y-[-1px] hover:brightness-105"
             >
               Run your own job
-            </Link>
+            </button>
           </div>
 
           <p className="mt-4 text-sm text-slate-500">
@@ -64,7 +70,7 @@ export function CommercialHomePage() {
           </p>
         </div>
 
-        <CicdWorkloadDemo />
+        <CicdWorkloadDemo externalRunSignal={demoRunSignal} />
       </section>
 
       <section className="rounded-[28px] border border-white/8 bg-white/[0.025] px-6 py-5 text-sm leading-7 text-slate-400 sm:px-8">
