@@ -1,187 +1,227 @@
 'use client'
 
-import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 
-import type { GreenRoutingRequest } from '@/lib/api'
-import { DecisionCard } from '@/components/landing/DecisionCard'
-import { decisionExamples } from '@/lib/demo-data'
-import type { GreenRoutingResult, PolicyDelayResponse } from '@/types'
+import { heroScenarioOrder, heroScenarios, type HeroScenarioId } from '@/lib/hero-scenarios'
 
-const LIVE_ENGINE_BASE_URL =
-  process.env.NEXT_PUBLIC_ECOBE_ENGINE_URL ?? 'https://ecobe-engineclaude-co2router.onrender.com/api/v1'
+const scenarioTimings = [0, 1000, 2500, 4500, 6500, 8000, 10000, 11500, 13000]
 
-const SAMPLE_REQUEST: GreenRoutingRequest = {
-  preferredRegions: ['us-east-1', 'eu-west-1', 'eu-central-1'],
-  maxCarbonGPerKwh: 400,
-  carbonWeight: 0.5,
-  latencyWeight: 0.2,
-  costWeight: 0.3,
-  mode: 'assurance',
-  policyMode: 'sec_disclosure_strict',
+const toneClasses: Record<HeroScenarioId, string> = {
+  'run-now': 'border-emerald-300/35 bg-emerald-300/12 text-emerald-100',
+  reroute: 'border-sky-300/35 bg-sky-300/12 text-sky-100',
+  delay: 'border-amber-300/35 bg-amber-300/12 text-amber-100',
+  throttle: 'border-orange-300/35 bg-orange-300/12 text-orange-100',
+  deny: 'border-rose-300/35 bg-rose-300/12 text-rose-100',
 }
 
-type DemoResult = GreenRoutingResult | PolicyDelayResponse
-
-function isPolicyDelay(result: DemoResult): result is PolicyDelayResponse {
-  return 'action' in result && result.action === 'delay'
-}
-
-function formatLatency(value: number | undefined | null) {
-  if (value == null) return 'n/a'
-  if (value < 1000) return `${value} ms`
-  return `${(value / 1000).toFixed(2)}s`
+const toneGlows: Record<HeroScenarioId, string> = {
+  'run-now': 'shadow-[0_0_0_1px_rgba(110,231,183,0.22),0_0_40px_rgba(110,231,183,0.08)]',
+  reroute: 'shadow-[0_0_0_1px_rgba(125,211,252,0.22),0_0_40px_rgba(125,211,252,0.08)]',
+  delay: 'shadow-[0_0_0_1px_rgba(252,211,77,0.22),0_0_40px_rgba(252,211,77,0.08)]',
+  throttle: 'shadow-[0_0_0_1px_rgba(251,146,60,0.22),0_0_40px_rgba(251,146,60,0.08)]',
+  deny: 'shadow-[0_0_0_1px_rgba(251,113,133,0.22),0_0_40px_rgba(251,113,133,0.08)]',
 }
 
 export function CicdWorkloadDemo() {
-  const [isLoading, setIsLoading] = useState(true)
-  const [loadMs, setLoadMs] = useState<number | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [result, setResult] = useState<DemoResult | null>(null)
+  const [activeScenarioId, setActiveScenarioId] = useState<HeroScenarioId>('reroute')
+  const [phase, setPhase] = useState(0)
+
+  const scenario = heroScenarios[activeScenarioId]
 
   useEffect(() => {
-    let isMounted = true
+    const timers = scenarioTimings.slice(1).map((delay, index) =>
+      window.setTimeout(() => {
+        setPhase(index + 1)
+      }, delay)
+    )
 
-    async function runLiveDecision() {
-      const startedAt = performance.now()
-
-      try {
-        const response = await fetch(new URL('/route/green', LIVE_ENGINE_BASE_URL), {
-          method: 'POST',
-          headers: {
-            'content-type': 'application/json',
-            accept: 'application/json',
-          },
-          body: JSON.stringify(SAMPLE_REQUEST),
-        })
-
-        if (!response.ok) {
-          throw new Error(`Live engine returned ${response.status}`)
-        }
-
-        const data = (await response.json()) as DemoResult
-        if (!isMounted) return
-        setResult(data)
-        setLoadMs(Math.round(performance.now() - startedAt))
-      } catch (cause) {
-        if (!isMounted) return
-        setError(cause instanceof Error ? cause.message : 'Failed to fetch live routing decision')
-      } finally {
-        if (isMounted) {
-          setIsLoading(false)
-        }
-      }
-    }
-
-    void runLiveDecision()
+    setPhase(0)
 
     return () => {
-      isMounted = false
+      for (const timer of timers) {
+        window.clearTimeout(timer)
+      }
     }
-  }, [])
+  }, [activeScenarioId])
 
-  const liveSummary = useMemo(() => {
-    if (error) return 'Live broker unavailable'
-    if (isLoading) return 'Fetching live decision...'
-    if (!result) return 'Live demo idle'
-    if (isPolicyDelay(result)) {
-      return `${result.action === 'delay' ? 'Delayed' : 'Live policy result'} | ${result.retryAfterMinutes} min retry`
-    }
-    return `${result.selectedRegion} | ${result.carbonIntensity} gCO2/kWh | ${formatLatency(result.estimatedLatency)}`
-  }, [error, isLoading, result])
+  const phaseLabel = useMemo(() => {
+    if (phase < 1) return 'Live indicator'
+    if (phase < 2) return 'Incoming workload'
+    if (phase < 4) return 'Signal evaluation'
+    if (phase < 5) return 'Decision chamber'
+    if (phase < 6) return 'Impact and proof'
+    return 'Ready'
+  }, [phase])
+
+  const impactIsVisible = phase >= 6
+  const proofIsVisible = phase >= 6
+  const controlsEnabled = phase >= 8
+
+  const runNextScenario = () => {
+    const currentIndex = heroScenarioOrder.indexOf(activeScenarioId)
+    const nextScenario = heroScenarioOrder[(currentIndex + 1) % heroScenarioOrder.length]
+    setActiveScenarioId(nextScenario)
+  }
 
   return (
-    <section id="demo" className="rounded-[32px] border border-white/10 bg-white/[0.03] p-6 sm:p-8">
-      <div className="max-w-3xl">
-        <div className="text-[11px] uppercase tracking-[0.28em] text-cyan-300">Live decision panel</div>
-        <h2 className="mt-3 text-3xl font-black tracking-[-0.04em] text-white sm:text-4xl">
-          One job. Different conditions. Different outcomes.
-        </h2>
-        <p className="mt-4 text-sm leading-7 text-slate-300 sm:text-base">
-          The panel loads a live broker result automatically, then shows the same job under
-          different execution conditions.
-        </p>
-      </div>
-
-      <div className="mt-6 grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-        <div className="rounded-[28px] border border-white/10 bg-slate-950/60 p-5">
-          <div className="space-y-1 text-sm text-slate-300">
-            <p>
-              Job: <span className="font-semibold text-white">Payment Service Deployment</span>
-            </p>
-            <p>
-              Environment:{' '}
-              <span className="font-semibold text-white">Production / Staging / Experiment</span>
-            </p>
-            <p>
-              Policy: <span className="font-semibold text-white">Active</span>
-            </p>
-          </div>
-
-          <div className="mt-5 overflow-hidden rounded-[28px] border border-cyan-300/20 bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.18),rgba(6,11,20,0.95))] p-5">
-            <div className="text-[11px] uppercase tracking-[0.28em] text-cyan-200">Live decision</div>
-            <div className="mt-3 text-3xl font-black tracking-[-0.05em] text-white">
-              {error ? 'Broker connection failed' : isLoading ? 'Fetching live decision...' : result && isPolicyDelay(result) ? 'Delayed' : 'Runs now'}
-            </div>
-            <div className="mt-2 text-sm leading-7 text-slate-200">{liveSummary}</div>
-
-            {result && !isPolicyDelay(result) ? (
-              <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                <Metric label="Decision time" value={loadMs ? `${loadMs} ms` : 'n/a'} />
-                <Metric label="Selected region" value={result.selectedRegion} />
-                <Metric label="Carbon intensity" value={`${result.carbonIntensity} gCO2/kWh`} />
-                <Metric label="Confidence" value={result.assurance?.confidenceLabel ?? result.qualityTier} />
+    <section className="lg:min-h-[760px]">
+      <div
+        className={`h-full rounded-[36px] border border-white/10 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.1),transparent_34%),linear-gradient(180deg,rgba(13,17,24,0.96),rgba(4,6,12,0.98))] p-4 transition-all duration-700 ${toneGlows[activeScenarioId]} sm:p-6`}
+      >
+        <div className="flex h-full flex-col rounded-[30px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.015))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] sm:p-5">
+          <div className="flex items-center justify-between gap-4 border-b border-white/8 pb-4">
+            <div className="space-y-1">
+              <div className="text-[11px] uppercase tracking-[0.3em] text-cyan-200">
+                LIVE DECISION FLOW
               </div>
-            ) : null}
-
-            {result && isPolicyDelay(result) ? (
-              <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                <Metric label="Decision time" value={loadMs ? `${loadMs} ms` : 'n/a'} />
-                <Metric label="Retry after" value={`${result.retryAfterMinutes} min`} />
-                <Metric label="Current best" value={`${result.currentBest.region} / ${result.currentBest.carbonIntensity} gCO2/kWh`} />
-                <Metric label="Policy" value={result.policy.requireGreenRouting ? 'green routing required' : 'policy hold'} />
+              <div className="flex items-center gap-2 text-xs uppercase tracking-[0.24em] text-slate-400">
+                <span className="inline-flex h-2.5 w-2.5 rounded-full bg-emerald-300 shadow-[0_0_16px_rgba(110,231,183,0.55)] animate-pulse" />
+                active
               </div>
-            ) : null}
-          </div>
+            </div>
 
-          <div className="mt-5 space-y-3">
-            {decisionExamples.map((decision) => (
-              <DecisionCard key={decision.label} {...decision} />
-            ))}
-          </div>
-        </div>
-
-        <div className="flex h-full flex-col justify-between rounded-[28px] border border-white/10 bg-white/[0.03] p-5">
-          <div>
-            <div className="text-[11px] uppercase tracking-[0.28em] text-cyan-300">What you see</div>
-            <div className="mt-4 space-y-3 text-sm leading-7 text-slate-300">
-              <p>Production runs now because it meets policy.</p>
-              <p>Staging is delayed because it is lower priority.</p>
-              <p>Experiment is blocked because policy rejects it.</p>
-              <p>Over limit is blocked because the thresholds are exceeded.</p>
-              <p>Approval is waiting because a human must approve it.</p>
+            <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-slate-300">
+              {phaseLabel}
             </div>
           </div>
 
-          {error ? (
-            <div className="mt-8 rounded-2xl border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm leading-6 text-amber-100">
-              {error}
+          <div className="mt-4 grid gap-4">
+            <div
+              className={`rounded-[28px] border border-white/10 bg-slate-950/70 p-4 transition-all duration-700 ${
+                phase >= 1 ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-70'
+              }`}
+            >
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="space-y-2">
+                  <div className="text-[11px] uppercase tracking-[0.26em] text-slate-500">
+                    Incoming workload
+                  </div>
+                  <div className="text-xl font-semibold tracking-[-0.04em] text-white">
+                    {scenario.workloadType}
+                  </div>
+                  <div className="text-sm text-slate-300">{scenario.jobName}</div>
+                </div>
+                <div className="space-y-2 text-right text-sm text-slate-300">
+                  <p>
+                    Source: <span className="text-white">{scenario.source}</span>
+                  </p>
+                  <p>
+                    Requested region: <span className="text-white">{scenario.requestedRegion}</span>
+                  </p>
+                  {scenario.environment ? (
+                    <p>
+                      Environment: <span className="text-white">{scenario.environment}</span>
+                    </p>
+                  ) : null}
+                  {scenario.scale ? (
+                    <p>
+                      Scale: <span className="text-white">{scenario.scale}</span>
+                    </p>
+                  ) : null}
+                </div>
+              </div>
             </div>
-          ) : null}
 
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Link
-              href="/access"
-              className="inline-flex h-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] px-5 text-sm font-semibold uppercase tracking-[0.18em] text-white transition hover:border-cyan-300/40 whitespace-nowrap"
+            <div className="grid gap-3 md:grid-cols-5">
+              {scenario.signals.map((signal, index) => {
+                const resolved = phase >= 2
+
+                return (
+                  <SignalCard
+                    key={signal.label}
+                    label={signal.label}
+                    value={signal.value}
+                    resolved={resolved}
+                    delayMs={index * 110}
+                  />
+                )
+              })}
+            </div>
+
+            <div
+              className={`rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(11,15,23,0.95),rgba(5,8,14,0.98))] p-5 transition-all duration-700 ${
+                phase >= 5 ? 'scale-[1.01] opacity-100' : 'opacity-80'
+              }`}
             >
-              Try your own scenario
-            </Link>
-            <Link
-              href="/contact"
-              className="inline-flex h-12 items-center justify-center rounded-2xl bg-gradient-to-r from-emerald-300 via-cyan-300 to-sky-400 px-5 text-sm font-bold uppercase tracking-[0.18em] text-slate-950 transition hover:brightness-105 whitespace-nowrap"
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <div className="text-[11px] uppercase tracking-[0.28em] text-slate-500">
+                    Central decision chamber
+                  </div>
+                  <div className="mt-2 text-4xl font-black tracking-[-0.06em] text-white sm:text-5xl">
+                    {scenario.action}
+                  </div>
+                  <div className="mt-2 max-w-2xl text-sm leading-7 text-slate-300 sm:text-base">
+                    {scenario.reason}
+                  </div>
+                </div>
+
+                <div className={`rounded-2xl border px-4 py-3 text-right ${toneClasses[scenario.id]}`}>
+                  <div className="text-[11px] uppercase tracking-[0.22em] text-current/70">
+                    Active action
+                  </div>
+                  <div className="mt-1 text-sm font-semibold uppercase tracking-[0.2em] text-current">
+                    {scenario.action}
+                  </div>
+                </div>
+              </div>
+
+              {impactIsVisible ? (
+                <div className="mt-4 rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3 text-sm leading-7 text-slate-200">
+                  {scenario.impact}
+                  {scenario.routeHint ? <span className="block text-slate-400">{scenario.routeHint}</span> : null}
+                </div>
+              ) : null}
+            </div>
+
+            <div
+              className={`grid gap-3 rounded-[26px] border border-emerald-300/15 bg-emerald-300/8 p-4 transition-all duration-700 ${
+                proofIsVisible ? 'opacity-100' : 'opacity-75'
+              } sm:grid-cols-[1.05fr_0.95fr]`}
             >
-              Get early access
-            </Link>
+              <div className="text-[11px] uppercase tracking-[0.26em] text-emerald-200">
+                Proof strip
+              </div>
+              <div className="grid gap-2 text-sm text-slate-200 sm:grid-cols-4">
+                {scenario.proof.map((item) => (
+                  <div key={item} className="rounded-2xl border border-white/8 bg-slate-950/55 px-3 py-2">
+                    {item}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 rounded-[28px] border border-white/8 bg-white/[0.03] p-3">
+              {heroScenarioOrder.map((scenarioId) => {
+                const item = heroScenarios[scenarioId]
+                const isActive = scenarioId === activeScenarioId
+                const activeTone = toneClasses[scenarioId]
+
+                return (
+                  <button
+                    key={scenarioId}
+                    type="button"
+                    onClick={() => setActiveScenarioId(scenarioId)}
+                    aria-pressed={isActive}
+                    className={[
+                      'rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-slate-300 transition duration-200 hover:border-white/20',
+                      isActive ? activeTone : 'hover:text-white',
+                    ].join(' ')}
+                  >
+                    {item.action}
+                  </button>
+                )
+              })}
+
+              <button
+                type="button"
+                onClick={runNextScenario}
+                disabled={!controlsEnabled}
+                className="ml-auto rounded-full border border-white/10 bg-white/[0.05] px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-slate-200 transition hover:border-cyan-300/40 disabled:cursor-not-allowed disabled:opacity-45"
+              >
+                Run another job
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -189,10 +229,25 @@ export function CicdWorkloadDemo() {
   )
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
+function SignalCard({
+  label,
+  value,
+  resolved,
+  delayMs,
+}: {
+  label: string
+  value: string
+  resolved: boolean
+  delayMs: number
+}) {
   return (
-    <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
-      <div className="text-[11px] uppercase tracking-[0.18em] text-slate-500">{label}</div>
+    <div
+      className={`rounded-[22px] border border-white/10 bg-white/[0.03] p-4 transition-all duration-700 ${
+        resolved ? 'translate-y-0 opacity-100' : 'translate-y-1 opacity-75'
+      }`}
+      style={{ transitionDelay: `${delayMs}ms` }}
+    >
+      <div className="text-[11px] uppercase tracking-[0.22em] text-slate-500">{label}</div>
       <div className="mt-2 text-sm font-semibold leading-6 text-white">{value}</div>
     </div>
   )

@@ -26,7 +26,7 @@ export function LiveSystemSection() {
         </div>
         <div className="mt-8 rounded-[28px] border border-dashed border-white/10 bg-slate-950/45 p-6 text-sm leading-7 text-slate-300">
           {liveSystemQuery.isError
-            ? 'Live system data is unavailable right now. Check the engine and broker connection.'
+            ? 'Live system data is reconnecting right now. The surface stays visible while fresh execution data reattaches.'
             : 'Waiting for the live system snapshot to attach.'}
         </div>
       </section>
