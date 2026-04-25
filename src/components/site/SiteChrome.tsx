@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 import { CO2RouterLogo } from '@/components/CO2RouterLogo'
+import type { SiteAudience } from '@/lib/site-host'
 import type { SiteLinkSection, SiteLink } from '@/lib/site-navigation'
 
 type SiteChromeProps = {
@@ -12,6 +13,7 @@ type SiteChromeProps = {
   footerTagline: string
   headerSubtitle: string
   primaryNavLinks: SiteLink[]
+  audience: SiteAudience
 }
 
 export function SiteChrome({
@@ -20,7 +22,15 @@ export function SiteChrome({
   footerTagline,
   headerSubtitle,
   primaryNavLinks,
+  audience,
 }: SiteChromeProps) {
+  const pathname = usePathname()
+  const isCommercialHome = audience === 'commercial' && pathname === '/'
+
+  if (isCommercialHome) {
+    return <div className="min-h-screen bg-[#050505]">{children}</div>
+  }
+
   return (
     <div className="min-h-screen bg-slate-950 bg-grid-mesh">
       <header className="sticky top-0 z-50 border-b border-slate-800/50 bg-slate-950/80 backdrop-blur-xl">

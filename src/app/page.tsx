@@ -20,7 +20,7 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 
   return createPageMetadata({
-    title: 'Decide if your jobs run — before they run',
+    title: 'Decide if your jobs run \u2014 before they run',
     description:
       'Run a job, see what happens, and watch CO2 Router return five outcomes from a live demo.',
     path: '/',

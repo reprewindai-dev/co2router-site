@@ -101,6 +101,7 @@ export default async function RootLayout({
             dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
           />
           <SiteChrome
+            audience={audience}
             footerLinkSections={footerLinkSections}
             footerTagline={footerTagline}
             headerSubtitle={headerSubtitle}

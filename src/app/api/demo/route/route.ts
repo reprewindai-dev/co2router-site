@@ -5,7 +5,7 @@ import { buildDemoRoutingDecision, type DemoRouteRequest } from '@/lib/control-p
 export const dynamic = 'force-dynamic'
 
 const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000
-const RATE_LIMIT_MAX_REQUESTS = 5
+const RATE_LIMIT_MAX_REQUESTS = 30
 const rateLimit = new Map<string, { count: number; resetAt: number }>()
 
 function getClientKey(request: NextRequest) {
