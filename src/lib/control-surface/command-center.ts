@@ -935,7 +935,10 @@ export async function getCommandCenterSnapshot(
       recentDecisions.find((decision) => decision.traceAvailable) ?? recentDecisions[0] ?? null
 
     const [selectedTrace, selectedReplay] =
-      defaultSelected && hasInternalApiKey() && ENABLE_LIVE_DEEP_TRACE
+      defaultSelected &&
+      defaultSelected.traceAvailable &&
+      hasInternalApiKey() &&
+      ENABLE_LIVE_DEEP_TRACE
         ? await Promise.all([
             fetchEngineJson<DecisionTraceRawRecord>(
               `/ci/decisions/${encodeURIComponent(defaultSelected.decisionFrameId)}/trace/raw`,

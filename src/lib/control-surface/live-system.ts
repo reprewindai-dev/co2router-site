@@ -220,7 +220,10 @@ export async function getLiveSystemSnapshot(): Promise<LiveSystemSnapshot> {
   const latestDecision = recentDecisions[0] ?? null
 
   const traceResult =
-    latestDecision && hasInternalApiKey() && ENABLE_LIVE_DEEP_TRACE
+    latestDecision &&
+    latestDecision.traceAvailable &&
+    hasInternalApiKey() &&
+    ENABLE_LIVE_DEEP_TRACE
       ? await Promise.allSettled([
           fetchEngineJson<LiveSystemTraceResponse>(
             `/ci/decisions/${encodeURIComponent(latestDecision.decisionFrameId)}/trace`,
@@ -243,6 +246,8 @@ export async function getLiveSystemSnapshot(): Promise<LiveSystemSnapshot> {
   const traceError =
     !latestDecision
       ? 'No recent decision is available for trace inspection.'
+      : !latestDecision.traceAvailable
+        ? 'Trace details are not attached to the latest live decision yet.'
       : !hasInternalApiKey()
         ? 'Trace details are unavailable for this snapshot.'
         : traceResult?.[0]?.status === 'rejected'
@@ -254,6 +259,8 @@ export async function getLiveSystemSnapshot(): Promise<LiveSystemSnapshot> {
   const replayError =
     !latestDecision
       ? 'No recent decision is available for replay verification.'
+      : !latestDecision.traceAvailable
+        ? 'Replay verification is waiting for a persisted trace frame.'
       : !hasInternalApiKey()
         ? 'Replay details are unavailable for this snapshot.'
         : traceResult?.[1]?.status === 'rejected'

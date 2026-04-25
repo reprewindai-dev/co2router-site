@@ -56,6 +56,7 @@ type DecisionRow = {
   fallbackUsed: boolean
   jobType: string
   metadata: Record<string, unknown>
+  traceAvailable?: boolean
   latencyMs?: {
     total: number
     compute: number
@@ -703,7 +704,7 @@ async function getReplayBundle(decisions: DecisionFeed['decisions']) {
   const latest = decisions[0]
   if (!latest) return null
 
-  if (hasInternalApiKey()) {
+  if (hasInternalApiKey() && latest.traceAvailable) {
     try {
       return await fetchEngineJson<ReplayBundle>(
         `/ci/decisions/${encodeURIComponent(latest.decisionFrameId)}/replay`,
