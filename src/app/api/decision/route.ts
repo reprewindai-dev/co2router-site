@@ -1,25 +1,20 @@
-import { NextResponse } from 'next/server'
-import { getBrokerBaseUrl } from '@/lib/broker-url'
+import { NextRequest, NextResponse } from 'next/server'
 
-const baseUrl = () =>
-  getBrokerBaseUrl() || null
+import { buildDemoRoutingDecision, type DemoRouteRequest } from '@/lib/control-plane-demo'
 
-export async function POST(request: Request) {
-  const base = baseUrl()
-  if (!base) {
-    return NextResponse.json({ error: 'Decision service unavailable' }, { status: 503 })
+export const dynamic = 'force-dynamic'
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = (await request.json()) as DemoRouteRequest
+    const decision = await buildDemoRoutingDecision(body)
+    return NextResponse.json(decision)
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error: error instanceof Error ? error.message : 'Unable to compute demo decision',
+      },
+      { status: 500 }
+    )
   }
-
-  const body = await request.text()
-  const upstream = await fetch(`${base}/decision`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body,
-  })
-
-  const text = await upstream.text()
-  return new NextResponse(text, {
-    status: upstream.status,
-    headers: { 'content-type': upstream.headers.get('content-type') ?? 'application/json' },
-  })
 }
