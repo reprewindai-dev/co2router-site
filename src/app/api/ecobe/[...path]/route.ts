@@ -132,6 +132,7 @@ async function proxy(request: Request, ctx: { params: Promise<{ path?: string[] 
     const value = request.headers.get(header)
     if (value) headers[header] = value
   }
+  headers['Accept-Encoding'] = 'identity'
 
   if (useInternalKey) {
     const internalKey = getInternalApiKey()
@@ -156,7 +157,7 @@ async function proxy(request: Request, ctx: { params: Promise<{ path?: string[] 
     }
   }
 
-  const upstream = await axios.request<ArrayBuffer>({
+  const upstreamRequestConfig = {
     url: targetUrl.toString(),
     method: request.method as
       | 'GET'
@@ -173,7 +174,10 @@ async function proxy(request: Request, ctx: { params: Promise<{ path?: string[] 
     responseType: 'arraybuffer',
     validateStatus: () => true,
     timeout: getMcpTimeoutMs(),
-  })
+    decompress: false,
+  } as any
+
+  const upstream = await axios.request<ArrayBuffer>(upstreamRequestConfig)
 
   if (shouldSliceDecisions) {
     const contentType = String((upstream.headers as Record<string, string>)['content-type'] ?? '')
