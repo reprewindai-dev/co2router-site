@@ -20,11 +20,11 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 
   return createPageMetadata({
-    title: 'Decide if your jobs run \u2014 before they run',
+    title: 'CO2 Router | Live execution authority',
     description:
-      'Run a job, see what happens, and watch CO2 Router return five outcomes from a live demo.',
+      'CO2 Router routes workloads with live proof, replay, governance, and routing signals before execution.',
     path: '/',
-    keywords: ['CO2 Router', 'interactive demo', 'CI/CD', 'job routing'],
+    keywords: ['CO2 Router', 'live control plane', 'routing', 'proof', 'replay'],
   })
 }
 

@@ -22,7 +22,7 @@ export function HeroMotionSurface({
   liveDecision: ControlSurfaceDecisionSummary | null
 }) {
   const actionMeta = liveDecision ? formatAction(liveDecision.action) : null
-  const workloadLabel = liveDecision?.workloadLabel ?? 'Current execution frame'
+  const workloadLabel = liveDecision?.workloadLabel ?? 'Live decision frame unavailable'
   const baselineCarbon = liveDecision?.baselineCarbonIntensity
   const waterStressIndex = liveDecision?.waterStressIndex
   const selectedRegion = liveDecision?.selectedRegion
@@ -30,15 +30,15 @@ export function HeroMotionSurface({
   const signalConfidence = liveDecision?.signalConfidence
   const totalLatency = liveDecision?.latencyMs?.total
   const baselineCarbonLabel =
-    baselineCarbon != null ? `${baselineCarbon} gCO2/kWh` : 'baseline carbon state'
+    baselineCarbon != null ? `${baselineCarbon} gCO2/kWh` : 'baseline carbon unavailable'
   const waterAuthorityLabel =
-    waterStressIndex != null ? `${waterStressIndex.toFixed(1)} stress` : 'water authority state'
-  const selectedRegionLabel = selectedRegion ?? 'routing region on frame'
+    waterStressIndex != null ? `${waterStressIndex.toFixed(1)} stress` : 'water authority unavailable'
+  const selectedRegionLabel = selectedRegion ?? 'region unavailable'
   const carbonDeltaLabel =
-    carbonDelta != null ? `${carbonDelta.toFixed(1)}% carbon delta` : 'carbon delta on frame'
+    carbonDelta != null ? `${carbonDelta.toFixed(1)}% carbon delta` : 'carbon delta unavailable'
   const signalConfidenceLabel =
-    signalConfidence != null ? `${signalConfidence.toFixed(2)} confidence` : 'confidence on frame'
-  const latencyLabel = totalLatency != null ? `${totalLatency.toFixed(0)} ms` : 'latency on frame'
+    signalConfidence != null ? `${signalConfidence.toFixed(2)} confidence` : 'confidence unavailable'
+  const latencyLabel = totalLatency != null ? `${totalLatency.toFixed(0)} ms` : 'latency unavailable'
 
   return (
     <section className="relative overflow-hidden rounded-[32px] border border-white/10 bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.18),transparent_38%),linear-gradient(180deg,rgba(5,10,20,0.96),rgba(2,8,18,0.98))] px-6 py-8 shadow-[0_25px_120px_rgba(0,0,0,0.45)] sm:px-10 sm:py-10 lg:px-12 lg:py-12">
@@ -79,7 +79,12 @@ export function HeroMotionSurface({
             <div className="rounded-full border border-emerald-400/20 bg-emerald-400/8 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.28em] text-emerald-300">
               Live execution authority
             </div>
-            <CO2RouterLogo size="lg" orientation="lockup" />
+            <div className="hidden sm:block">
+              <CO2RouterLogo size="lg" orientation="lockup" />
+            </div>
+            <div className="sm:hidden text-xl font-black tracking-[-0.08em] text-white">
+              CO<sub className="text-[0.58em] align-[-0.44em]">2</sub>Router
+            </div>
           </div>
           <motion.h1
             initial={{ opacity: 0, y: 12 }}
@@ -160,8 +165,8 @@ export function HeroMotionSurface({
                       binding outcome
                     </div>
                     <div className="mt-2 text-xl font-bold text-white">
-                      {actionMeta?.label ?? 'Shell Ready'}
-                    </div>
+                    {actionMeta?.label ?? 'Live data connecting'}
+                  </div>
                   </div>
                   {actionMeta && (
                     <span className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] ${actionMeta.badge}`}>

@@ -1,59 +1,66 @@
 import { getBrokerBaseUrl } from '@/lib/broker-url'
+import type { GreenRoutingResult, PolicyDelayResponse } from '@/types'
 
 export type DemoRouteRequest = {
   scenario?: string
-}
-
-export type SandboxLaneOutcome = 'run_now' | 'run_later' | 'rejected' | 'needs_override'
-
-export type SandboxLaneResult = {
-  lane: 'prod' | 'staging' | 'experiments' | 'overline' | 'needs_two_keys'
-  label: string
-  outcome: SandboxLaneOutcome
-  region: string | null
-  scheduled_time: string | null
-  reasons: string[]
-  hard_stops_triggered: string[]
-  override_required: boolean
-  decision_id: string | null
-  latency_ms: number | null
-}
-
-export type SandboxRunResponse = {
-  run_id: string
-  scenario: string
-  lanes: SandboxLaneResult[]
-}
-
-export type DemoRouteResponse = {
-  run_id: string
-  scenario: string
-  lanes: SandboxLaneResult[]
-}
-
-function getMcpBaseUrl() {
-  return getBrokerBaseUrl()
 }
 
 function normalizeScenario(value?: string) {
   return value && value.trim().length > 0 ? value.trim() : 'nightly_analytics_batch'
 }
 
-async function getMcpJson<T>(path: string, searchParams: Record<string, string>): Promise<T> {
-  const url = new URL(`${getMcpBaseUrl()}${path}`)
-  for (const [key, value] of Object.entries(searchParams)) {
-    url.searchParams.set(key, value)
+function scenarioRequest(scenario: string): GreenRoutingRequest {
+  const preferredRegionsByScenario: Record<string, string[]> = {
+    nightly_analytics_batch: ['us-east-1', 'us-west-2', 'eu-west-1'],
+    daytime_sync: ['us-east-1', 'us-west-2'],
+    eu_compliance_check: ['eu-west-1', 'eu-central-1', 'us-east-1'],
+    carbon_sensitive_batch: ['eu-west-1', 'ca-central-1', 'us-east-1'],
   }
 
-  const response = await fetch(url, {
-    method: 'GET',
+  return {
+    preferredRegions: preferredRegionsByScenario[scenario] ?? ['us-east-1', 'us-west-2', 'eu-west-1'],
+    maxCarbonGPerKwh: 450,
+    carbonWeight: 0.6,
+    latencyWeight: 0.25,
+    costWeight: 0.15,
+    mode: 'optimize',
+    policyMode: 'default',
+    durationMinutes: 60,
+  }
+}
+
+type GreenRoutingRequest = {
+  preferredRegions: string[]
+  maxCarbonGPerKwh?: number
+  latencyMsByRegion?: Record<string, number>
+  costIndexByRegion?: Record<string, number>
+  carbonWeight?: number
+  latencyWeight?: number
+  costWeight?: number
+  mode?: 'optimize' | 'assurance'
+  policyMode?: 'default' | 'sec_disclosure_strict' | 'eu_24x7_ready'
+  targetTime?: string
+  durationMinutes?: number
+}
+
+async function getMcpJson<T>(path: string, body: GreenRoutingRequest): Promise<T> {
+  const baseUrl = getBrokerBaseUrl()
+  if (!baseUrl) {
+    throw new Error('Broker base URL is not configured')
+  }
+
+  const response = await fetch(new URL(path, baseUrl), {
+    method: 'POST',
     headers: {
+      'content-type': 'application/json',
       accept: 'application/json',
     },
+    body: JSON.stringify(body),
   })
 
   if (!response.ok) {
-    throw new Error(`MVP request failed for ${path} (${response.status})`)
+    const detail = await response.text()
+    throw new Error(detail || `Broker request failed (${response.status})`)
   }
 
   return (await response.json()) as T
@@ -61,10 +68,8 @@ async function getMcpJson<T>(path: string, searchParams: Record<string, string>)
 
 export async function buildDemoRoutingDecision(
   input: DemoRouteRequest
-): Promise<DemoRouteResponse> {
+): Promise<GreenRoutingResult | PolicyDelayResponse> {
   const scenario = normalizeScenario(input.scenario)
 
-  return getMcpJson<DemoRouteResponse>('/api/v1/sandbox/run', {
-    scenario,
-  })
+  return getMcpJson<GreenRoutingResult | PolicyDelayResponse>('/api/v1/route/green', scenarioRequest(scenario))
 }

@@ -33,18 +33,18 @@ export function ActionStrip({
                 {meta.label}
               </span>
               <span className="text-xs text-slate-500">
-                {hasLiveDistribution && item ? `${item.pct.toFixed(1)}%` : 'shell ready'}
+                {hasLiveDistribution && item ? `${item.pct.toFixed(1)}%` : 'live data pending'}
               </span>
             </div>
             <div className="mt-4 text-sm text-slate-300">
               {hasLiveDistribution
                 ? meta.simple
-                : 'This action remains visible immediately. The live decision mix attaches without replacing the page.'}
+                : 'The live decision mix attaches when the control surface returns data.'}
             </div>
             <div className="mt-5 h-1.5 rounded-full bg-white/6">
               <div
                 className="h-full rounded-full bg-gradient-to-r from-emerald-300 via-cyan-300 to-sky-400"
-                style={{ width: `${hasLiveDistribution ? Math.max(item?.pct ?? 0, 6) : 22}%` }}
+                style={{ width: `${hasLiveDistribution ? Math.max(item?.pct ?? 0, 6) : 0}%` }}
               />
             </div>
           </motion.div>

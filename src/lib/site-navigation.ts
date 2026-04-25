@@ -51,6 +51,7 @@ const commercialFooterLinkSections: SiteLinkSection[] = [
     title: 'Company',
     links: [
       { href: '/company/about', label: 'About' },
+      { href: '/company/brochures', label: 'Brochures' },
       { href: '/company/roadmap', label: 'Roadmap' },
       { href: '/contact', label: 'Contact' },
     ],

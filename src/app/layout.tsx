@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Space_Grotesk } from 'next/font/google'
 import { headers } from 'next/headers'
 import { Analytics } from '@vercel/analytics/next'
@@ -17,6 +17,13 @@ import './globals.css'
 import { Providers } from './providers'
 
 const spaceGrotesk = Space_Grotesk({ subsets: ['latin'] })
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  themeColor: '#050505',
+}
 
 export async function generateMetadata(): Promise<Metadata> {
   const headerList = await headers()

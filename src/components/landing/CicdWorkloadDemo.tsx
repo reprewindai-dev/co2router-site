@@ -1,328 +1,185 @@
 'use client'
 
-import { useMemo, useState, type FormEvent } from 'react'
+import { useMemo, useState } from 'react'
 
-type DemoLane = 'prod' | 'staging' | 'experiments' | 'overline' | 'needs_two_keys'
+import { ecobeApi, type GreenRoutingRequest } from '@/lib/api'
+import type { GreenRoutingResult, PolicyDelayResponse } from '@/types'
 
-type DemoOutcome = 'run_now' | 'run_later' | 'rejected' | 'needs_override'
-
-type DemoRouteResponse = {
-  run_id: string
-  scenario: string
-  lanes: Array<{
-    lane: DemoLane
-    label: string
-    outcome: DemoOutcome
-    region: string | null
-    scheduled_time: string | null
-    reasons: string[]
-    hard_stops_triggered: string[]
-    override_required: boolean
-    decision_id: string | null
-    latency_ms: number | null
-  }>
+const SAMPLE_REQUEST: GreenRoutingRequest = {
+  preferredRegions: ['us-east-1', 'eu-west-1', 'eu-central-1'],
+  maxCarbonGPerKwh: 400,
+  carbonWeight: 0.5,
+  latencyWeight: 0.2,
+  costWeight: 0.3,
+  mode: 'assurance',
+  policyMode: 'sec_disclosure_strict',
 }
 
-type CardState = 'idle' | 'loading' | 'result'
+type DemoResult = GreenRoutingResult | PolicyDelayResponse
 
-const SAMPLE_SCENARIO = 'nightly_analytics_batch'
-
-const LANE_ORDER: DemoLane[] = ['prod', 'staging', 'experiments', 'overline', 'needs_two_keys']
-
-const LANE_COPY: Record<DemoLane, { title: string; idle: string; pending: string }> = {
-  prod: {
-    title: 'Production',
-    idle: 'Ready to check production rules.',
-    pending: 'Checking production rules.',
-  },
-  staging: {
-    title: 'Staging',
-    idle: 'Ready to compare placement.',
-    pending: 'Comparing placement.',
-  },
-  experiments: {
-    title: 'Experiment',
-    idle: 'Ready to test the edge.',
-    pending: 'Testing the edge.',
-  },
-  overline: {
-    title: 'Over limit',
-    idle: 'Ready to test the limit.',
-    pending: 'Testing the limit.',
-  },
-  needs_two_keys: {
-    title: 'Approval',
-    idle: 'Ready to check approval.',
-    pending: 'Checking approval.',
-  },
+function isPolicyDelay(result: DemoResult): result is PolicyDelayResponse {
+  return 'action' in result && result.action === 'delay'
 }
 
-const IDLE_LANES = LANE_ORDER.map((lane) => ({
-  lane,
-  label: LANE_COPY[lane].title,
-  outcome: 'run_now' as DemoOutcome,
-  region: null,
-  scheduled_time: null,
-  reasons: [LANE_COPY[lane].idle],
-  hard_stops_triggered: [],
-  override_required: false,
-  decision_id: null,
-  latency_ms: null,
-}))
-
-function shortId(value: string | null) {
-  if (!value) return 'pending'
-  if (value.length <= 10) return value
-  return `${value.slice(0, 4)}...${value.slice(-4)}`
-}
-
-function formatLatency(value: number | null) {
-  if (value === null) return 'pending'
+function formatLatency(value: number | undefined | null) {
+  if (value == null) return 'n/a'
   if (value < 1000) return `${value} ms`
   return `${(value / 1000).toFixed(2)}s`
 }
 
-function outcomeLabel(lane: DemoLane, outcome: DemoOutcome, state: CardState) {
-  if (state === 'idle') return 'Ready'
-  if (state === 'loading') return 'Running'
-  if (outcome === 'run_later') return 'Delayed'
-  if (outcome === 'rejected') return 'Blocked'
-  if (outcome === 'needs_override') return 'Waiting'
-  if (lane === 'staging') return 'Runs elsewhere'
-  if (lane === 'experiments') return 'Runs with limits'
-  return 'Runs now'
-}
-
-function outcomeClass(label: string) {
-  if (label === 'Blocked') return 'border-[#ff6b6b]/40 bg-[#ff6b6b]/12 text-[#ffd7d7]'
-  if (label === 'Delayed') return 'border-[#f7c35f]/40 bg-[#f7c35f]/12 text-[#ffe3a3]'
-  if (label === 'Waiting') return 'border-[#caa7ff]/40 bg-[#caa7ff]/12 text-[#eadcff]'
-  if (label === 'Runs elsewhere') return 'border-[#68d8d6]/40 bg-[#68d8d6]/12 text-[#d8fffd]'
-  if (label === 'Running') return 'border-[#f4f0e8]/20 bg-[#f4f0e8]/10 text-[#f4f0e8]'
-  return 'border-[#9be870]/40 bg-[#9be870]/12 text-[#e4ffd8]'
-}
-
-function reasonForCard(lane: DemoRouteResponse['lanes'][number], state: CardState) {
-  if (state === 'idle') return LANE_COPY[lane.lane].idle
-  if (state === 'loading') return LANE_COPY[lane.lane].pending
-  return lane.reasons[0] ?? 'Handled by the run.'
-}
-
 export function CicdWorkloadDemo() {
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isRunning, setIsRunning] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [result, setResult] = useState<DemoRouteResponse | null>(null)
+  const [result, setResult] = useState<DemoResult | null>(null)
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+  async function runDemo() {
     setError(null)
-    setIsSubmitting(true)
+    setIsRunning(true)
 
     try {
-      const response = await fetch('/api/demo/route', {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify({
-          scenario: SAMPLE_SCENARIO,
-        }),
-      })
-
-      if (!response.ok) {
-        const text = await response.text()
-        throw new Error(text || `Demo request failed with ${response.status}`)
-      }
-
-      const data = (await response.json()) as DemoRouteResponse
-      setResult(data)
+      const response = await ecobeApi.routeGreen(SAMPLE_REQUEST)
+      setResult(response)
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Failed to run demo')
+      setError(cause instanceof Error ? cause.message : 'Failed to run live routing decision')
     } finally {
-      setIsSubmitting(false)
+      setIsRunning(false)
     }
   }
 
-  const cardState: CardState = isSubmitting ? 'loading' : result ? 'result' : 'idle'
-  const lanes = isSubmitting || !result ? IDLE_LANES : result.lanes
-  const latestDecision = useMemo(() => result?.lanes.find((lane) => lane.decision_id) ?? null, [result])
-  const latestLatency = useMemo(() => {
-    const values = result?.lanes
-      .map((lane) => lane.latency_ms)
-      .filter((value): value is number => typeof value === 'number')
-    if (!values?.length) return null
-    return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length)
+  const headline = useMemo(() => {
+    if (!result) return 'No live result loaded yet.'
+    if (isPolicyDelay(result)) return 'Live policy delay returned.'
+    return 'Live route returned.'
   }, [result])
 
   return (
-    <main className="min-h-screen bg-[#050505] text-[#f4f0e8]">
-      <section className="mx-auto grid min-h-[92vh] w-full max-w-[1600px] gap-10 px-5 py-8 sm:px-8 lg:grid-cols-[0.48fr_0.52fr] lg:items-center lg:px-12 xl:px-16">
-        <div className="max-w-[620px]">
-          <div className="mb-16 flex items-center gap-3 text-sm font-semibold text-[#f4f0e8]">
-            <span className="h-2.5 w-2.5 rounded-full bg-[#9be870]" />
-            CO2Router
-          </div>
+    <section className="rounded-[32px] border border-white/10 bg-white/[0.03] p-6 sm:p-8">
+      <div className="max-w-3xl">
+        <div className="text-[11px] uppercase tracking-[0.28em] text-cyan-300">Live sandbox</div>
+        <h2 className="mt-3 text-3xl font-black tracking-[-0.04em] text-white sm:text-4xl">
+          Run the broker-backed decision.
+        </h2>
+        <p className="mt-4 text-sm leading-7 text-slate-300 sm:text-base">
+          This demo executes a real routing request through the brokered engine API. It does not
+          prefill the page with invented results or staged lane states.
+        </p>
+      </div>
 
-          <h1 className="text-[clamp(3rem,7vw,7.5rem)] font-black leading-[0.9] text-[#f4f0e8]">
-            Decide if your jobs run {'\u2014'} before they run
-          </h1>
+      <div className="mt-6 flex flex-wrap items-center gap-4">
+        <button
+          type="button"
+          onClick={runDemo}
+          disabled={isRunning}
+          className="h-12 rounded-2xl bg-gradient-to-r from-emerald-300 via-cyan-300 to-sky-400 px-5 text-sm font-bold uppercase tracking-[0.18em] text-slate-950 transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70"
+        >
+          {isRunning ? 'Running live decision...' : result ? 'Run again' : 'Run live demo'}
+        </button>
+        <span className="text-sm text-slate-400">{headline}</span>
+      </div>
 
-          <p className="mt-8 max-w-md text-xl leading-8 text-[#c9c3b8]">
-            Run a job. See what happens.
-          </p>
-
-          <form onSubmit={handleSubmit} className="mt-10 flex flex-wrap items-center gap-5">
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="h-14 rounded-lg bg-[#f4f0e8] px-7 text-base font-bold text-[#050505] transition duration-200 hover:bg-[#9be870] focus:outline-none focus:ring-4 focus:ring-[#9be870]/25 disabled:cursor-not-allowed disabled:opacity-70"
-            >
-              {isSubmitting ? 'Running...' : 'Run the demo'}
-            </button>
-            <span className="text-sm text-[#938c80]">No setup. Takes 2 seconds.</span>
-          </form>
-
-          {error ? (
-            <div className="mt-6 max-w-xl rounded-lg border border-[#ff6b6b]/35 bg-[#ff6b6b]/10 px-4 py-3 text-sm leading-6 text-[#ffd7d7]">
-              {error}
-            </div>
-          ) : null}
+      {error ? (
+        <div className="mt-6 rounded-2xl border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm leading-6 text-amber-100">
+          {error}
         </div>
+      ) : null}
 
-        <div className="relative">
-          <div className="absolute -left-6 top-10 hidden h-[72%] w-px bg-[#f4f0e8]/10 lg:block" />
+      {result ? (
+        <div className="mt-8 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="rounded-[28px] border border-white/10 bg-slate-950/60 p-5">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <div className="text-[11px] uppercase tracking-[0.28em] text-cyan-300">
+                  Decision outcome
+                </div>
+                <div className="mt-3 text-2xl font-black tracking-[-0.04em] text-white">
+                  {isPolicyDelay(result) ? 'Delay' : result.selectedRegion}
+                </div>
+              </div>
+              <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs uppercase tracking-[0.2em] text-slate-300">
+                {isPolicyDelay(result) ? 'policy hold' : result.qualityTier}
+              </div>
+            </div>
 
-          <div className="mb-4 flex items-center justify-between gap-4">
-            <div className="text-sm font-semibold text-[#f4f0e8]">Live job run</div>
-            <div className="rounded-lg border border-[#f4f0e8]/12 px-3 py-1.5 text-xs text-[#c9c3b8]">
-              Sandbox mode
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              {!isPolicyDelay(result) ? (
+                <>
+                  <Metric label="Carbon intensity" value={`${result.carbonIntensity} gCO2/kWh`} />
+                  <Metric label="Latency" value={formatLatency(result.estimatedLatency)} />
+                  <Metric label="Confidence" value={result.assurance?.confidenceLabel ?? 'n/a'} />
+                  <Metric label="Lease" value={result.lease_id ?? 'n/a'} />
+                </>
+              ) : (
+                <>
+                  <Metric label="Retry after" value={`${result.retryAfterMinutes} min`} />
+                  <Metric
+                    label="Current best"
+                    value={`${result.currentBest.region} / ${result.currentBest.carbonIntensity} gCO2/kWh`}
+                  />
+                  <Metric label="Policy" value={result.policy.requireGreenRouting ? 'green routing required' : 'policy hold'} />
+                  <Metric label="Message" value={result.message} />
+                </>
+              )}
             </div>
           </div>
 
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
-            {lanes.map((lane, index) => {
-              const label = outcomeLabel(lane.lane, lane.outcome, cardState)
-              const reason = reasonForCard(lane, cardState)
+          <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5">
+            <div className="text-[11px] uppercase tracking-[0.28em] text-cyan-300">Live proof</div>
+            <div className="mt-4 space-y-3 text-sm leading-7 text-slate-300">
+              <div>
+                Decision frame:{' '}
+                <span className="font-mono text-white">
+                  {isPolicyDelay(result) ? 'policy-delay' : result.decisionFrameId ?? 'n/a'}
+                </span>
+              </div>
+              <div>
+                Source:{' '}
+                <span className="font-mono text-white">
+                  {isPolicyDelay(result) ? 'policy gate' : result.source_used ?? 'n/a'}
+                </span>
+              </div>
+              <div>
+                Fallback used:{' '}
+                <span className="font-mono text-white">
+                  {isPolicyDelay(result) ? 'n/a' : result.fallback_used ? 'yes' : 'no'}
+                </span>
+              </div>
+              <div>
+                Explanation:{' '}
+                <span className="text-white">{isPolicyDelay(result) ? result.message : result.explanation}</span>
+              </div>
+            </div>
 
-              return (
-                <article
-                  key={`${lane.lane}-${cardState}-${result?.run_id ?? 'idle'}`}
-                  className={`${cardState === 'idle' ? '' : 'co2-demo-card'} min-h-[288px] rounded-lg border p-3 transition duration-300 ${
-                    cardState === 'idle'
-                      ? 'border-[#f4f0e8]/18 bg-[#f4f0e8]/[0.055] opacity-90'
-                      : 'border-[#f4f0e8]/14 bg-[#14110d]'
-                  }`}
-                  style={{ animationDelay: `${index * 50}ms` }}
-                >
-                  <div className="flex min-h-[264px] flex-col justify-between">
-                    <div>
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="text-[13px] font-semibold text-[#f4f0e8]">{LANE_COPY[lane.lane].title}</span>
-                        <span className="h-2 w-2 rounded-full bg-[#9be870]" />
-                      </div>
-
-                      <div className={`mt-5 rounded-lg border px-2.5 py-2 text-base font-black leading-6 ${outcomeClass(label)}`}>
-                        {label}
-                      </div>
-
-                      <p className="mt-4 min-h-[104px] text-[13px] leading-5 text-[#c9c3b8]">{reason}</p>
-                    </div>
-
-                    <div className="space-y-2 border-t border-[#f4f0e8]/10 pt-4 text-xs text-[#938c80]">
-                      <div className="space-y-1">
-                        <span>Decision ID</span>
-                        <div className="font-mono text-[#f4f0e8]">{shortId(lane.decision_id)}</div>
-                      </div>
-                      <div className="space-y-1">
-                        <span>Latency</span>
-                        <div className="font-mono text-[#f4f0e8]">{formatLatency(lane.latency_ms)}</div>
-                      </div>
-                    </div>
+            {!isPolicyDelay(result) && result.alternatives.length ? (
+              <div className="mt-6 space-y-2">
+                <div className="text-[11px] uppercase tracking-[0.22em] text-slate-500">
+                  Alternatives
+                </div>
+                {result.alternatives.slice(0, 3).map((item) => (
+                  <div
+                    key={item.region}
+                    className="rounded-2xl border border-white/8 bg-slate-950/60 px-4 py-3 text-sm text-slate-200"
+                  >
+                    {item.region} — {item.carbonIntensity} gCO2/kWh
                   </div>
-                </article>
-              )
-            })}
+                ))}
+              </div>
+            ) : null}
           </div>
         </div>
-      </section>
-
-      <section className="border-t border-[#f4f0e8]/10 px-5 py-14 sm:px-8 lg:px-12">
-        <div className="mx-auto grid max-w-[1500px] gap-8 lg:grid-cols-[0.72fr_1.28fr] lg:items-start">
-          <div>
-            <h2 className="text-3xl font-black text-[#f4f0e8]">What just happened</h2>
-          </div>
-          <div className="max-w-3xl text-2xl leading-10 text-[#c9c3b8]">
-            <p>You ran one job.</p>
-            <p>It was handled differently depending on the situation.</p>
-          </div>
+      ) : (
+        <div className="mt-8 rounded-[28px] border border-dashed border-white/12 bg-slate-950/45 p-6 text-sm leading-7 text-slate-300">
+          The live sandbox is idle. Click the button to fetch a real decision from the broker.
         </div>
-      </section>
+      )}
+    </section>
+  )
+}
 
-      <section className="border-t border-[#f4f0e8]/10 px-5 py-8 sm:px-8 lg:px-12">
-        <div className="mx-auto grid max-w-[1500px] gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {['CI pipelines', 'Jobs', 'Automation', 'Anything that runs'].map((item) => (
-            <div key={item} className="rounded-lg border border-[#f4f0e8]/10 px-4 py-4 text-lg font-semibold text-[#f4f0e8]">
-              {item}
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="border-t border-[#f4f0e8]/10 px-5 py-8 sm:px-8 lg:px-12">
-        <div className="mx-auto flex max-w-[1500px] flex-wrap items-center gap-3 text-sm text-[#c9c3b8]">
-          <span className="rounded-lg border border-[#f4f0e8]/10 px-3 py-2">
-            Decision ID: <span className="font-mono text-[#f4f0e8]">{shortId(latestDecision?.decision_id ?? null)}</span>
-          </span>
-          <span className="rounded-lg border border-[#f4f0e8]/10 px-3 py-2">
-            Decided in: <span className="font-mono text-[#f4f0e8]">{formatLatency(latestLatency)}</span>
-          </span>
-          <span className="rounded-lg border border-[#f4f0e8]/10 px-3 py-2">Sandbox mode</span>
-          <a
-            href="https://co2router.tech"
-            className="ml-auto rounded-lg border border-[#f4f0e8]/10 px-3 py-2 text-[#f4f0e8] transition hover:border-[#9be870]/50 hover:text-[#9be870]"
-          >
-            Technical details
-          </a>
-        </div>
-      </section>
-
-      <section className="px-5 py-16 sm:px-8 lg:px-12">
-        <div className="mx-auto flex max-w-[1500px] flex-wrap items-center justify-between gap-6">
-          <div className="text-4xl font-black text-[#f4f0e8]">Try it yourself</div>
-          <form onSubmit={handleSubmit}>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="h-14 rounded-lg bg-[#9be870] px-7 text-base font-bold text-[#050505] transition duration-200 hover:bg-[#f4f0e8] focus:outline-none focus:ring-4 focus:ring-[#9be870]/25 disabled:cursor-not-allowed disabled:opacity-70"
-            >
-              {isSubmitting ? 'Running...' : 'Run the demo again'}
-            </button>
-          </form>
-        </div>
-      </section>
-
-      <style jsx global>{`
-        @keyframes co2-demo-card-in {
-          from {
-            opacity: 0;
-            transform: translateY(14px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        .co2-demo-card {
-          animation: co2-demo-card-in 420ms ease-out both;
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-          .co2-demo-card {
-            animation: none;
-          }
-        }
-      `}</style>
-    </main>
+function Metric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
+      <div className="text-[11px] uppercase tracking-[0.18em] text-slate-500">{label}</div>
+      <div className="mt-2 text-sm font-semibold leading-6 text-white">{value}</div>
+    </div>
   )
 }
