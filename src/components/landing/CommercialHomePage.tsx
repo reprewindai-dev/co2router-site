@@ -5,7 +5,7 @@ import { CicdWorkloadDemo } from '@/components/landing/CicdWorkloadDemo'
 export function CommercialHomePage() {
   return (
     <div className="space-y-8 pb-10">
-      <section className="grid gap-8 rounded-[32px] border border-white/10 bg-white/[0.03] p-6 sm:p-8 lg:grid-cols-[1.08fr_0.92fr] lg:items-center">
+      <section className="grid gap-8 rounded-[32px] border border-white/10 bg-white/[0.03] p-6 sm:p-8 lg:grid-cols-[0.92fr_1.08fr] lg:items-start">
         <div className="max-w-2xl">
           <div className="inline-flex rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-emerald-200">
             Live execution authority
@@ -19,10 +19,10 @@ export function CommercialHomePage() {
 
           <div className="mt-8 flex flex-wrap gap-3">
             <Link
-              href="#demo"
+              href="/access"
               className="inline-flex h-12 items-center justify-center rounded-2xl bg-gradient-to-r from-emerald-300 via-cyan-300 to-sky-400 px-5 text-sm font-bold uppercase tracking-[0.18em] text-slate-950 transition hover:brightness-105"
             >
-              Run the demo
+              Try your own scenario
             </Link>
             <Link
               href="/contact"
@@ -35,18 +35,8 @@ export function CommercialHomePage() {
           <p className="mt-4 text-sm text-slate-500">No setup. Takes 2 seconds.</p>
         </div>
 
-        <div className="rounded-[28px] border border-white/10 bg-slate-950/55 p-5 sm:p-6">
-          <div className="text-[11px] uppercase tracking-[0.28em] text-cyan-300">What it does</div>
-          <div className="mt-4 space-y-3 text-sm leading-7 text-slate-300">
-            <p>Looks at the job before execution.</p>
-            <p>Applies the active policy to the current environment.</p>
-            <p>Returns a clear action: run, delay, block, or wait.</p>
-            <p>Shows the result in language operators understand immediately.</p>
-          </div>
-        </div>
+        <CicdWorkloadDemo />
       </section>
-
-      <CicdWorkloadDemo />
 
       <section className="rounded-[32px] border border-white/10 bg-white/[0.03] p-6 sm:p-8">
         <div className="max-w-3xl text-center sm:text-left">
