@@ -9,6 +9,28 @@ import { deriveQualityTier, getDecisionSource, isDecisionDelayed } from '@/lib/d
 import { getBrokerBaseUrl } from '@/lib/broker-url'
 import { getInternalApiKey } from '@/lib/internal-api-key'
 
+type CiDecisionFeed = {
+  decisions: Array<{
+    id: string
+    createdAt: string
+    decisionFrameId?: string
+    selectedRegion: string
+    carbonIntensity: number | null
+    baseline: number | null
+    reasonCode: string
+    fallbackUsed: boolean
+    latencyMs?: {
+      total?: number | null
+      compute?: number | null
+    } | null
+    decisionAction?: string | null
+    action?: string | null
+    metadata?: Record<string, unknown>
+    jobType?: string | null
+    policyTrace?: Record<string, unknown>
+  }>
+}
+
 type EngineSystemStatus = {
   status?: string
   timestamp?: string
@@ -211,12 +233,69 @@ function buildHourlyTrend(decisions: DashboardDecision[]) {
 }
 
 export async function buildDekesRuntimeReadModel(limit = 96): Promise<DekesRuntimeReadModel> {
-  const [decisionPayload, systemStatus] = await Promise.all([
+  const [decisionPayload, ciDecisionPayload, systemStatus] = await Promise.all([
     fetchMcpJson<{ decisions: DashboardDecision[] }>(`/api/v1/dashboard/decisions?limit=${Math.max(limit, 200)}`),
+    fetchMcpJson<CiDecisionFeed>(`/api/v1/ci/decisions?limit=${Math.max(limit, 200)}`).catch(() => null),
     fetchMcpJson<EngineSystemStatus>('/api/v1/system/status', true).catch(() => null),
   ])
 
-  const decisions = getDekesDecisions(decisionPayload?.decisions ?? [])
+  const dashboardDecisions = getDekesDecisions(decisionPayload?.decisions ?? [])
+  const decisions =
+    dashboardDecisions.length > 0
+      ? dashboardDecisions
+      : (ciDecisionPayload?.decisions ?? []).map((decision) => {
+          const metadata = decision.metadata ?? {}
+          const request = (metadata.request ?? {}) as Record<string, unknown>
+          const response = (metadata.response ?? {}) as Record<string, unknown>
+          const selectedRegion =
+            typeof response.selectedRegion === 'string' && response.selectedRegion.length > 0
+              ? response.selectedRegion
+              : decision.selectedRegion
+          const action =
+            typeof decision.action === 'string' && decision.action.length > 0
+              ? decision.action
+              : typeof decision.decisionAction === 'string' && decision.decisionAction.length > 0
+                ? decision.decisionAction
+                : 'run_now'
+
+          return {
+            id: decision.id,
+            createdAt: decision.createdAt,
+            organizationId: 'dekes-runtime',
+            workloadName:
+              typeof request.workloadName === 'string'
+                ? request.workloadName
+                : typeof request.name === 'string'
+                  ? request.name
+                  : `dekes-runtime-${decision.id.slice(0, 8)}`,
+            opName:
+              typeof request.opName === 'string'
+                ? request.opName
+                : 'dekes-runtime',
+            baselineRegion: selectedRegion,
+            chosenRegion: selectedRegion,
+            zoneBaseline: null,
+            zoneChosen: null,
+            carbonIntensityBaselineGPerKwh: decision.baseline ?? decision.carbonIntensity ?? 0,
+            carbonIntensityChosenGPerKwh: decision.carbonIntensity ?? decision.baseline ?? 0,
+            estimatedKwh:
+              typeof request.estimatedEnergyKwh === 'number' ? request.estimatedEnergyKwh : null,
+            co2BaselineG: null,
+            co2ChosenG: null,
+            reason: decision.reasonCode,
+            latencyEstimateMs: decision.latencyMs?.total ?? decision.latencyMs?.compute ?? null,
+            latencyActualMs: null,
+            fallbackUsed: decision.fallbackUsed,
+            dataFreshnessSeconds: null,
+            requestCount: 1,
+            meta: {
+              ...metadata,
+              source: 'DEKES',
+              actionTaken: action,
+              decisionFrameId: decision.decisionFrameId ?? null,
+            },
+          } satisfies DashboardDecision
+        })
   const totalWorkloads = decisions.length
   const totalCO2Kg = decisions.reduce((sum, decision) => sum + toKg(decision.co2ChosenG), 0)
   const totalEvents = decisions.length

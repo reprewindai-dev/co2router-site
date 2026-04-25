@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic'
 
 const COMMAND_CENTER_CACHE_TTL_MS = 5_000
 const SNAPSHOT_CACHE_CONTROL = 'no-store, max-age=0'
-const ROUTE_RESPONSE_TIMEOUT_MS = 5_000
+const ROUTE_RESPONSE_TIMEOUT_MS = 9_000
 
 function buildFallbackResponse(totalMs: number) {
   const snapshot = FALLBACK_COMMAND_CENTER_SNAPSHOT

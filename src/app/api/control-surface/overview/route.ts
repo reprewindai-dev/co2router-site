@@ -26,7 +26,7 @@ import type {
 export const dynamic = 'force-dynamic'
 
 const OVERVIEW_CACHE_TTL_MS = 365 * 24 * 60 * 60 * 1000
-const OVERVIEW_ROUTE_TIMEOUT_MS = 4_500
+const OVERVIEW_ROUTE_TIMEOUT_MS = 9_000
 const SNAPSHOT_CACHE_CONTROL = 'no-store, max-age=0'
 
 type DecisionRow = {
