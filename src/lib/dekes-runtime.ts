@@ -1,3 +1,5 @@
+import axios from 'axios'
+
 import type {
   DashboardDecision,
   DekesHandoff,
@@ -73,34 +75,23 @@ async function fetchMcpJson<T>(path: string, useInternalKey = false): Promise<T 
     headers['x-api-key'] = internalKey
   }
 
-  let timeoutId: ReturnType<typeof setTimeout> | undefined
-  const timeoutPromise = new Promise<never>((_, reject) => {
-    timeoutId = setTimeout(() => reject(new Error(`MCP broker request timed out for ${path}`)), 8_000)
-  })
-  const response = (await Promise.race([
-    fetch(`${baseUrl}${path}`, {
-      headers,
-      cache: 'no-store',
-    }),
-    timeoutPromise,
-  ])) as Response
-  if (timeoutId) clearTimeout(timeoutId)
+  const requestConfig = {
+    url: `${baseUrl}${path}`,
+    method: 'GET',
+    headers,
+    responseType: 'arraybuffer',
+    timeout: 8_000,
+    decompress: false,
+    validateStatus: () => true,
+  } as any
 
-  if (!response.ok) {
+  const response = await axios.request<ArrayBuffer>(requestConfig)
+
+  if (response.status < 200 || response.status >= 300) {
     throw new Error(`MCP broker request failed for ${path} (${response.status})`)
   }
 
-  let bodyTimeoutId: ReturnType<typeof setTimeout> | undefined
-  const bodyTimeoutPromise = new Promise<never>((_, reject) => {
-    bodyTimeoutId = setTimeout(
-      () => reject(new Error(`MCP broker response body timed out for ${path}`)),
-      8_000
-    )
-  })
-
-  const rawBody = (await Promise.race([response.text(), bodyTimeoutPromise])) as string
-  if (bodyTimeoutId) clearTimeout(bodyTimeoutId)
-
+  const rawBody = Buffer.from(response.data).toString('utf8')
   return JSON.parse(rawBody) as T
 }
 
