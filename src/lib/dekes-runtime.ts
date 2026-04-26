@@ -62,6 +62,7 @@ async function fetchMcpJson<T>(path: string, useInternalKey = false): Promise<T 
 
   const headers: Record<string, string> = {
     accept: 'application/json',
+    'accept-encoding': 'identity',
   }
 
   if (useInternalKey) {
@@ -72,24 +73,35 @@ async function fetchMcpJson<T>(path: string, useInternalKey = false): Promise<T 
     headers['x-api-key'] = internalKey
   }
 
-  const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 5_000)
-  let response: Response
-  try {
-    response = await fetch(`${baseUrl}${path}`, {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(`MCP broker request timed out for ${path}`)), 5_000)
+  })
+  const response = (await Promise.race([
+    fetch(`${baseUrl}${path}`, {
       headers,
       cache: 'no-store',
-      signal: controller.signal,
-    })
-  } finally {
-    clearTimeout(timeout)
-  }
+    }),
+    timeoutPromise,
+  ])) as Response
+  if (timeoutId) clearTimeout(timeoutId)
 
   if (!response.ok) {
     throw new Error(`MCP broker request failed for ${path} (${response.status})`)
   }
 
-  return (await response.json()) as T
+  let bodyTimeoutId: ReturnType<typeof setTimeout> | undefined
+  const bodyTimeoutPromise = new Promise<never>((_, reject) => {
+    bodyTimeoutId = setTimeout(
+      () => reject(new Error(`MCP broker response body timed out for ${path}`)),
+      5_000
+    )
+  })
+
+  const rawBody = (await Promise.race([response.text(), bodyTimeoutPromise])) as string
+  if (bodyTimeoutId) clearTimeout(bodyTimeoutId)
+
+  return JSON.parse(rawBody) as T
 }
 
 function getDekesDecisions(decisions: DashboardDecision[]) {
