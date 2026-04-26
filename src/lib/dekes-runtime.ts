@@ -46,6 +46,10 @@ type DekesRuntimeReadModel = {
   events: DekesIntegrationEventsResponse
 }
 
+function getSettledValue<T>(result: PromiseSettledResult<T>): T | null {
+  return result.status === 'fulfilled' ? result.value : null
+}
+
 function getMcpBrokerBaseUrl() {
   return getServerBrokerBaseUrl()
 }
@@ -240,70 +244,73 @@ function buildHourlyTrend(decisions: DashboardDecision[]) {
     }))
 }
 
+function toDashboardDecision(decision: CiDecisionFeed['decisions'][number]): DashboardDecision {
+  const metadata = decision.metadata ?? {}
+  const request = (metadata.request ?? {}) as Record<string, unknown>
+  const response = (metadata.response ?? {}) as Record<string, unknown>
+  const selectedRegion =
+    typeof response.selectedRegion === 'string' && response.selectedRegion.length > 0
+      ? response.selectedRegion
+      : decision.selectedRegion
+  const action =
+    typeof decision.action === 'string' && decision.action.length > 0
+      ? decision.action
+      : typeof decision.decisionAction === 'string' && decision.decisionAction.length > 0
+        ? decision.decisionAction
+        : 'run_now'
+
+  return {
+    id: decision.id,
+    createdAt: decision.createdAt,
+    organizationId: 'dekes-runtime',
+    workloadName:
+      typeof request.workloadName === 'string'
+        ? request.workloadName
+        : typeof request.name === 'string'
+          ? request.name
+          : `dekes-runtime-${decision.id.slice(0, 8)}`,
+    opName: typeof request.opName === 'string' ? request.opName : 'dekes-runtime',
+    baselineRegion: selectedRegion,
+    chosenRegion: selectedRegion,
+    zoneBaseline: null,
+    zoneChosen: null,
+    carbonIntensityBaselineGPerKwh: decision.baseline ?? decision.carbonIntensity ?? 0,
+    carbonIntensityChosenGPerKwh: decision.carbonIntensity ?? decision.baseline ?? 0,
+    estimatedKwh:
+      typeof request.estimatedEnergyKwh === 'number' ? request.estimatedEnergyKwh : null,
+    co2BaselineG: null,
+    co2ChosenG: null,
+    reason: decision.reasonCode,
+    latencyEstimateMs: decision.latencyMs?.total ?? decision.latencyMs?.compute ?? null,
+    latencyActualMs: null,
+    fallbackUsed: decision.fallbackUsed,
+    dataFreshnessSeconds: null,
+    requestCount: 1,
+    meta: {
+      ...metadata,
+      source: 'DEKES',
+      actionTaken: action,
+      decisionFrameId: decision.decisionFrameId ?? null,
+    },
+  } satisfies DashboardDecision
+}
+
 export async function buildDekesRuntimeReadModel(limit = 96): Promise<DekesRuntimeReadModel> {
-  const [decisionPayload, ciDecisionPayload, systemStatus] = await Promise.all([
+  const [decisionPayloadResult, ciDecisionPayloadResult, systemStatusResult] = await Promise.allSettled([
     fetchMcpJson<{ decisions: DashboardDecision[] }>(`/api/v1/dashboard/decisions?limit=${Math.max(limit, 200)}`),
-    fetchMcpJson<CiDecisionFeed>(`/api/v1/ci/decisions?limit=${Math.max(limit, 200)}`).catch(() => null),
-    fetchMcpJson<EngineSystemStatus>('/api/v1/system/status', true).catch(() => null),
+    fetchMcpJson<CiDecisionFeed>(`/api/v1/ci/decisions?limit=${Math.max(limit, 200)}`),
+    fetchMcpJson<EngineSystemStatus>('/api/v1/system/status', true),
   ])
+
+  const decisionPayload = getSettledValue(decisionPayloadResult)
+  const ciDecisionPayload = getSettledValue(ciDecisionPayloadResult)
+  const systemStatus = getSettledValue(systemStatusResult)
 
   const dashboardDecisions = getDekesDecisions(decisionPayload?.decisions ?? [])
   const decisions =
     dashboardDecisions.length > 0
       ? dashboardDecisions
-      : (ciDecisionPayload?.decisions ?? []).map((decision) => {
-          const metadata = decision.metadata ?? {}
-          const request = (metadata.request ?? {}) as Record<string, unknown>
-          const response = (metadata.response ?? {}) as Record<string, unknown>
-          const selectedRegion =
-            typeof response.selectedRegion === 'string' && response.selectedRegion.length > 0
-              ? response.selectedRegion
-              : decision.selectedRegion
-          const action =
-            typeof decision.action === 'string' && decision.action.length > 0
-              ? decision.action
-              : typeof decision.decisionAction === 'string' && decision.decisionAction.length > 0
-                ? decision.decisionAction
-                : 'run_now'
-
-          return {
-            id: decision.id,
-            createdAt: decision.createdAt,
-            organizationId: 'dekes-runtime',
-            workloadName:
-              typeof request.workloadName === 'string'
-                ? request.workloadName
-                : typeof request.name === 'string'
-                  ? request.name
-                  : `dekes-runtime-${decision.id.slice(0, 8)}`,
-            opName:
-              typeof request.opName === 'string'
-                ? request.opName
-                : 'dekes-runtime',
-            baselineRegion: selectedRegion,
-            chosenRegion: selectedRegion,
-            zoneBaseline: null,
-            zoneChosen: null,
-            carbonIntensityBaselineGPerKwh: decision.baseline ?? decision.carbonIntensity ?? 0,
-            carbonIntensityChosenGPerKwh: decision.carbonIntensity ?? decision.baseline ?? 0,
-            estimatedKwh:
-              typeof request.estimatedEnergyKwh === 'number' ? request.estimatedEnergyKwh : null,
-            co2BaselineG: null,
-            co2ChosenG: null,
-            reason: decision.reasonCode,
-            latencyEstimateMs: decision.latencyMs?.total ?? decision.latencyMs?.compute ?? null,
-            latencyActualMs: null,
-            fallbackUsed: decision.fallbackUsed,
-            dataFreshnessSeconds: null,
-            requestCount: 1,
-            meta: {
-              ...metadata,
-              source: 'DEKES',
-              actionTaken: action,
-              decisionFrameId: decision.decisionFrameId ?? null,
-            },
-          } satisfies DashboardDecision
-        })
+      : (ciDecisionPayload?.decisions ?? []).map(toDashboardDecision)
   const totalWorkloads = decisions.length
   const totalCO2Kg = decisions.reduce((sum, decision) => sum + toKg(decision.co2ChosenG), 0)
   const totalEvents = decisions.length
@@ -315,8 +322,10 @@ export async function buildDekesRuntimeReadModel(limit = 96): Promise<DekesRunti
   const successfulWorkloads = totalWorkloads
   const successRate = totalWorkloads > 0 ? 100 : 0
   const failureRate = totalWorkloads > 0 ? 0 : 0
-  const now = systemStatus?.timestamp ?? new Date().toISOString()
-  const status = systemStatus?.status ?? 'healthy'
+  const now = systemStatus?.timestamp ?? decisions[0]?.createdAt ?? new Date().toISOString()
+  const status =
+    systemStatus?.status ??
+    (decisions.length > 0 ? 'healthy' : 'degraded')
 
   const events = decisions
     .slice()
@@ -369,12 +378,18 @@ export async function buildDekesRuntimeReadModel(limit = 96): Promise<DekesRunti
 }
 
 export async function getDekesRuntimeHandoffById(handoffId: string): Promise<DekesHandoff | null> {
-  const decisionPayload = await fetchMcpJson<{ decisions: DashboardDecision[] }>(
-    `/api/v1/dashboard/decisions?limit=400`
-  )
-  const decision = getDekesDecisions(decisionPayload?.decisions ?? []).find(
+  const [decisionPayloadResult, ciDecisionPayloadResult] = await Promise.allSettled([
+    fetchMcpJson<{ decisions: DashboardDecision[] }>(`/api/v1/dashboard/decisions?limit=400`),
+    fetchMcpJson<CiDecisionFeed>(`/api/v1/ci/decisions?limit=400`),
+  ])
+
+  const dashboardDecision = getDekesDecisions(getSettledValue(decisionPayloadResult)?.decisions ?? []).find(
     (candidate) => candidate.id === handoffId
   )
+  const ciDecision = getSettledValue(ciDecisionPayloadResult)?.decisions.find(
+    (candidate) => candidate.id === handoffId
+  )
+  const decision = dashboardDecision ?? (ciDecision ? toDashboardDecision(ciDecision) : null)
 
   return decision ? toDekesHandoff(decision) : null
 }

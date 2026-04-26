@@ -70,7 +70,7 @@ export function CicdWorkloadDemo({ externalRunSignal = 0 }: CicdWorkloadDemoProp
   useEffect(() => {
     if (externalRunSignal <= 0) return
     runNextScenario()
-  }, [externalRunSignal])
+  }, [externalRunSignal, runNextScenario])
 
   return (
     <section id="hero-live-demo" className="lg:min-h-[760px]">
