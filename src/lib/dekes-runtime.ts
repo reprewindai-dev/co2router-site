@@ -75,7 +75,7 @@ async function fetchMcpJson<T>(path: string, useInternalKey = false): Promise<T 
 
   let timeoutId: ReturnType<typeof setTimeout> | undefined
   const timeoutPromise = new Promise<never>((_, reject) => {
-    timeoutId = setTimeout(() => reject(new Error(`MCP broker request timed out for ${path}`)), 5_000)
+    timeoutId = setTimeout(() => reject(new Error(`MCP broker request timed out for ${path}`)), 8_000)
   })
   const response = (await Promise.race([
     fetch(`${baseUrl}${path}`, {
@@ -94,7 +94,7 @@ async function fetchMcpJson<T>(path: string, useInternalKey = false): Promise<T 
   const bodyTimeoutPromise = new Promise<never>((_, reject) => {
     bodyTimeoutId = setTimeout(
       () => reject(new Error(`MCP broker response body timed out for ${path}`)),
-      5_000
+      8_000
     )
   })
 
@@ -308,9 +308,10 @@ function toDashboardDecision(decision: CiDecisionFeed['decisions'][number]): Das
 }
 
 export async function buildDekesRuntimeReadModel(limit = 96): Promise<DekesRuntimeReadModel> {
+  const sampleLimit = Math.min(Math.max(limit, 24), 96)
   const [decisionPayloadResult, ciDecisionPayloadResult, systemStatusResult] = await Promise.allSettled([
-    fetchMcpJson<{ decisions: DashboardDecision[] }>(`/api/v1/dashboard/decisions?limit=${Math.max(limit, 200)}`),
-    fetchMcpJson<CiDecisionFeed>(`/api/v1/ci/decisions?limit=${Math.max(limit, 200)}`),
+    fetchMcpJson<{ decisions: DashboardDecision[] }>(`/api/v1/dashboard/decisions?limit=${sampleLimit}`),
+    fetchMcpJson<CiDecisionFeed>(`/api/v1/ci/decisions?limit=${sampleLimit}`),
     fetchMcpJson<EngineSystemStatus>('/api/v1/system/status', true),
   ])
 
