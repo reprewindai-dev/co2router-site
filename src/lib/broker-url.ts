@@ -1,3 +1,5 @@
+const CANONICAL_ENGINE_BASE_URL = 'https://co2router.tech'
+
 function normalizeEnvValue(value: string | null | undefined) {
   const trimmed = String(value ?? '').trim()
   if (
@@ -33,6 +35,24 @@ export function getServerBrokerBaseUrl() {
     normalizeAbsoluteUrl(process.env.MCP_API_URL) ||
     normalizeAbsoluteUrl(process.env.ECOBE_MVP_URL)
 
+  const isProductionRuntime =
+    process.env.VERCEL_ENV === 'production' || process.env.NODE_ENV === 'production'
+
+  if (isProductionRuntime) {
+    if (directEngineBase) {
+      try {
+        const host = new URL(directEngineBase).host
+        if (host === 'co2router.tech') {
+          return directEngineBase
+        }
+      } catch {
+        // fall through to canonical host
+      }
+    }
+
+    return CANONICAL_ENGINE_BASE_URL
+  }
+
   if (directEngineBase) {
     return directEngineBase
   }
@@ -42,7 +62,7 @@ export function getServerBrokerBaseUrl() {
     return browserBase
   }
 
-  return 'https://co2router.tech'
+  return CANONICAL_ENGINE_BASE_URL
 }
 
 export function getBrokerHost() {
