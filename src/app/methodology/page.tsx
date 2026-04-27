@@ -46,10 +46,10 @@ export default function MethodologyPage() {
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link
-              href="/console"
+              href="/live"
               className="rounded-2xl bg-gradient-to-r from-emerald-300 via-cyan-300 to-sky-400 px-5 py-3 text-sm font-bold uppercase tracking-[0.18em] text-slate-950"
             >
-              Open Control Surface
+              Open Live Demo
             </Link>
             <Link
               href="/"

@@ -25,8 +25,8 @@ export default function SystemDecisionEnginePage() {
       eyebrow="System / Decision Core"
       title="Decisions happen before compute is admitted."
       summary="CO2 Router is an authorization system. The core returns a binding action before execution, then records proof and trace state against the resulting frame."
-      secondaryHref="/console"
-      secondaryLabel="Open Control Surface"
+      secondaryHref="/live"
+      secondaryLabel="Open Live Demo"
     >
       <section className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
         <article className="rounded-[28px] border border-white/10 bg-white/[0.03] p-6">

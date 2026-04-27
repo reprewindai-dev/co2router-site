@@ -19,7 +19,7 @@ const commercialPrimaryNavLinks: SiteLink[] = [
 
 const technicalPrimaryNavLinks: SiteLink[] = [
   { href: '/', label: 'Technical Overview' },
-  { href: 'https://console.co2router.com', label: 'Console' },
+  { href: '/live', label: 'Live Demo' },
   { href: '/developers/architecture', label: 'Architecture' },
   { href: '/system/replay', label: 'Replay' },
   { href: '/developers/quickstart', label: 'Quickstart' },
@@ -59,7 +59,7 @@ const commercialFooterLinkSections: SiteLinkSection[] = [
   {
     title: 'Technical',
     links: [
-      { href: 'https://console.co2router.com', label: 'Console' },
+      { href: '/live', label: 'Live Demo' },
       { href: '/developers/quickstart', label: 'Quickstart' },
       { href: '/developers/api', label: 'API' },
       { href: '/developers/architecture', label: 'Architecture' },
@@ -69,11 +69,11 @@ const commercialFooterLinkSections: SiteLinkSection[] = [
 
 const technicalFooterLinkSections: SiteLinkSection[] = [
   {
-    title: 'Console',
+    title: 'Live Surface',
     links: [
       { href: '/', label: 'Technical Overview' },
-      { href: 'https://console.co2router.com', label: 'Control Surface' },
-      { href: 'https://console.co2router.com', label: 'Compare Builds' },
+      { href: '/live', label: 'Live Demo' },
+      { href: '/developers/architecture', label: 'Architecture' },
       { href: '/status', label: 'Status' },
     ],
   },
@@ -117,13 +117,13 @@ export function getFooterLinkSections(audience: 'commercial' | 'technical'): Sit
 
 export function getHeaderSubtitle(audience: 'commercial' | 'technical') {
   return audience === 'technical'
-    ? 'Technical Console'
+    ? 'Live Decision Surface'
     : 'Decision Infrastructure Interface'
 }
 
 export function getFooterTagline(audience: 'commercial' | 'technical') {
   return audience === 'technical'
-    ? 'Inspect the console, proof, replay, and deterministic execution authority.'
+    ? 'Inspect the live demo, proof, replay, and deterministic execution authority.'
     : 'Authorize compute before it runs. Prove every decision.'
 }
 
@@ -134,7 +134,7 @@ export const footerLinkSections: SiteLinkSection[] = commercialFooterLinkSection
 export const legacyProductLinks: SiteLink[] = [
   { href: '/', label: 'Overview' },
   { href: '/access', label: 'Free Trial' },
-  { href: 'https://console.co2router.com', label: 'Control Surface' },
+  { href: '/live', label: 'Live Demo' },
   { href: '/assurance', label: 'Assurance' },
   { href: '/pricing', label: 'Pricing' },
   { href: '/status', label: 'Status' },

@@ -35,8 +35,8 @@ export default async function AssurancePage() {
       eyebrow="Assurance"
       title="Proof authority for every binding execution decision."
       summary="Assurance is the verification surface. It owns proof depth, trace integrity, deterministic replay posture, and provenance verification so operators can validate why a decision was allowed, blocked, or rerouted."
-      primaryHref="/console"
-      primaryLabel="Open Control Surface"
+      primaryHref="/live"
+      primaryLabel="Open Live Demo"
       secondaryHref="/status"
       secondaryLabel="View Status"
     >

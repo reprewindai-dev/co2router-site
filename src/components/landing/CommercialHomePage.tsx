@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useState } from 'react'
 
-import { CicdWorkloadDemo } from '@/components/landing/CicdWorkloadDemo'
+import { LiveRoutingDemo } from '@/components/landing/LiveRoutingDemo'
 
 export function CommercialHomePage() {
   const [demoRunSignal, setDemoRunSignal] = useState(0)
@@ -70,7 +70,7 @@ export function CommercialHomePage() {
           </p>
         </div>
 
-        <CicdWorkloadDemo externalRunSignal={demoRunSignal} />
+        <LiveRoutingDemo externalRunSignal={demoRunSignal} />
       </section>
 
       <section className="rounded-[28px] border border-white/8 bg-white/[0.025] px-6 py-5 text-sm leading-7 text-slate-400 sm:px-8">

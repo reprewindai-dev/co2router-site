@@ -38,9 +38,6 @@ export default function AccessPage() {
           <Link href="/pricing" className="rounded-full border border-white/15 px-5 py-3 text-sm font-semibold text-white transition hover:border-white/30 hover:bg-white/5">
             Review pricing
           </Link>
-          <a href="https://console.co2router.com" className="rounded-full border border-white/15 px-5 py-3 text-sm font-semibold text-white transition hover:border-white/30 hover:bg-white/5">
-            Open console.co2router.com
-          </a>
         </div>
       </section>
     </div>
