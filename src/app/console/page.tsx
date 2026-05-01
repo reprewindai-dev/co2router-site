@@ -59,33 +59,6 @@ const consoles = [
     accent: '#fbbf24',
     badge: 'Operator plan',
   },
-  {
-    id: 'dashboard',
-    version: '03',
-    name: 'HaloGrid Dashboard',
-    plan: 'Elite',
-    planColor: '#a78bfa',
-    price: 'Custom',
-    tagline: 'Assurance-grade. Audit exports. Compliance surface.',
-    description:
-      'The governance-first interface. Full decision history, signed audit export chain, compliance report generation, trace rail on every frame, SAIQ weight editor, and controlled rollout design review. Built for regulated environments.',
-    features: [
-      'Full decision history — 30 day rolling',
-      'Signed audit export chain (PDF + JSON)',
-      'Compliance report generation',
-      'Trace rail on every decision frame',
-      'Replay any stored decision frame',
-      'SAIQ weight editor with live enforcement preview',
-      'Dedicated architecture review',
-    ],
-    locked: true,
-    cta: 'Talk to sales',
-    href: '/contact',
-    border: 'rgba(167,139,250,0.18)',
-    glow: 'rgba(167,139,250,0.04)',
-    accent: '#a78bfa',
-    badge: 'Assurance plan',
-  },
 ] as const
 
 export default function ConsolePage() {
@@ -96,11 +69,10 @@ export default function ConsolePage() {
       <section className="surface-card-strong p-8">
         <div className="eyebrow">Console</div>
         <h1 className="mt-3 text-4xl font-semibold text-white sm:text-5xl">
-          Three interfaces. One engine. You choose.
+          Two interfaces. One engine. You choose.
         </h1>
         <p className="mt-4 max-w-3xl text-base leading-7 text-slate-300">
-          Every HaloGrid package connects to the same live CO2 Router engine. The difference
-          is operational depth — pick the interface that matches how you work.
+          Both HaloGrid packages connect to the same live CO2 Router engine. Pick the interface that matches how you work — simple and fast, or full NOC operations surface.
         </p>
         <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/8 px-4 py-2">
           <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
@@ -109,7 +81,7 @@ export default function ConsolePage() {
       </section>
 
       {/* Console cards */}
-      <section className="grid gap-6 lg:grid-cols-3">
+      <section className="grid gap-6 lg:grid-cols-2 max-w-4xl mx-auto">
         {consoles.map((c) => (
           <div
             key={c.id}
@@ -172,10 +144,10 @@ export default function ConsolePage() {
           <div>
             <div className="eyebrow">Same engine. Different depth.</div>
             <p className="mt-3 text-sm leading-7 text-slate-300">
-              HaloGrid Classic, NOC, and Dashboard all run live against the CO2 Router engine.
-              Start with Classic — free, no signup. Upgrade to NOC when your team needs
-              a full operations surface. Move to Dashboard when you need governance,
-              audit exports, and compliance reporting.
+              Both HaloGrid Classic and NOC run live against the same CO2 Router engine.
+              Start with Classic — free, no signup required, open immediately.
+              Upgrade to NOC when your team needs a full operations surface with 3D globe,
+              alarm queue, team chat, and Ghost Mode.
             </p>
           </div>
           <div className="flex flex-col gap-3 lg:flex-shrink-0">
