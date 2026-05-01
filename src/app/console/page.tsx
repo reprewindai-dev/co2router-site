@@ -3,182 +3,179 @@ import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: 'Console',
-  description: 'Choose your CO2 Router console tier — Freeview, Pro, or Elite.',
+  description: 'Choose your HaloGrid interface — three CO2 Router console packages, all running on the same live engine.',
 }
 
-const tiers = [
+const consoles = [
   {
-    id: 'freeview',
-    name: 'Freeview',
-    badge: null,
-    badgeColor: null,
+    id: 'classic',
+    version: '01',
+    name: 'HaloGrid Classic',
+    plan: 'Freeview',
+    planColor: '#38bdf8',
     price: 'Free',
-    tagline: 'Live decision flow. No signup required.',
+    tagline: 'Clean. Fast. Live decision stream.',
     description:
-      'Watch the CO2 Router engine make real binding decisions in real time. See regions, carbon intensity, decision actions, and the proof strip — no account needed.',
+      'The stripped-back command surface. Real-time region grid, live carbon intensity, decision stream with proof hashes, and carbon pressure bar. No account required — open immediately.',
     features: [
-      'Live region grid with carbon / load / state',
-      'Real-time decision stream (RUN, REROUTE, DELAY, THROTTLE, DENY)',
-      'Latest decision frame with proof hash',
-      'Carbon pressure bar and decision velocity',
+      'Live region grid — carbon, load, state per region',
+      'Real-time decision stream: RUN · REROUTE · DELAY · THROTTLE · DENY',
+      'Carbon pressure bar + decision velocity',
+      'Proof hash on every frame',
       'System health footer',
     ],
     locked: false,
-    cta: 'Open Freeview console',
+    cta: 'Launch HaloGrid Classic',
     href: '/live',
-    borderColor: 'rgba(56,189,248,0.2)',
-    glowColor: 'rgba(56,189,248,0.05)',
-    accentColor: '#38bdf8',
-    badgeBg: '',
+    border: 'rgba(56,189,248,0.18)',
+    glow: 'rgba(56,189,248,0.05)',
+    accent: '#38bdf8',
+    badge: null,
   },
   {
-    id: 'pro',
-    name: 'Pro',
-    badge: 'Operator plan',
+    id: 'noc',
+    version: '02',
+    name: 'HaloGrid NOC',
+    plan: 'Pro',
+    planColor: '#fbbf24',
     price: 'From $2,500/mo',
-    tagline: 'Signal feeds, policy editor, full replay.',
+    tagline: 'Full NOC surface. 3D globe. Alarm queue. Team chat.',
     description:
-      'Full decision history, signal provider feeds (carbon + water), policy rule editor, multi-region replay, and export. One production control point with canonical proof storage.',
+      'The full network operations center build. Interactive 3D globe with arc routing, alarm queue, SAIQ weight controls, signal provider feeds, team chat, and Ghost Mode. Built for operators who run production workloads.',
     features: [
-      'Everything in Freeview',
-      'Signal provider feed panel (carbon + water sources)',
-      'Full decision history — 30 day rolling',
-      'Policy rule editor with live enforcement preview',
-      'Replay any decision frame from stored proof',
-      'CSV / JSON decision export',
+      'Interactive 3D globe with live arc routing',
+      'Alarm queue with severity classification',
+      'Signal provider feeds — carbon + water sources',
+      'SAIQ governance weight controls',
+      'Team chat and manual override panel',
+      'Smart Advisor and anomaly detection',
+      'Ghost Mode — shadow run without enforcement',
     ],
     locked: true,
     cta: 'Request Pro access',
     href: '/access',
-    borderColor: 'rgba(251,191,36,0.2)',
-    glowColor: 'rgba(251,191,36,0.04)',
-    accentColor: '#fbbf24',
-    badgeBg: 'rgba(251,191,36,0.1)',
+    border: 'rgba(251,191,36,0.18)',
+    glow: 'rgba(251,191,36,0.04)',
+    accent: '#fbbf24',
+    badge: 'Operator plan',
   },
   {
-    id: 'elite',
-    name: 'Elite',
-    badge: 'Assurance plan',
+    id: 'dashboard',
+    version: '03',
+    name: 'HaloGrid Dashboard',
+    plan: 'Elite',
+    planColor: '#a78bfa',
     price: 'Custom',
-    tagline: 'Trace rail, audit exports, SAIQ editor, Ghost Mode.',
+    tagline: 'Assurance-grade. Audit exports. Compliance surface.',
     description:
-      'Full operational assurance surface. Trace rail on every decision, signed audit export chain, SAIQ weight editor, compliance reports, and Ghost Mode for shadow-run analysis.',
+      'The governance-first interface. Full decision history, signed audit export chain, compliance report generation, trace rail on every frame, SAIQ weight editor, and controlled rollout design review. Built for regulated environments.',
     features: [
-      'Everything in Pro',
-      'Live trace rail per decision frame',
+      'Full decision history — 30 day rolling',
       'Signed audit export chain (PDF + JSON)',
-      'SAIQ governance weight editor',
       'Compliance report generation',
-      'Ghost Mode — shadow run without enforcement',
+      'Trace rail on every decision frame',
+      'Replay any stored decision frame',
+      'SAIQ weight editor with live enforcement preview',
       'Dedicated architecture review',
     ],
     locked: true,
     cta: 'Talk to sales',
     href: '/contact',
-    borderColor: 'rgba(167,139,250,0.2)',
-    glowColor: 'rgba(167,139,250,0.04)',
-    accentColor: '#a78bfa',
-    badgeBg: 'rgba(167,139,250,0.1)',
+    border: 'rgba(167,139,250,0.18)',
+    glow: 'rgba(167,139,250,0.04)',
+    accent: '#a78bfa',
+    badge: 'Assurance plan',
   },
 ] as const
 
 export default function ConsolePage() {
   return (
     <div className="space-y-8 pb-10">
+
       {/* Hero */}
       <section className="surface-card-strong p-8">
         <div className="eyebrow">Console</div>
         <h1 className="mt-3 text-4xl font-semibold text-white sm:text-5xl">
-          Choose your control surface.
+          Three interfaces. One engine. You choose.
         </h1>
         <p className="mt-4 max-w-3xl text-base leading-7 text-slate-300">
-          The CO2 Router console is tiered by operational depth — from live public Freeview to
-          full assurance-grade Elite. Every tier runs against the same real engine.
+          Every HaloGrid package connects to the same live CO2 Router engine. The difference
+          is operational depth — pick the interface that matches how you work.
         </p>
+        <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/8 px-4 py-2">
+          <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
+          <span className="text-sm font-semibold text-emerald-300">All consoles live on the same engine</span>
+        </div>
       </section>
 
-      {/* Tier cards */}
+      {/* Console cards */}
       <section className="grid gap-6 lg:grid-cols-3">
-        {tiers.map((tier) => (
+        {consoles.map((c) => (
           <div
-            key={tier.id}
+            key={c.id}
             className="relative flex flex-col rounded-[28px] p-6"
             style={{
-              border: `1px solid ${tier.borderColor}`,
-              background: `radial-gradient(circle at top left, ${tier.glowColor}, transparent 60%), linear-gradient(180deg, rgba(13,17,28,0.97), rgba(5,8,16,0.99))`,
+              border: `1px solid ${c.border}`,
+              background: `radial-gradient(circle at top left, ${c.glow}, transparent 55%), linear-gradient(180deg, rgba(13,17,28,0.97), rgba(5,8,16,0.99))`,
             }}
           >
-            {/* Lock badge */}
-            {tier.locked && (
-              <div
-                className="absolute right-4 top-4 rounded-full px-2.5 py-1 text-[9px] uppercase tracking-[0.22em]"
-                style={{ background: tier.badgeBg, color: tier.accentColor }}
+            {/* Version + plan badge */}
+            <div className="flex items-center justify-between gap-3 mb-5">
+              <span className="text-[10px] uppercase tracking-[0.3em] text-slate-500">
+                Version {c.version}
+              </span>
+              <span
+                className="rounded-full px-2.5 py-1 text-[9px] uppercase tracking-[0.22em] font-semibold"
+                style={{ background: `${c.planColor}18`, color: c.planColor }}
               >
-                🔒 {tier.badge}
-              </div>
-            )}
-
-            {/* Tier name */}
-            <div
-              className="text-[11px] uppercase tracking-[0.28em]"
-              style={{ color: tier.accentColor }}
-            >
-              {tier.name}
+                {c.locked ? '🔒 ' : ''}{c.plan}
+              </span>
             </div>
 
-            <div className="mt-3 text-2xl font-bold text-white">{tier.price}</div>
-            <div className="mt-1 text-sm font-semibold" style={{ color: tier.accentColor }}>
-              {tier.tagline}
+            <div className="text-[11px] uppercase tracking-[0.28em] mb-2" style={{ color: c.accent }}>
+              {c.name}
             </div>
-            <p className="mt-4 text-sm leading-7 text-slate-300">{tier.description}</p>
+            <div className="text-2xl font-bold text-white">{c.price}</div>
+            <div className="mt-1 text-sm font-semibold" style={{ color: c.accent }}>
+              {c.tagline}
+            </div>
 
-            {/* Features */}
+            <p className="mt-4 text-sm leading-7 text-slate-300">{c.description}</p>
+
             <ul className="mt-5 flex-1 space-y-2.5">
-              {tier.features.map((f) => (
+              {c.features.map((f) => (
                 <li key={f} className="flex items-start gap-3 text-sm text-slate-300">
-                  <span
-                    className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full"
-                    style={{ background: tier.accentColor }}
-                  />
+                  <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: c.accent }} />
                   {f}
                 </li>
               ))}
             </ul>
 
-            {/* CTA */}
             <Link
-              href={tier.href}
-              className="mt-7 inline-flex items-center justify-center rounded-2xl px-5 py-3 text-sm font-bold uppercase tracking-[0.15em] transition-all duration-200"
+              href={c.href}
+              className="mt-7 inline-flex items-center justify-center rounded-2xl px-5 py-3 text-sm font-bold uppercase tracking-[0.15em] transition-all duration-200 hover:brightness-110"
               style={
-                !tier.locked
-                  ? {
-                      background: `linear-gradient(135deg, ${tier.accentColor}cc, ${tier.accentColor}88)`,
-                      color: '#050505',
-                    }
-                  : {
-                      border: `1px solid ${tier.borderColor}`,
-                      background: 'rgba(255,255,255,0.03)',
-                      color: tier.accentColor,
-                    }
+                !c.locked
+                  ? { background: `linear-gradient(135deg,${c.accent}cc,${c.accent}88)`, color: '#050505' }
+                  : { border: `1px solid ${c.border}`, background: 'rgba(255,255,255,0.03)', color: c.accent }
               }
             >
-              {!tier.locked ? '→ ' : '🔒 '}
-              {tier.cta}
+              {c.locked ? '🔒 ' : '→ '}{c.cta}
             </Link>
           </div>
         ))}
       </section>
 
-      {/* Compare note */}
+      {/* Bottom note */}
       <section className="surface-card p-6">
         <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
           <div>
-            <div className="eyebrow">All tiers. Same engine.</div>
+            <div className="eyebrow">Same engine. Different depth.</div>
             <p className="mt-3 text-sm leading-7 text-slate-300">
-              Freeview, Pro, and Elite all run against the live CO2 Router engine on Coolify.
-              The difference is operational depth — how much of the decision surface you can
-              inspect, replay, and govern. Start with Freeview to verify it works, then upgrade
-              when you need enforcement in production.
+              HaloGrid Classic, NOC, and Dashboard all run live against the CO2 Router engine.
+              Start with Classic — free, no signup. Upgrade to NOC when your team needs
+              a full operations surface. Move to Dashboard when you need governance,
+              audit exports, and compliance reporting.
             </p>
           </div>
           <div className="flex flex-col gap-3 lg:flex-shrink-0">
@@ -186,7 +183,7 @@ export default function ConsolePage() {
               href="/live"
               className="rounded-full bg-cyan-300 px-6 py-3 text-center text-sm font-bold uppercase tracking-[0.15em] text-slate-950 transition hover:bg-cyan-200"
             >
-              Open Freeview now
+              Open Classic free
             </Link>
             <Link
               href="/pricing"
@@ -197,6 +194,7 @@ export default function ConsolePage() {
           </div>
         </div>
       </section>
+
     </div>
   )
 }
