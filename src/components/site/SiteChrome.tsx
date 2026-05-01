@@ -26,7 +26,7 @@ export function SiteChrome({
 }: SiteChromeProps) {
   const pathname = usePathname()
   const isCommercialHome = audience === 'commercial' && pathname === '/'
-  const isFullScreen = pathname === '/live' || pathname.startsWith('/live/')
+  const isFullScreen = pathname === '/live' || pathname?.startsWith('/live/')
 
   if (isCommercialHome) {
     return <div className="min-h-screen bg-[#050505]">{children}</div>
