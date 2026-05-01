@@ -10,8 +10,8 @@ export interface SiteLinkSection {
 
 const commercialPrimaryNavLinks: SiteLink[] = [
   { href: '/', label: 'Overview' },
+  { href: '/console', label: 'Console' },
   { href: '/access', label: 'Free Trial' },
-  { href: '/assurance', label: 'Assurance' },
   { href: '/pricing', label: 'Pricing' },
   { href: '/company/about', label: 'Company' },
   { href: '/contact', label: 'Contact' },
@@ -59,6 +59,7 @@ const commercialFooterLinkSections: SiteLinkSection[] = [
   {
     title: 'Technical',
     links: [
+      { href: '/console', label: 'Console' },
       { href: '/live', label: 'Live Demo' },
       { href: '/developers/quickstart', label: 'Quickstart' },
       { href: '/developers/api', label: 'API' },

@@ -20,6 +20,12 @@ export function CommercialHomePage() {
 
         <nav className="flex flex-wrap items-center gap-2 text-sm">
           <Link
+            href="/console"
+            className="rounded-full border border-cyan-400/25 bg-cyan-400/8 px-4 py-2 text-cyan-200 transition hover:border-cyan-400/40 hover:text-white"
+          >
+            Console
+          </Link>
+          <Link
             href="/developers/quickstart"
             className="rounded-full border border-white/8 bg-white/[0.03] px-4 py-2 text-slate-300 transition hover:border-white/15 hover:text-white"
           >
