@@ -1,5 +1,5 @@
 FROM node:20-alpine AS base
-RUN apk add --no-cache libc6-compat
+RUN apk add --no-cache libc6-compat curl
 
 FROM base AS deps
 WORKDIR /app
@@ -31,7 +31,6 @@ RUN addgroup --system --gid 1001 nodejs \
 # Standalone output includes server + minimal node_modules
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/.next/server/vendor-chunks ./.next/server/vendor-chunks
 COPY --from=builder /app/public ./public
 
 RUN chown -R nextjs:nodejs /app

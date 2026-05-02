@@ -1,7 +1,14 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, useMemo } from 'react'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
+
+// Dynamically import GlobeZone to avoid SSR issues with Three.js
+const GlobeZone = dynamic(
+  () => import('@/components/co2-control-panel/zones/GlobeZone').then(m => m.GlobeZone),
+  { ssr: false, loading: () => <div className="flex items-center justify-center h-full"><div className="w-8 h-8 border-2 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin"/></div> }
+)
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -65,6 +72,83 @@ function actionLabel(a:RouterAction){
   return {SHIFT_REGION:'REROUTE',DEFER_JOB:'DELAY',THROTTLE:'THROT',HOLD:'DENY',PASS:'RUN'}[a]
 }
 function fmtTime(ts:number){ return new Date(ts).toLocaleTimeString('en-CA',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'}) }
+
+// Map internal Region to GlobeZone RegionNode format
+function mapToRegionNode(r: Region, status: 'optimal' | 'acceptable' | 'stressed' | 'critical'): import('@/components/co2-control-panel/types').RegionNode {
+  return {
+    id: r.id,
+    name: r.name,
+    lat: r.lat,
+    lng: r.lng,
+    carbonIntensity: r.carbon,
+    renewablePercentage: r.renewable,
+    activeDecisions: r.load > 50 ? 3 : 1,
+    totalSaved: Math.round(r.carbon * 0.1),
+    status,
+  }
+}
+
+// Generate animated routing arcs from recent decisions
+function generateArcs(regions: Region[], recentDecisions: Decision[]): import('@/components/co2-control-panel/types').RoutingArc[] {
+  const arcs: import('@/components/co2-control-panel/types').RoutingArc[] = []
+  const statusMap: Record<RegionState, 'optimal' | 'acceptable' | 'stressed' | 'critical'> = {
+    green: 'optimal',
+    yellow: 'acceptable',
+    red: 'critical',
+  }
+  
+  // Create arcs from decisions that involve region shifts
+  recentDecisions.forEach((decision, idx) => {
+    if (decision.action === 'SHIFT_REGION' && idx < 5) {
+      const fromRegion = regions.find(r => r.id === decision.regionId)
+      const toRegion = regions.find(r => r.state === 'green' && r.id !== decision.regionId)
+      
+      if (fromRegion && toRegion) {
+        arcs.push({
+          id: `arc-${decision.id}`,
+          from: mapToRegionNode(fromRegion, statusMap[fromRegion.state]),
+          to: mapToRegionNode(toRegion, statusMap[toRegion.state]),
+          decisions: [{
+            id: decision.id,
+            timestamp: decision.timestamp,
+            fromRegion: fromRegion.id,
+            toRegion: toRegion.id,
+            workloadType: 'compute',
+            baselineCarbon: decision.carbon,
+            selectedCarbon: Math.round(decision.carbon * 0.6),
+            delta: decision.savings,
+            proofHash: decision.proofHash,
+            status: 'active',
+            latency: 45,
+            cost: 0.8,
+            waterUsage: 12,
+          }],
+          totalVolume: 1,
+          carbonSaved: decision.savings,
+          animated: true,
+        })
+      }
+    }
+  })
+  
+  // Add some inter-region arcs for visual effect
+  const greenRegions = regions.filter(r => r.state === 'green')
+  for (let i = 0; i < greenRegions.length - 1 && i < 3; i++) {
+    const from = greenRegions[i]
+    const to = greenRegions[i + 1]
+    arcs.push({
+      id: `inter-${from.id}-${to.id}`,
+      from: mapToRegionNode(from, 'optimal'),
+      to: mapToRegionNode(to, 'optimal'),
+      decisions: [],
+      totalVolume: 2,
+      carbonSaved: 5.2,
+      animated: true,
+    })
+  }
+  
+  return arcs
+}
 
 function tickRegions(regions:Region[]): Region[] {
   return regions.map(r => {
@@ -178,6 +262,23 @@ export default function LivePage() {
   const activeCount  = regions.filter(r=>r.state==='green').length
   const marginalCount= regions.filter(r=>r.state==='yellow').length
   const blockedCount = regions.filter(r=>r.state==='red').length
+
+  // Map regions to GlobeZone format with proper status
+  const statusMap: Record<RegionState, 'optimal' | 'acceptable' | 'stressed' | 'critical'> = {
+    green: 'optimal',
+    yellow: 'acceptable',
+    red: 'critical',
+  }
+  
+  const regionNodes = useMemo(() => 
+    regions.map(r => mapToRegionNode(r, statusMap[r.state])),
+    [regions]
+  )
+  
+  const routingArcs = useMemo(() => 
+    generateArcs(regions, decisions.slice(0, 10)),
+    [regions, decisions]
+  )
 
   return (
     <div className="flex flex-col min-h-screen" style={{background:'#060d18',color:'#e2e8f0',fontFamily:'monospace'}}>
@@ -313,26 +414,21 @@ export default function LivePage() {
         </aside>
 
         {/* Globe / center */}
-        <main className="flex-1 flex flex-col items-center justify-center relative overflow-hidden p-6">
-          {/* Radial glow */}
-          <div className="absolute inset-0 pointer-events-none"
-            style={{background:'radial-gradient(ellipse 70% 60% at 50% 50%, rgba(56,189,248,0.04) 0%, transparent 70%)'}}/>
-
-          {/* Centre hero content */}
-          <div className="relative text-center max-w-xl">
-            <div className="text-[11px] tracking-[0.3em] mb-4" style={{color:'rgba(56,189,248,0.5)'}}>
-              CO₂ ROUTER · FREEVIEW
-            </div>
-            <h1 className="text-4xl font-black tracking-[-0.05em] text-white mb-3">
-              Compute does not run<br/>until it is authorized.
-            </h1>
-            <p className="text-sm leading-7" style={{color:'rgba(148,163,184,0.8)'}}>
-              CO₂ Router issues the binding decision. Click any region.
-            </p>
-
-            {/* Latest decision */}
+        <main className="flex-1 flex flex-col relative overflow-hidden" style={{ minHeight: 0 }}>
+          {/* 3D Globe Visualization */}
+          <div className="flex-1 relative">
+            <GlobeZone 
+              regions={regionNodes}
+              arcs={routingArcs}
+              onRegionClick={(region) => {
+                const r = regions.find(reg => reg.id === region.id)
+                if (r) setSelected(r)
+              }}
+            />
+            
+            {/* Globe overlay - Latest decision */}
             {decisions[0] && (
-              <div className="mt-8 rounded-[24px] border border-white/8 bg-slate-950/70 p-4 text-left">
+              <div className="absolute bottom-24 left-1/2 -translate-x-1/2 rounded-[24px] border border-white/8 bg-slate-950/80 backdrop-blur-sm p-4 text-left max-w-md">
                 <div className="text-[9px] tracking-widest mb-2" style={{color:'#64748b'}}>LATEST DECISION</div>
                 <div className="text-xs font-mono" style={{color:'#38bdf8'}}>frm-{decisions[0].proofHash.slice(0,12)}…</div>
                 <div className="flex items-center gap-3 mt-2">
@@ -345,7 +441,6 @@ export default function LivePage() {
                 <p className="mt-2 text-xs leading-5 text-slate-400 truncate">{decisions[0].reason}</p>
               </div>
             )}
-          </div>
 
           {/* Selected region detail */}
           {selected && (
@@ -374,21 +469,11 @@ export default function LivePage() {
               </div>
             </div>
           )}
+        </div>
+      </main>
 
-          {/* Layer controls */}
-          <div className="absolute bottom-6 right-6 flex gap-2" style={{display: selected ? 'none' : 'flex'}}>
-            {['ARCS','NODES','RADAR','HEAT'].map((l,i)=>(
-              <button key={l}
-                className="rounded-2xl border border-white/10 bg-slate-950/60 px-3 py-2 text-[10px] tracking-widest transition hover:border-cyan-400/30 hover:text-white text-slate-400"
-                style={{background: i===0?'rgba(56,189,248,0.1)':undefined, color: i===0?'#38bdf8':undefined}}>
-                {i===0?'→ ':''}{l}
-              </button>
-            ))}
-          </div>
-        </main>
-
-        {/* Right panel — Decision stream */}
-        <aside className="flex-shrink-0 flex flex-col overflow-hidden"
+      {/* Right panel — Decision stream */}
+      <aside className="flex-shrink-0 flex flex-col overflow-hidden"
           style={{width:300,borderLeft:'1px solid rgba(56,189,248,0.08)',background:'rgba(6,13,24,0.6)'}}>
           <div className="flex items-center justify-between px-4 pt-3 pb-2 flex-shrink-0"
             style={{borderBottom:'1px solid rgba(56,189,248,0.06)'}}>
