@@ -9,13 +9,49 @@ interface HaloGridProps {
   onRegionClick?: (region: RegionNode) => void
 }
 
-// Convert lat/lng to canvas coordinates (simple equirectangular projection)
-function geoToXY(lat: number, lng: number, width: number, height: number) {
-  // Map lng (-180 to 180) to x (0 to width)
-  const x = ((lng + 180) / 360) * width
-  // Map lat (90 to -90) to y (0 to height)
-  const y = ((90 - lat) / 180) * height
-  return { x, y }
+// Region coordinates matching keeper-console.html exactly (0-1 normalized)
+const REGION_COORDS: Record<string, { x: number; y: number; label: string }> = {
+  'eu-north-1': { x: 0.52, y: 0.22, label: 'eu-n1' },
+  'eu-west-1': { x: 0.46, y: 0.28, label: 'eu-w1' },
+  'eu-west-2': { x: 0.46, y: 0.28, label: 'eu-w2' },
+  'eu-central-1': { x: 0.54, y: 0.27, label: 'eu-c1' },
+  'us-east-1': { x: 0.24, y: 0.32, label: 'us-e1' },
+  'us-east-2': { x: 0.26, y: 0.30, label: 'us-e2' },
+  'us-west-1': { x: 0.12, y: 0.32, label: 'us-w1' },
+  'us-west-2': { x: 0.10, y: 0.30, label: 'us-w2' },
+  'ca-central-1': { x: 0.22, y: 0.26, label: 'ca-c1' },
+  'ap-east-1': { x: 0.84, y: 0.38, label: 'ap-e1' },
+  'ap-southeast-1': { x: 0.82, y: 0.50, label: 'ap-se1' },
+  'ap-northeast-1': { x: 0.82, y: 0.33, label: 'ap-ne1' },
+  'sa-east-1': { x: 0.32, y: 0.62, label: 'sa-e1' },
+  'af-south-1': { x: 0.58, y: 0.62, label: 'af-s1' },
+  'me-south-1': { x: 0.66, y: 0.37, label: 'me-s1' },
+}
+
+// Simple hash for fallback positioning
+function hashToUnit(str: string): number {
+  let h = 0
+  for (let i = 0; i < str.length; i++) {
+    h = (h * 31 + str.charCodeAt(i)) & 0x7fffffff
+  }
+  return h / 0x7fffffff
+}
+
+// Get region coord - use predefined or generate fallback
+function getRegionCoord(id: string): { x: number; y: number; label: string } {
+  const found = REGION_COORDS[id]
+  if (found) return found
+  // Fallback for unknown regions
+  return {
+    x: 0.18 + hashToUnit(id) * 0.68,
+    y: 0.18 + hashToUnit(`y:${id}`) * 0.64,
+    label: id.slice(0, 5)
+  }
+}
+
+// Convert 0-1 coords to canvas pixels
+function geoToXY(xFrac: number, yFrac: number, width: number, height: number) {
+  return { x: xFrac * width, y: yFrac * height }
 }
 
 export function HaloGrid({ regions, arcs, onRegionClick }: HaloGridProps) {
@@ -60,7 +96,8 @@ export function HaloGrid({ regions, arcs, onRegionClick }: HaloGridProps) {
     let closestDist = Infinity
 
     regionsRef.current.forEach(r => {
-      const pos = geoToXY(r.lat, r.lng, canvas.width, canvas.height)
+      const coord = getRegionCoord(r.id)
+      const pos = geoToXY(coord.x, coord.y, canvas.width, canvas.height)
       const dist = Math.sqrt((clickX - pos.x) ** 2 + (clickY - pos.y) ** 2)
       if (dist < threshold && dist < closestDist) {
         closestDist = dist
@@ -136,8 +173,10 @@ export function HaloGrid({ regions, arcs, onRegionClick }: HaloGridProps) {
       // Routing arcs
       const t = Date.now() / 1000
       arcsRef.current.forEach((arc, i) => {
-        const from = geoToXY(arc.from.lat, arc.from.lng, W, H)
-        const to = geoToXY(arc.to.lat, arc.to.lng, W, H)
+        const fromCoord = getRegionCoord(arc.from.id)
+        const toCoord = getRegionCoord(arc.to.id)
+        const from = geoToXY(fromCoord.x, fromCoord.y, W, H)
+        const to = geoToXY(toCoord.x, toCoord.y, W, H)
 
         // Control point for quadratic curve (midpoint + offset for arc)
         const midX = (from.x + to.x) / 2
@@ -195,7 +234,8 @@ export function HaloGrid({ regions, arcs, onRegionClick }: HaloGridProps) {
 
       // Region nodes with pulse
       regionsRef.current.forEach((r, i) => {
-        const pos = geoToXY(r.lat, r.lng, W, H)
+        const coord = getRegionCoord(r.id)
+        const pos = geoToXY(coord.x, coord.y, W, H)
         const pulse = (Math.sin(t * 1.5 + i * 0.8) + 1) / 2
 
         let color = '#3dd9ff'
@@ -235,7 +275,7 @@ export function HaloGrid({ regions, arcs, onRegionClick }: HaloGridProps) {
         ctx.save()
         ctx.font = '9px JetBrains Mono, monospace'
         ctx.fillStyle = 'rgba(150, 200, 220, 0.6)'
-        ctx.fillText(r.name, pos.x + 7, pos.y + 4)
+        ctx.fillText(coord.label, pos.x + 7, pos.y + 4)
         ctx.restore()
       })
 
