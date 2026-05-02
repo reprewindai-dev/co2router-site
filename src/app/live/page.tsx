@@ -4,9 +4,9 @@ import { useCallback, useEffect, useRef, useState, useMemo } from 'react'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 
-// Dynamically import GlobeZone to avoid SSR issues with Three.js
-const GlobeZone = dynamic(
-  () => import('@/components/co2-control-panel/zones/GlobeZone').then(m => m.GlobeZone),
+// Dynamically import HaloGrid to avoid SSR issues with Canvas
+const HaloGrid = dynamic(
+  () => import('@/components/co2-control-panel/zones/HaloGrid').then(m => m.HaloGrid),
   { ssr: false, loading: () => <div className="flex items-center justify-center h-full"><div className="w-8 h-8 border-2 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin"/></div> }
 )
 
@@ -254,7 +254,7 @@ export default function LivePage() {
   },[tick,paused])
 
   const handleTierClick = (t: Tier) => {
-    if(t==='pro'||t==='elite'){ setLock(t); return }
+    if(t==='elite'){ setLock(t); return }
     setTier(t)
   }
 
@@ -336,7 +336,7 @@ export default function LivePage() {
                   color: tier===t?'#38bdf8':'#64748b',
                   boxShadow: tier===t?'0 0 8px rgba(56,189,248,0.2)':undefined,
                 }}>
-                {t==='pro'&&<span style={{color:'#fbbf24',fontSize:8}}>🔒</span>}
+                {t==='pro'&&<span style={{color:'#fbbf24',fontSize:8}}>★</span>}
                 {t==='elite'&&<span style={{color:'#a78bfa',fontSize:8}}>🔒</span>}
                 {t.toUpperCase()}
               </button>
@@ -415,9 +415,9 @@ export default function LivePage() {
 
         {/* Globe / center */}
         <main className="flex-1 flex flex-col relative overflow-hidden" style={{ minHeight: 0 }}>
-          {/* 3D Globe Visualization */}
+          {/* HaloGrid Map Visualization */}
           <div className="flex-1 relative">
-            <GlobeZone 
+            <HaloGrid
               regions={regionNodes}
               arcs={routingArcs}
               onRegionClick={(region) => {
