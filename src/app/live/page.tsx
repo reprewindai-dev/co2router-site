@@ -1,7 +1,8 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState, useMemo } from 'react'
+import { useCallback, useEffect, useRef, useState, useMemo, Suspense } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import dynamic from 'next/dynamic'
 
 // Dynamically import HaloGrid to avoid SSR issues with Canvas
@@ -218,7 +219,7 @@ function TierLock({ tier, onClose }: { tier: 'pro'|'elite'; onClose: ()=>void })
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
-export default function LivePage() {
+function LivePageContent() {
   const [tier, setTier]         = useState<Tier>('freeview')
   const [lockTarget, setLock]   = useState<'pro'|'elite'|null>(null)
   const [regions, setRegions]   = useState<Region[]>(INITIAL_REGIONS)
@@ -253,8 +254,19 @@ export default function LivePage() {
     return ()=>clearInterval(tickRef.current)
   },[tick,paused])
 
+  // Read tier from URL query param
+  const searchParams = useSearchParams()
+  const urlTier = searchParams.get('tier') as Tier | null
+  
+  // Initialize tier from URL on mount
+  useEffect(() => {
+    if (urlTier && ['freeview', 'pro', 'elite'].includes(urlTier)) {
+      setTier(urlTier)
+    }
+  }, [urlTier])
+
   const handleTierClick = (t: Tier) => {
-    if(t==='elite'){ setLock(t); return }
+    // All tiers unlocked for preview
     setTier(t)
   }
 
@@ -337,7 +349,7 @@ export default function LivePage() {
                   boxShadow: tier===t?'0 0 8px rgba(56,189,248,0.2)':undefined,
                 }}>
                 {t==='pro'&&<span style={{color:'#fbbf24',fontSize:8}}>★</span>}
-                {t==='elite'&&<span style={{color:'#a78bfa',fontSize:8}}>🔒</span>}
+                {t==='elite'&&<span style={{color:'#a78bfa',fontSize:8}}>◆</span>}
                 {t.toUpperCase()}
               </button>
             ))}
@@ -541,5 +553,14 @@ export default function LivePage() {
         </div>
       </footer>
     </div>
+  )
+}
+
+// Wrapper with Suspense for useSearchParams
+export default function LivePageWrapper() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-screen bg-[#060d18]"><div className="w-8 h-8 border-2 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin"/></div>}>
+      <LivePageContent />
+    </Suspense>
   )
 }

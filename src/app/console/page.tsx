@@ -26,7 +26,7 @@ const consoles = [
     ],
     locked: false,
     cta: 'Launch HaloGrid Classic',
-    href: '/live',
+    href: '/live?tier=freeview',
     border: 'rgba(56,189,248,0.18)',
     glow: 'rgba(56,189,248,0.05)',
     accent: '#38bdf8',
@@ -51,13 +51,40 @@ const consoles = [
       'Smart Advisor and anomaly detection',
       'Ghost Mode — shadow run without enforcement',
     ],
-    locked: true,
-    cta: 'Request Pro access',
-    href: '/access',
+    locked: false,
+    cta: 'Preview NOC',
+    href: '/live?tier=pro',
     border: 'rgba(251,191,36,0.18)',
     glow: 'rgba(251,191,36,0.04)',
     accent: '#fbbf24',
     badge: 'Operator plan',
+  },
+  {
+    id: 'elite',
+    version: '03',
+    name: 'HaloGrid Elite',
+    plan: 'Elite',
+    planColor: '#a78bfa',
+    price: 'From $10,000/mo',
+    tagline: 'Mission control. Audit exports. Compliance reports.',
+    description:
+      'The full mission control surface with trace rail, audit exports, compliance reports, SAIQ weight editor, and Ghost Mode. Built for enterprises that need full observability and governance.',
+    features: [
+      'Full decision trace rail with replay',
+      'Audit exports and compliance reports',
+      'SAIQ weight editor with policy controls',
+      'Ghost Mode with deterministic replay',
+      'Advanced anomaly detection',
+      'Custom signal provider integrations',
+      'Dedicated support',
+    ],
+    locked: false,
+    cta: 'Preview Elite',
+    href: '/live?tier=elite',
+    border: 'rgba(167,139,250,0.18)',
+    glow: 'rgba(167,139,250,0.04)',
+    accent: '#a78bfa',
+    badge: 'Enterprise',
   },
 ] as const
 
@@ -81,7 +108,7 @@ export default function ConsolePage() {
       </section>
 
       {/* Console cards */}
-      <section className="grid gap-6 lg:grid-cols-2 max-w-4xl mx-auto">
+      <section className="grid gap-6 lg:grid-cols-3 max-w-6xl mx-auto">
         {consoles.map((c) => (
           <div
             key={c.id}
