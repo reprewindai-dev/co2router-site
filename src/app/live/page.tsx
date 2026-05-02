@@ -414,9 +414,9 @@ export default function LivePage() {
         </aside>
 
         {/* Globe / center */}
-        <main className="flex-1 flex flex-col relative overflow-hidden" style={{ minHeight: 0 }}>
-          {/* HaloGrid Map Visualization */}
-          <div className="flex-1 relative">
+        <main className="flex-1 relative" style={{ minHeight: 0 }}>
+          {/* HaloGrid Map Visualization - sticky so it doesn't scroll */}
+          <div className="absolute inset-0">
             <HaloGrid
               regions={regionNodes}
               arcs={routingArcs}
@@ -469,8 +469,8 @@ export default function LivePage() {
               </div>
             </div>
           )}
-        </div>
-      </main>
+          </div>
+        </main>
 
       {/* Right panel — Decision stream */}
       <aside className="flex-shrink-0 flex flex-col overflow-hidden"
