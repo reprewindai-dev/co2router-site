@@ -11,6 +11,12 @@ const HaloGrid = dynamic(
   { ssr: false, loading: () => <div className="flex items-center justify-center h-full"><div className="w-8 h-8 border-2 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin"/></div> }
 )
 
+// Dynamically import GlobeZone for 3D globe view
+const GlobeZone = dynamic(
+  () => import('@/components/co2-control-panel/zones/GlobeZone').then(m => m.GlobeZone),
+  { ssr: false, loading: () => <div className="flex items-center justify-center h-full"><div className="w-8 h-8 border-2 border-purple-400/30 border-t-purple-400 rounded-full animate-spin"/></div> }
+)
+
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 type RegionState = 'green' | 'yellow' | 'red'
@@ -427,16 +433,27 @@ function LivePageContent() {
 
         {/* Globe / center */}
         <main className="flex-1 relative" style={{ minHeight: 0 }}>
-          {/* HaloGrid Map Visualization - sticky so it doesn't scroll */}
+          {/* HaloGrid or GlobeZone Map Visualization - sticky so it doesn't scroll */}
           <div className="absolute inset-0">
-            <HaloGrid
-              regions={regionNodes}
-              arcs={routingArcs}
-              onRegionClick={(region) => {
-                const r = regions.find(reg => reg.id === region.id)
-                if (r) setSelected(r)
-              }}
-            />
+            {tier === 'pro' || tier === 'elite' ? (
+              <GlobeZone
+                regions={regionNodes}
+                arcs={routingArcs}
+                onRegionClick={(region) => {
+                  const r = regions.find(reg => reg.id === region.id)
+                  if (r) setSelected(r)
+                }}
+              />
+            ) : (
+              <HaloGrid
+                regions={regionNodes}
+                arcs={routingArcs}
+                onRegionClick={(region) => {
+                  const r = regions.find(reg => reg.id === region.id)
+                  if (r) setSelected(r)
+                }}
+              />
+            )}
             
             {/* Globe overlay - Latest decision */}
             {decisions[0] && (
