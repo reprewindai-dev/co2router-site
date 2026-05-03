@@ -256,7 +256,7 @@ function LivePageContent() {
 
   // Read tier from URL query param
   const searchParams = useSearchParams()
-  const urlTier = searchParams.get('tier') as Tier | null
+  const urlTier = searchParams?.get('tier') as Tier | null
   
   // Initialize tier from URL on mount
   useEffect(() => {

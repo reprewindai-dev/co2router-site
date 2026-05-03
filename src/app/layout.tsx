@@ -16,6 +16,11 @@ import { getAudienceForHost, getSiteUrlForHost } from '@/lib/site-host'
 import './globals.css'
 import { Providers } from './providers'
 
+function shouldHideChrome(pathname: string): boolean {
+  // Hide site chrome for live dashboard and console to show full HaloGrid
+  return pathname === '/' || pathname === '' || pathname.startsWith('/console') || pathname.startsWith('/live')
+}
+
 const spaceGrotesk = Space_Grotesk({ subsets: ['latin'] })
 
 export const viewport: Viewport = {
@@ -80,12 +85,14 @@ export default async function RootLayout({
 }>) {
   const headerList = await headers()
   const host = headerList.get('x-forwarded-host') ?? headerList.get('host')
+  const pathname = headerList.get('x-pathname') ?? '/'
   const audience = getAudienceForHost(host)
   const siteUrl = getSiteUrlForHost(host)
   const primaryNavLinks = getPrimaryNavLinks(audience)
   const footerLinkSections = getFooterLinkSections(audience)
   const headerSubtitle = getHeaderSubtitle(audience)
   const footerTagline = getFooterTagline(audience)
+  const hideChrome = shouldHideChrome(pathname)
   const websiteSchema = {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
@@ -101,21 +108,27 @@ export default async function RootLayout({
 
   return (
     <html lang="en">
-      <body className={spaceGrotesk.className}>
+      <body className={spaceGrotesk.className} style={hideChrome ? { margin: 0, padding: 0, overflow: 'hidden' } : undefined}>
         <Providers>
           <script
             type="application/ld+json"
             dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
           />
-          <SiteChrome
-            audience={audience}
-            footerLinkSections={footerLinkSections}
-            footerTagline={footerTagline}
-            headerSubtitle={headerSubtitle}
-            primaryNavLinks={primaryNavLinks}
-          >
-            {children}
-          </SiteChrome>
+          {hideChrome ? (
+            <div style={{ width: '100vw', height: '100vh', overflow: 'hidden' }}>
+              {children}
+            </div>
+          ) : (
+            <SiteChrome
+              audience={audience}
+              footerLinkSections={footerLinkSections}
+              footerTagline={footerTagline}
+              headerSubtitle={headerSubtitle}
+              primaryNavLinks={primaryNavLinks}
+            >
+              {children}
+            </SiteChrome>
+          )}
         </Providers>
         <Analytics />
       </body>

@@ -58,9 +58,20 @@ function withServerTiming(response = NextResponse.next()) {
 
 export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname
+
+  // Add pathname header for layout chrome detection
+  const requestHeaders = new Headers(request.headers)
+  requestHeaders.set('x-pathname', pathname)
+
   const protectControlSurface = shouldProtectControlSurfacePath(pathname)
   const protectEcobe = shouldProtectEcobePath(pathname)
-  if (!protectControlSurface && !protectEcobe) return withServerTiming()
+  if (!protectControlSurface && !protectEcobe) {
+    return withServerTiming(NextResponse.next({
+      request: {
+        headers: requestHeaders,
+      },
+    }))
+  }
 
   const operatorKey = getOperatorKey()
   if (!operatorKey) {
@@ -92,9 +103,17 @@ export function middleware(request: NextRequest) {
     )
   }
 
-  return withServerTiming()
+  return withServerTiming(NextResponse.next({
+    request: {
+      headers: requestHeaders,
+    },
+  }))
 }
 
 export const config = {
-  matcher: ['/api/control-surface/:path*', '/api/ecobe/:path*'],
+  matcher: [
+    '/api/control-surface/:path*',
+    '/api/ecobe/:path*',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+  ],
 }
