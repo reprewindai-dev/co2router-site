@@ -17,8 +17,8 @@ import './globals.css'
 import { Providers } from './providers'
 
 function shouldHideChrome(pathname: string): boolean {
-  // Hide site chrome for live dashboard and console to show full HaloGrid
-  return pathname === '/' || pathname === '' || pathname.startsWith('/console') || pathname.startsWith('/live')
+  // Hide site chrome only for console and live to show full HaloGrid
+  return pathname.startsWith('/console') || pathname.startsWith('/live')
 }
 
 const spaceGrotesk = Space_Grotesk({ subsets: ['latin'] })

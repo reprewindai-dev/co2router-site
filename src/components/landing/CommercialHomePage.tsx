@@ -83,6 +83,102 @@ export function CommercialHomePage() {
         The same workload can run, reroute, delay, throttle, or deny based on live policy and
         resource conditions.
       </section>
+
+      {/* HaloGrid Console Versions */}
+      <section className="space-y-6">
+        <div className="text-center">
+          <h2 className="text-3xl font-bold text-white">HaloGrid Control Center</h2>
+          <p className="mt-2 text-slate-400">Real-time carbon-aware compute routing. Choose your view.</p>
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-2">
+          {/* HaloGrid Classic - Screenshot Version */}
+          <div className="rounded-[28px] border border-cyan-400/20 bg-gradient-to-b from-slate-900/50 to-slate-950 p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="h-10 w-10 rounded-xl bg-cyan-400/20 flex items-center justify-center">
+                <svg className="h-6 w-6 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-xl font-semibold text-white">HaloGrid Classic</h3>
+                <p className="text-sm text-cyan-400">Grid Interface</p>
+              </div>
+            </div>
+            <p className="text-slate-400 mb-6">
+              The classic grid-based control surface. Real-time region monitoring, decision stream, 
+              and carbon pressure visualization in a clean, fast interface.
+            </p>
+            <ul className="space-y-2 mb-6 text-sm text-slate-400">
+              <li className="flex items-center gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-cyan-400" />
+                Live region grid with carbon intensity
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-cyan-400" />
+                Real-time decision stream
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-cyan-400" />
+                Carbon pressure bar & velocity metrics
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-cyan-400" />
+                Proof hash on every frame
+              </li>
+            </ul>
+            <Link
+              href="/live?tier=freeview"
+              className="inline-flex h-12 items-center justify-center rounded-2xl bg-cyan-400/20 border border-cyan-400/40 px-6 text-sm font-semibold text-cyan-300 transition hover:bg-cyan-400/30 w-full"
+            >
+              Open Classic Grid
+            </Link>
+          </div>
+
+          {/* HaloGrid 3D - Globe Version */}
+          <div className="rounded-[28px] border border-purple-400/20 bg-gradient-to-b from-slate-900/50 to-slate-950 p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="h-10 w-10 rounded-xl bg-purple-400/20 flex items-center justify-center">
+                <svg className="h-6 w-6 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-xl font-semibold text-white">HaloGrid 3D</h3>
+                <p className="text-sm text-purple-400">Globe Interface</p>
+              </div>
+            </div>
+            <p className="text-slate-400 mb-6">
+              Full network operations center with interactive 3D globe. Arc routing visualization, 
+              alarm queue, and immersive global monitoring.
+            </p>
+            <ul className="space-y-2 mb-6 text-sm text-slate-400">
+              <li className="flex items-center gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-purple-400" />
+                Interactive 3D globe with arc routing
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-purple-400" />
+                Live region monitoring with carbon data
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-purple-400" />
+                Real-time decision feed
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-purple-400" />
+                Global carbon pressure visualization
+              </li>
+            </ul>
+            <Link
+              href="/live?tier=pro"
+              className="inline-flex h-12 items-center justify-center rounded-2xl bg-purple-400/20 border border-purple-400/40 px-6 text-sm font-semibold text-purple-300 transition hover:bg-purple-400/30 w-full"
+            >
+              Open 3D Globe
+            </Link>
+          </div>
+        </div>
+      </section>
     </div>
   )
 }
