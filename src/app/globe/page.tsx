@@ -5,10 +5,10 @@ import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import dynamic from 'next/dynamic'
 
-// Dynamically import HaloGrid to avoid SSR issues with Canvas
-const HaloGrid = dynamic(
-  () => import('@/components/co2-control-panel/zones/HaloGrid').then(m => m.HaloGrid),
-  { ssr: false, loading: () => <div className="flex items-center justify-center h-full"><div className="w-8 h-8 border-2 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin"/></div> }
+// Dynamically import GlobeZone for 3D globe view
+const GlobeZone = dynamic(
+  () => import('@/components/co2-control-panel/zones/GlobeZone').then(m => m.GlobeZone),
+  { ssr: false, loading: () => <div className="flex items-center justify-center h-full"><div className="w-8 h-8 border-2 border-purple-400/30 border-t-purple-400 rounded-full animate-spin"/></div> }
 )
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -429,7 +429,7 @@ function LivePageContent() {
         <main className="flex-1 relative" style={{ minHeight: 0 }}>
           {/* HaloGrid Map Visualization - sticky so it doesn't scroll */}
           <div className="absolute inset-0">
-            <HaloGrid
+            <GlobeZone
               regions={regionNodes}
               arcs={routingArcs}
               onRegionClick={(region) => {

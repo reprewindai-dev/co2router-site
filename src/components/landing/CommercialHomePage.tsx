@@ -128,7 +128,7 @@ export function CommercialHomePage() {
               </li>
             </ul>
             <Link
-              href="/live?tier=freeview"
+              href="/live"
               className="inline-flex h-12 items-center justify-center rounded-2xl bg-cyan-400/20 border border-cyan-400/40 px-6 text-sm font-semibold text-cyan-300 transition hover:bg-cyan-400/30 w-full"
             >
               Open Classic Grid
@@ -171,7 +171,7 @@ export function CommercialHomePage() {
               </li>
             </ul>
             <Link
-              href="/live?tier=pro"
+              href="/globe"
               className="inline-flex h-12 items-center justify-center rounded-2xl bg-purple-400/20 border border-purple-400/40 px-6 text-sm font-semibold text-purple-300 transition hover:bg-purple-400/30 w-full"
             >
               Open 3D Globe
