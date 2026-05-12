@@ -6,8 +6,25 @@ import {
   type ContactSubmissionInput,
   type ContactSubmissionPayload,
 } from '@/lib/contact'
-import { getContactMailConfig, getContactRoutingConfig, sendResendEmail } from '@/lib/mail/resend'
+import { getContactRoutingConfig, sendResendEmail } from '@/lib/mail/resend'
 import { takeRateLimitToken } from '@/lib/server/rate-limit'
+
+function getContactMailConfigSafe() {
+  const from = process.env.RESEND_FROM_CONTACT?.trim()
+  const inbox = process.env.CONTACT_INBOX_EMAIL?.trim()
+  const apiKey = process.env.RESEND_API_KEY?.trim()
+
+  const missing: string[] = []
+  if (!from) missing.push('RESEND_FROM_CONTACT')
+  if (!inbox) missing.push('CONTACT_INBOX_EMAIL')
+  if (!apiKey) missing.push('RESEND_API_KEY')
+
+  if (missing.length > 0) {
+    return { ok: false as const, missing, from: null, inbox: null, apiKey: null }
+  }
+
+  return { ok: true as const, from, inbox, apiKey, missing: [] }
+}
 
 function getClientIp(request: NextRequest) {
   const forwardedFor = request.headers.get('x-forwarded-for')
@@ -141,8 +158,20 @@ export async function POST(request: NextRequest) {
     )
   }
 
+  const mailConfig = getContactMailConfigSafe()
+
+  if (!mailConfig.ok) {
+    console.error('[Contact API] Missing environment variables:', mailConfig.missing.join(', '))
+    return NextResponse.json(
+      {
+        ok: false,
+        message: 'Contact delivery is temporarily unavailable. Please try again later.',
+      },
+      { status: 503 }
+    )
+  }
+
   try {
-    const contactConfig = getContactMailConfig()
     const routing = getContactRoutingConfig()
     const routedInbox =
       validation.data.category === 'sales'
@@ -150,13 +179,14 @@ export async function POST(request: NextRequest) {
         : validation.data.category === 'support'
           ? routing.support
           : routing.security
-    const inbox = routedInbox || contactConfig.inbox
+    const inbox = routedInbox || mailConfig.inbox
     const message = buildContactMessage(validation.data, request)
     const subject = `[CO2 Router Contact] ${getContactCategoryLabel(validation.data.category)} - ${validation.data.name}`
 
     const result = await sendResendEmail({
-      from: contactConfig.from,
-      to: inbox,
+      apiKey: mailConfig.apiKey!,
+      from: mailConfig.from!,
+      to: inbox!,
       subject,
       text: message.text,
       html: message.html,
@@ -164,6 +194,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (!result.success) {
+      console.error('[Contact API] Resend delivery failed:', result.error)
       return NextResponse.json(
         {
           ok: false,
@@ -177,7 +208,8 @@ export async function POST(request: NextRequest) {
       ok: true,
       message: 'Your message has been routed to the CO2 Router operating inbox.',
     })
-  } catch {
+  } catch (error) {
+    console.error('[Contact API] Unexpected error:', error)
     return NextResponse.json(
       {
         ok: false,

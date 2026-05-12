@@ -1,40 +1,24 @@
 import type { Metadata } from 'next'
-import { headers } from 'next/headers'
-import { CommercialHomePage } from '@/components/landing/CommercialHomePage'
-import { TechnicalHomePage } from '@/components/landing/TechnicalHomePage'
-import { getAudienceForHost } from '@/lib/site-host'
+
+import KeeperConsoleFrame from '@/components/KeeperConsoleFrame'
 import { createPageMetadata } from '@/lib/seo'
 
-export async function generateMetadata(): Promise<Metadata> {
-  const headerList = await headers()
-  const audience = getAudienceForHost(headerList.get('x-forwarded-host') ?? headerList.get('host'))
+export const metadata: Metadata = createPageMetadata({
+  title: 'CO2 Control Center | Live Mission Control',
+  description:
+    'Real-time carbon-aware compute routing. Five zones, four shock features, one principle: Compute does not run until Earth approves it. Live globe, decision feed, doctrine control, and cryptographic proof.',
+  path: '/',
+  keywords: [
+    'CO2 Router control center',
+    'carbon-aware compute',
+    'live mission control',
+    'sustainable cloud routing',
+    'CSRD compliance',
+    'carbon intelligence',
+    'green compute dashboard',
+  ],
+})
 
-  if (audience === 'technical') {
-    return createPageMetadata({
-      title: 'Technical Overview',
-      description:
-        'HaloGrid, architecture, proof, replay, provenance, and developer entrypoints for the CO2 Router technical surface.',
-      path: '/',
-      keywords: ['HaloGrid', 'technical overview', 'control surface', 'replay', 'architecture'],
-    })
-  }
-
-  return createPageMetadata({
-    title: 'Overview',
-    description:
-      'CO2 Router authorizes compute before execution using carbon, water, and policy constraints, then attaches proof, trace, replay, and provenance to every decision.',
-    path: '/',
-    keywords: ['CO2 Router', 'environmental execution control plane', 'carbon-aware routing'],
-  })
-}
-
-export default async function LandingPage() {
-  const headerList = await headers()
-  const audience = getAudienceForHost(headerList.get('x-forwarded-host') ?? headerList.get('host'))
-
-  if (audience === 'technical') {
-    return <TechnicalHomePage />
-  }
-
-  return <CommercialHomePage />
+export default function HomePage() {
+  return <KeeperConsoleFrame />
 }

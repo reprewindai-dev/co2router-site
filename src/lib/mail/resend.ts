@@ -1,6 +1,7 @@
 import 'server-only'
 
 interface ResendSendEmailInput {
+  apiKey: string
   from: string
   to: string | string[]
   subject: string
@@ -54,12 +55,10 @@ export function getAlertMailConfig() {
 }
 
 export async function sendResendEmail(input: ResendSendEmailInput): Promise<MailSendResult> {
-  const apiKey = getRequiredEnv('RESEND_API_KEY')
-
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${apiKey}`,
+      Authorization: `Bearer ${input.apiKey}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
