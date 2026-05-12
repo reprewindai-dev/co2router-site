@@ -437,7 +437,7 @@ export function buildHalogridViewModel(args: {
   const hud = buildHud(snapshot, live)
 
   return {
-    title: 'CO2 Grid',
+    title: 'HaloGrid',
     subtitle: 'CO2 Router Command Center',
     generatedAt: snapshot.generatedAt,
     hud,

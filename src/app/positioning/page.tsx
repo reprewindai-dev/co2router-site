@@ -1,36 +1,37 @@
 import Link from 'next/link'
 
+import { masterDistributionDoctrine } from '@/content/master-distribution'
 import { formatMs, getControlPlaneSnapshot } from '@/lib/ecobe'
 
 const buyerGroups = [
   {
-    title: 'Platform engineering',
-    body: 'Teams that already control CI, clusters, runtime policies, and regional execution but need one deterministic environmental authorization layer before workloads run.',
+    title: 'Platform control owners',
+    body: 'Teams that already control CI, clusters, runtime policies, and regional execution but need one deterministic governance layer before workloads run.',
   },
   {
-    title: 'Infrastructure governance',
-    body: 'Operators who need control rights, replayable reasoning, and enforcement artifacts instead of sustainability dashboards and after-the-fact reports.',
+    title: 'Governance and audit',
+    body: 'Operators who need control rights, replayable reasoning, and enforcement artifacts instead of after-the-fact reporting.',
   },
   {
-    title: 'Compliance and sustainability',
+    title: 'Policy and regulated operations',
     body: 'Organizations that need pre-execution evidence, policy traceability, and decision lineage tied directly to runtime control.',
   },
-]
+] as const
 
 const strengths = [
-  'Deterministic decisioning with one fixed doctrine order',
+  'Deterministic Pre-Execution Governance with one fixed doctrine order',
   'One canonical decision model and one canonical proof model across adapters',
   'Water treated as a hard authorization constraint, not cosmetic scoring',
-  'Proof, replay, and degraded-state honesty built into the runtime path',
+  'SHA-256 ProofHash, replay, and degraded-state honesty built into the runtime path',
   'CI/CD and Kubernetes enforcement already anchored in the engine',
-  'Thin adapter strategy for HTTP, events, queue/job, and Lambda',
-]
+  'Quality-tiered governance lease carried across HTTP, events, queue/job, and Lambda',
+] as const
 
 const limitations = [
   'Operational water authority is real, but full assurance closure is still in progress',
   'The adapter plane exists, but CI/CD and Kubernetes remain the strongest production wedges today',
   'OpenTelemetry alignment is present, but the telemetry layer is not yet a fully mature observability product',
-]
+] as const
 
 export default async function PositioningPage() {
   const snapshot = await getControlPlaneSnapshot()
@@ -44,10 +45,12 @@ export default async function PositioningPage() {
             <div className="eyebrow">Website-ready positioning</div>
             <div className="space-y-4">
               <h1 className="max-w-4xl text-5xl font-semibold leading-tight text-white sm:text-6xl">
-                Infrastructure governance for compute before it runs.
+                {masterDistributionDoctrine.category}
               </h1>
               <p className="max-w-3xl text-lg leading-8 text-slate-300">
-                CO2 Router is a deterministic pre-execution environmental authorization control plane for compute. It evaluates carbon, water, latency, cost, and policy, returns one binding action, emits enforcement artifacts, and persists proof and replay lineage for every decision.
+                CO2 Router is the decision authority + proof layer for governed compute. It applies
+                the Lowest Defensible Signal Doctrine, returns one binding action, emits
+                enforcement artifacts, and persists proof and replay lineage for every decision.
               </p>
             </div>
 
@@ -72,7 +75,7 @@ export default async function PositioningPage() {
               <div className="eyebrow">Decision posture</div>
               <div className="metric-value mt-3">Binding</div>
               <p className="mt-2 text-sm leading-6 text-slate-400">
-                Five actions only: run, reroute, delay, throttle, or deny.
+                {masterDistributionDoctrine.actionLine}
               </p>
             </div>
             <div className="surface-card p-5">
@@ -103,7 +106,7 @@ export default async function PositioningPage() {
       <section className="grid gap-6 lg:grid-cols-2">
         <div className="surface-card p-6">
           <div className="eyebrow">What it is</div>
-          <h2 className="mt-3 text-3xl font-semibold text-white">An authorization and enforcement layer, not a dashboard.</h2>
+          <h2 className="mt-3 text-3xl font-semibold text-white">A decision authority + proof layer, not a dashboard.</h2>
           <ul className="mt-5 space-y-3 text-sm leading-7 text-slate-300">
             <li>It sits before execution, not after it.</li>
             <li>It applies fixed doctrine, not advisory optimization.</li>
@@ -114,12 +117,12 @@ export default async function PositioningPage() {
 
         <div className="surface-card p-6">
           <div className="eyebrow">What it is not</div>
-          <h2 className="mt-3 text-3xl font-semibold text-white">Not ESG software. Not a generic scheduler. Not a vibe layer.</h2>
+          <h2 className="mt-3 text-3xl font-semibold text-white">Governance software, not advisory software.</h2>
           <ul className="mt-5 space-y-3 text-sm leading-7 text-slate-300">
             <li>Not a passive monitoring dashboard.</li>
-            <li>Not a reporting-only sustainability suite.</li>
+            <li>Not a reporting-only suite.</li>
             <li>Not a generic multi-objective scheduler without proof doctrine.</li>
-            <li>Not a claims-heavy “green AI” veneer over normal routing.</li>
+            <li>Not a claims-heavy veneer over normal infrastructure control.</li>
           </ul>
         </div>
       </section>
@@ -130,9 +133,9 @@ export default async function PositioningPage() {
         <ol className="mt-5 space-y-4 text-sm leading-7 text-slate-300">
           <li>1. A workload request arrives with execution context, constraints, runtime target, and policy metadata.</li>
           <li>2. The engine resolves candidate regions and gathers carbon and water signals.</li>
-          <li>3. It applies doctrine in order: policy overrides, water guardrails, SLA protection, carbon optimization inside the allowed envelope, then cost as late influence.</li>
+          <li>3. It applies the Lowest Defensible Signal Doctrine in order: policy overrides, water guardrails, SLA protection, carbon posture inside the allowed envelope, then cost as late influence.</li>
           <li>4. It returns exactly one action: `run_now`, `reroute`, `delay`, `throttle`, or `deny`.</li>
-          <li>5. It emits enforcement artifacts for CI/CD and Kubernetes and stores canonical proof metadata for replay and export.</li>
+          <li>5. It emits enforcement artifacts for CI/CD and Kubernetes and stores canonical proof metadata, including a SHA-256 ProofHash, for replay and export.</li>
         </ol>
       </section>
 
@@ -172,10 +175,12 @@ export default async function PositioningPage() {
       <section className="surface-card p-6">
         <div className="eyebrow">Bottom line</div>
         <h2 className="mt-3 text-3xl font-semibold text-white">
-          CO2 Router is infrastructure governance software that decides whether compute is allowed to run, where it should run, and under what environmental conditions, before execution happens.
+          CO2 Router is the Deterministic Environmental Execution Control Plane.
         </h2>
         <p className="mt-5 max-w-4xl text-base leading-8 text-slate-300">
-          Current external framing: production-grade deterministic decisioning and proof, with operational water authority today and full assurance closure still in progress.
+          {masterDistributionDoctrine.bindingLine} Current external framing: production-grade
+          deterministic decisioning and proof, with operational water authority today and full
+          assurance closure still in progress.
         </p>
       </section>
     </div>

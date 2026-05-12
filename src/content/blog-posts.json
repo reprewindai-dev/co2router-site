@@ -1,0 +1,78 @@
+[
+  {
+    "id": "halogrid-proof-first-routing",
+    "slug": "halogrid-proof-first-routing",
+    "title": "HaloGrid Makes Carbon Routing Auditable Before Workloads Run",
+    "deck": "A publishable field note on how CO2 Router turns site imagery, provenance, and policy signals into a revenue-facing proof layer.",
+    "summary": "HaloGrid now pairs its globe and topology media with a proof-first narrative for enterprise buyers who need audit-ready routing.",
+    "author": "CO2 Router Editorial Desk",
+    "publishedAt": "2026-05-09T12:45:46.697Z",
+    "tags": [
+      "HaloGrid",
+      "Proof",
+      "Provenance",
+      "Carbon Routing"
+    ],
+    "media": [
+      {
+        "src": "/blog-media/halo-grid-earth-night.jpg",
+        "source": "/halogrid/earth-night.jpg",
+        "alt": "HaloGrid night earth render used as the hero image"
+      },
+      {
+        "src": "/blog-media/halo-grid-earth-day.jpg",
+        "source": "/halogrid/earth-day.jpg",
+        "alt": "HaloGrid daylight earth render used for supporting imagery"
+      },
+      {
+        "src": "/blog-media/halo-grid-topology.png",
+        "source": "/halogrid/earth-topology.png",
+        "alt": "HaloGrid topology texture used for technical detail panels"
+      }
+    ],
+    "body": [
+      "HaloGrid exists to make routing decisions visible enough for buyers, operators, and reviewers to trust them.",
+      "The proof layer matters because the value of carbon-aware routing is not just lower intensity. It is the ability to explain why a workload moved, who approved it, and what evidence supported the decision.",
+      "This post pairs the existing CO2 Router visual themes with a buyer-facing message: premium routing needs proof, not just optimization."
+    ],
+    "status": "published"
+  },
+  {
+    "id": "halogrid-proof-first-routing-2026-05-12",
+    "slug": "halogrid-proof-first-routing-2026-05-12",
+    "title": "HaloGrid Makes Carbon Routing Auditable Before Workloads Run",
+    "deck": "A publishable field note on how CO2 Router turns site imagery, provenance, and policy signals into a revenue-facing proof layer.",
+    "summary": "HaloGrid now pairs its globe and topology media with a proof-first narrative for enterprise buyers who need audit-ready routing.",
+    "author": "CO2 Router Editorial Desk",
+    "publishedAt": "2026-05-12T12:48:27.195Z",
+    "tags": [
+      "HaloGrid",
+      "Proof",
+      "Provenance",
+      "Carbon Routing"
+    ],
+    "media": [
+      {
+        "src": "/blog-media/halo-grid-earth-night.jpg",
+        "source": "/halogrid/earth-night.jpg",
+        "alt": "HaloGrid night earth render used as the hero image"
+      },
+      {
+        "src": "/blog-media/halo-grid-earth-day.jpg",
+        "source": "/halogrid/earth-day.jpg",
+        "alt": "HaloGrid daylight earth render used for supporting imagery"
+      },
+      {
+        "src": "/blog-media/halo-grid-topology.png",
+        "source": "/halogrid/earth-topology.png",
+        "alt": "HaloGrid topology texture used for technical detail panels"
+      }
+    ],
+    "body": [
+      "HaloGrid exists to make routing decisions visible enough for buyers, operators, and reviewers to trust them.",
+      "The proof layer matters because the value of carbon-aware routing is not just lower intensity. It is the ability to explain why a workload moved, who approved it, and what evidence supported the decision.",
+      "This post pairs the existing CO2 Router visual themes with a buyer-facing message: premium routing needs proof, not just optimization."
+    ],
+    "status": "published"
+  }
+]

@@ -609,7 +609,7 @@ export class SelfHealingWatchdog {
   start() {
     this.timer = setInterval(() => {
       if (Date.now() - this.lastFreshTs > this.staleThresholdMs) {
-    console.log('[CO2 Grid Watchdog] Stale feed - self-healed.')
+    console.log('[HaloGrid Watchdog] Stale feed - self-healed.')
         this.onHeal()
         this.lastFreshTs = Date.now()
       }

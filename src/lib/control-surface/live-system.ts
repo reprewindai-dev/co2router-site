@@ -213,10 +213,6 @@ export async function getLiveSystemSnapshot(): Promise<LiveSystemSnapshot> {
       : new Error('Live decision feed is unavailable.')
   }
 
-  if (recentDecisions.length === 0) {
-    throw new Error('Live decision feed returned no recent decisions.')
-  }
-
   const latestDecision = recentDecisions[0] ?? null
 
   const traceResult =
@@ -310,7 +306,7 @@ export async function getLiveSystemSnapshot(): Promise<LiveSystemSnapshot> {
     generatedAt: new Date().toISOString(),
     recentDecisions: {
       available: decisionsResult.status === 'fulfilled',
-      error: null,
+      error: recentDecisions.length === 0 ? 'No recent public decisions are available yet.' : null,
       items: recentDecisions,
     },
     traceLedger,

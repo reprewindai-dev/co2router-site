@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 
+import { masterDistributionDoctrine } from '@/content/master-distribution'
 import {
   existingApproachGroups,
   investorComparisonRows,
@@ -12,8 +13,7 @@ import { createPageMetadata } from '@/lib/seo'
 
 export const metadata: Metadata = createPageMetadata({
   title: 'Methodology',
-  description:
-    'How CO2 Router differs from schedulers, carbon APIs, and audit systems through deterministic pre-execution governance, binding decisions, and replayable proof.',
+  description: masterDistributionDoctrine.methodologyDescription,
   path: '/methodology',
   keywords: [
     'deterministic infrastructure control',
@@ -32,17 +32,18 @@ export default function MethodologyPage() {
             Methodology
           </div>
           <h1 className="mt-3 text-4xl font-black tracking-[-0.05em] text-white sm:text-5xl lg:text-6xl">
-            CO2 Router is not a scheduler.
+            CO2 Router governs before workloads run.
             <span className="block bg-gradient-to-r from-emerald-300 via-cyan-300 to-sky-400 bg-clip-text text-transparent">
-              It is a control plane.
+              It is deterministic pre-execution governance.
             </span>
           </h1>
           <p className="mt-5 max-w-3xl text-sm leading-8 text-slate-300 sm:text-base">
             Modern infrastructure is no longer optimized. It is governed. Most existing systems
             operate as schedulers or advisors. They suggest better placements or defer workloads
-            based on forecasts. CO2 Router introduces a different model: a deterministic compute
-            control plane that enforces execution decisions before workloads run, with SAIQ
-            governance and replayable proof attached to the same frame.
+            based on forecasts. CO2 Router introduces a different model: the Deterministic
+            Environmental Execution Control Plane. It enforces execution decisions before
+            workloads run, applies the Lowest Defensible Signal Doctrine, and attaches replayable
+            proof to the same frame.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link
@@ -74,7 +75,7 @@ export default function MethodologyPage() {
             The architectural difference is decision authority. Most products in this category are
             informational or advisory layers. They expose telemetry, recommend a cleaner region, or
             tune scheduling heuristics. CO2 Router sits in front of execution targets and returns a
-            binding action before compute is admitted.
+            binding governance action before compute is admitted.
           </p>
         </div>
 
@@ -153,13 +154,13 @@ export default function MethodologyPage() {
             What CO2 Router does differently
           </div>
           <h2 className="mt-3 text-3xl font-black tracking-[-0.04em] text-white sm:text-4xl">
-            One decision core. Five binding outcomes.
+            One decision core. Five binding actions.
           </h2>
           <p className="mt-4 text-sm leading-7 text-slate-300 sm:text-base">
             CO2 Router unifies real-time signal evaluation, deterministic decisioning, enforcement
             at execution time, replayable audit proof, and multi-objective tradeoffs across carbon,
-            water, latency, and cost. Every workload is evaluated before execution and results in
-            one binding action.
+            water, latency, and cost. Every workload is evaluated before execution under the
+            Lowest Defensible Signal Doctrine and results in one binding action.
           </p>
           <div className="mt-6 space-y-3">
             {routerActions.map((action) => (
@@ -179,12 +180,12 @@ export default function MethodologyPage() {
         <div className="rounded-[32px] border border-cyan-300/14 bg-[radial-gradient(circle_at_top,rgba(45,212,191,0.12),transparent_42%),rgba(2,8,23,0.84)] p-6 sm:p-8">
           <div className="text-[11px] uppercase tracking-[0.28em] text-cyan-300">Proof + audit</div>
           <h2 className="mt-3 text-3xl font-black tracking-[-0.04em] text-white sm:text-4xl">
-            Audit-grade verification instead of estimated reporting.
+            Audit-grade verification instead of narrative-only reporting.
           </h2>
           <p className="mt-4 text-sm leading-7 text-slate-300 sm:text-base">
             Every decision produces the evidence required to explain, replay, and verify what
-            happened. This is the difference between a sustainability narrative and a defensible
-            control surface.
+            happened. This is the difference between a governance decision and a defensible control
+            surface.
           </p>
           <div className="mt-6 space-y-3">
             {proofArtifacts.map((artifact) => (
@@ -205,11 +206,11 @@ export default function MethodologyPage() {
           Positioning line
         </div>
         <div className="mt-4 text-3xl font-black tracking-[-0.04em] text-white sm:text-5xl">
-          CO2 Router is not a scheduler.
+          CO2 Router governs before workloads run.
         </div>
         <div className="mt-2 text-2xl font-bold text-slate-200 sm:text-4xl">It is a control plane.</div>
         <div className="mt-4 text-base font-semibold uppercase tracking-[0.18em] text-cyan-300 sm:text-lg">
-          It does not recommend. It enforces.
+          {masterDistributionDoctrine.bindingLine}
         </div>
       </section>
 

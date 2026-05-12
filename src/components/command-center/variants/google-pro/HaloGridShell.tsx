@@ -1199,7 +1199,7 @@ export function HaloGridShell() {
             ENGINE UNREACHABLE
           </div>
           <div className="mt-2 text-lg font-black" style={{ color: theme.textStrong }}>
-            CO2 Grid unavailable
+            HaloGrid unavailable
           </div>
           <div className="mt-3 text-[13px] leading-6" style={{ color: theme.muted }}>
             {isEngineDown

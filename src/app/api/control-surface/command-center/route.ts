@@ -95,11 +95,7 @@ export async function GET() {
     recordDashboardMetric(dashboardTelemetryMetricNames.routeErrorCount, 'counter', 1, {
       route: 'command-center',
     })
-    return NextResponse.json(
-      {
-        error: error instanceof Error ? error.message : 'Failed to build command center snapshot',
-      },
-      { status: 500 }
-    )
+    const totalMs = performance.now() - startedAt
+    return buildFallbackResponse(totalMs)
   }
 }

@@ -41,7 +41,7 @@ export const heroScenarios: Record<HeroScenarioId, HeroScenario> = {
     ],
     reason: 'All policy and runtime conditions satisfied',
     impact: 'Execution approved immediately; no SLA impact',
-    proof: ['Proof sealed', 'Replay available', 'Trace attached', '77ms p95'],
+    proof: ['SHA-256 ProofHash', 'Replayable frame', 'Quality-tiered lease', '77ms p95'],
   },
   reroute: {
     id: 'reroute',
@@ -57,10 +57,10 @@ export const heroScenarios: Record<HeroScenarioId, HeroScenario> = {
       { label: 'Latency', value: 'Acceptable' },
       { label: 'Policy', value: 'Alternate region allowed' },
     ],
-    reason: 'Lower-cost compliant region available',
-    impact: 'Redirecting to ca-central; estimated cost reduction 18%; lower-carbon path selected',
-    routeHint: 'Switching from us-east → ca-central',
-    proof: ['Proof sealed', 'Replay available', 'Trace attached', '77ms p95'],
+    reason: 'Lower-risk compliant region available under the same governance lease',
+    impact: 'Redirecting to ca-central; lower-intensity and lower-cost lane selected inside policy',
+    routeHint: 'Switching from us-east to ca-central',
+    proof: ['SHA-256 ProofHash', 'Replayable frame', 'Quality-tiered lease', '77ms p95'],
   },
   delay: {
     id: 'delay',
@@ -76,9 +76,9 @@ export const heroScenarios: Record<HeroScenarioId, HeroScenario> = {
       { label: 'Latency', value: 'Not critical' },
       { label: 'Policy', value: 'Delay permitted' },
     ],
-    reason: 'Cleaner execution window predicted in 14 minutes',
+    reason: 'Lower-intensity execution window predicted in 14 minutes',
     impact: 'Execution deferred; no user-facing SLA impact',
-    proof: ['Proof sealed', 'Replay available', 'Trace attached', '77ms p95'],
+    proof: ['SHA-256 ProofHash', 'Replayable frame', 'Quality-tiered lease', '77ms p95'],
   },
   throttle: {
     id: 'throttle',
@@ -97,7 +97,7 @@ export const heroScenarios: Record<HeroScenarioId, HeroScenario> = {
     ],
     reason: 'Budget and load guard triggered',
     impact: 'Reducing concurrency to 40%; cost ceiling protected',
-    proof: ['Proof sealed', 'Replay available', 'Trace attached', '77ms p95'],
+    proof: ['SHA-256 ProofHash', 'Replayable frame', 'Quality-tiered lease', '77ms p95'],
   },
   deny: {
     id: 'deny',
@@ -115,6 +115,6 @@ export const heroScenarios: Record<HeroScenarioId, HeroScenario> = {
     ],
     reason: 'Policy violation: requested region is not authorized',
     impact: 'Execution blocked before run',
-    proof: ['Proof sealed', 'Replay available', 'Trace attached', '77ms p95'],
+    proof: ['SHA-256 ProofHash', 'Replayable frame', 'Quality-tiered lease', '77ms p95'],
   },
 }

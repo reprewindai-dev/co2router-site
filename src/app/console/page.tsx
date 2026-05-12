@@ -1,21 +1,21 @@
 import { redirect } from 'next/navigation'
 import type { Metadata } from 'next'
 
+import { masterDistributionDoctrine } from '@/content/master-distribution'
 import { createPageMetadata } from '@/lib/seo'
 
 export const metadata: Metadata = createPageMetadata({
   title: 'CO2 Control Center | Live Mission Control',
   description:
-    'Real-time carbon-aware compute routing. Five zones, four shock features, one principle: Compute does not run until Earth approves it. Live globe, decision feed, doctrine control, and cryptographic proof.',
+    'Live governance surface for CO2 Router: deterministic pre-execution governance, five binding actions, doctrine control, and replayable proof.',
   path: '/console',
   keywords: [
     'CO2 Router control center',
-    'carbon-aware compute',
+    'deterministic pre-execution governance',
     'live mission control',
-    'sustainable cloud routing',
-    'CSRD compliance',
-    'carbon intelligence',
-    'green compute dashboard',
+    'binding governance decision',
+    'proof layer',
+    masterDistributionDoctrine.category,
   ],
 })
 

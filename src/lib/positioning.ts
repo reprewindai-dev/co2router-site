@@ -135,6 +135,10 @@ export const proofArtifacts: ProofArtifact[] = [
     description: 'Shows the counterfactual target beside the enforced choice and the delta achieved.',
   },
   {
+    name: 'SHA-256 ProofHash',
+    description: 'Seals the decision frame with a tamper-evident, replayable proof reference.',
+  },
+  {
     name: 'Signal lineage',
     description: 'Records which carbon and water signals were used, with freshness and fallback state.',
   },
@@ -147,8 +151,8 @@ export const proofArtifacts: ProofArtifact[] = [
     description: 'Preserves the exact decision context so the engine can recompute the result later.',
   },
   {
-    name: 'Cryptographic hash-chain record',
-    description: 'Makes the historical trail tamper-evident instead of narrative-only logging.',
+    name: 'Quality-tiered governance lease',
+    description: 'Captures the proof depth and signal authority posture attached to the governed decision.',
   },
 ]
 

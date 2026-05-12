@@ -968,7 +968,7 @@ input[type=range].red::-webkit-slider-thumb { background: var(--red); box-shadow
               <div class="globe-stat-value" id="active-regions">—</div>
             </div>
             <div class="globe-stat-card">
-              <div class="globe-stat-label">Routed Paths</div>
+              <div class="globe-stat-label" id="routing-count-label">Routed Paths</div>
               <div class="globe-stat-value amber" id="reroutes-hr">—</div>
             </div>
             <div class="globe-stat-card">
@@ -1297,7 +1297,7 @@ input[type=range].red::-webkit-slider-thumb { background: var(--red); box-shadow
     </div>
     <div class="visor-card">
       <div class="visor-card-val amber" id="visor-reroutes-hr">—</div>
-      <div class="visor-card-lbl">Reroutes / hr</div>
+      <div class="visor-card-lbl" id="visor-routing-count-label">Reroutes / hr</div>
     </div>
     <div class="visor-card">
       <div class="visor-card-val cyan" id="visor-alerts">—</div>
@@ -1419,6 +1419,7 @@ const state = {
     displayRows: [],
     uniqueRegionCount: 0,
     reroutesHr: 0,
+    routedPathCount: 0,
     denyAlerts: 0,
     p95Latency: null,
     doctrineVersion: '—',
@@ -2255,6 +2256,7 @@ function renderSurfaceBanner(){
 
   const hasSnapshot = Boolean(state.commandCenter || state.overview);
   const isHydrating = !hasSnapshot && (state.ui.loading.health || state.ui.loading.decisions);
+  const feedIdle = hasSnapshot && !state.ui.loading.decisions && Array.isArray(state.decisions) && state.decisions.length === 0;
   const runtime = state.commandCenter?.runtime || null;
   const lastSuccessfulAt =
     runtime?.lastSuccessfulAt ||
@@ -2269,7 +2271,7 @@ function renderSurfaceBanner(){
     state.ui.errors.analytics ||
     null;
 
-  if(hasSnapshot && !stale){
+  if(hasSnapshot && !stale && !feedIdle){
     bannerEl.className = 'surface-banner hidden';
     bannerEl.innerHTML = '';
     return;
@@ -2281,6 +2283,10 @@ function renderSurfaceBanner(){
 
   if(isHydrating){
     tone = 'info';
+  } else if(feedIdle){
+    tone = 'info';
+    headline = 'PUBLIC DECISION FEED IDLE';
+    detail = 'Live read-only control data is attached. Waiting for the next governed public decision frame.';
   } else if(hasSnapshot && stale){
     tone = 'warning';
     headline = 'PUBLIC SNAPSHOT STALE';
@@ -2412,6 +2418,58 @@ function formatTimeAgo(createdMs){
   return mins > 0 ? `${mins}m ${secs}s ago` : `${secs}s ago`;
 }
 
+function worldNodesFromSnapshot(){
+  const nodes = state.commandCenter?.world?.nodes;
+  return Array.isArray(nodes) ? nodes : [];
+}
+
+function worldFlowsFromSnapshot(){
+  const flows = state.commandCenter?.world?.flows;
+  return Array.isArray(flows) ? flows : [];
+}
+
+function hasLiveDecisionRows(){
+  return Array.isArray(state.derived.displayRows) && state.derived.displayRows.length > 0;
+}
+
+function toZoneFromWorldState(value){
+  const stateValue = String(value || '').toLowerCase();
+  if(stateValue === 'blocked') return 'red';
+  if(stateValue === 'marginal') return 'amber';
+  return 'green';
+}
+
+function buildIdleDecisionCard(){
+  const commandCenter = state.commandCenter || null;
+  const runtime = commandCenter?.runtime || null;
+  const service = commandCenter?.health?.service || state.overview?.service || null;
+  const nodes = worldNodesFromSnapshot();
+  const flows = worldFlowsFromSnapshot();
+  const providers = providerStatusList();
+  const healthyProviders = providers.filter((provider)=>['healthy','ok','online','live','true'].includes(provider.status)).length;
+  const liveP95 = safeNumber(commandCenter?.health?.latency?.p95TotalMs ?? state.overview?.metrics?.p95TotalMs);
+  const lastSuccessfulAt = runtime?.lastSuccessfulAt || commandCenter?.generatedAt || state.overview?.generatedAt || null;
+
+  const card = document.createElement('div');
+  card.className = 'decision-card run';
+  card.dataset.frameId = 'public-feed-idle';
+  card.innerHTML = `
+    <div class="dc-top">
+      <span class="dc-action run">LIVE FABRIC</span>
+      <span class="dc-job">${escapeHtml(String(runtime?.mode || 'live').toUpperCase())}</span>
+      <span class="dc-time">${escapeHtml(lastSuccessfulAt ? formatIsoShort(lastSuccessfulAt) : 'snapshot')}</span>
+    </div>
+    <div class="dc-metrics">
+      <div class="dc-metric">REGIONS: <span>${escapeHtml(String(nodes.length))}</span></div>
+      <div class="dc-metric">PATHS: <span class="positive">${escapeHtml(String(flows.length))}</span></div>
+      <div class="dc-metric">PROVIDERS: <span class="positive">${escapeHtml(`${healthyProviders}/${providers.length}`)}</span></div>
+      <div class="dc-metric">P95: <span class="positive">${escapeHtml(formatMs(liveP95))}</span></div>
+    </div>
+    <div class="dc-proof"><div class="proof-dot"></div>${escapeHtml(service?.detail || 'Live read-only control data attached. Waiting for the next governed public decision frame.')}</div>
+  `;
+  return card;
+}
+
 function buildDecisionCard(row){
   const cls = actionClass[row.action] || 'run';
   const card = document.createElement('div');
@@ -2448,6 +2506,31 @@ function buildProofListFromRows(rows){
 
   const items = rows.filter((r)=>r.proofHash || r.traceHash).slice(0, 12);
   el.innerHTML = '';
+  if(!items.length && (state.commandCenter || state.overview)){
+    const commandCenter = state.commandCenter || null;
+    const service = commandCenter?.health?.service || state.overview?.service || null;
+    const runtime = commandCenter?.runtime || null;
+    const providers = providerStatusList();
+    const healthyProviders = providers.filter((provider)=>['healthy','ok','online','live','true'].includes(provider.status)).length;
+    const lastSuccessfulAt = runtime?.lastSuccessfulAt || commandCenter?.generatedAt || state.overview?.generatedAt || null;
+    el.innerHTML = `
+      <div class="proof-entry open">
+        <div class="proof-entry-head">
+          <span class="proof-hash">PUBLIC-FEED-IDLE</span>
+          <span class="proof-status"><span style="width:5px;height:5px;border-radius:50%;background:var(--cyan);display:inline-block"></span>LIVE</span>
+        </div>
+        <div class="proof-entry-body" style="display:block">
+          <div class="proof-row"><span class="proof-key">POSTURE</span><span class="proof-val">${escapeHtml(service?.proofPosture || 'Live public fabric attached')}</span></div>
+          <div class="proof-row"><span class="proof-key">DETAIL</span><span class="proof-val">${escapeHtml(service?.detail || 'Waiting for the next governed public decision frame.')}</span></div>
+          <div class="proof-row"><span class="proof-key">MODE</span><span class="proof-val">${escapeHtml(String(runtime?.mode || 'live').toUpperCase())}</span></div>
+          <div class="proof-row"><span class="proof-key">PROVIDERS</span><span class="proof-val">${escapeHtml(`${healthyProviders}/${providers.length} healthy`)}</span></div>
+          <div class="proof-row"><span class="proof-key">UPDATED</span><span class="proof-val">${escapeHtml(lastSuccessfulAt ? formatIsoShort(lastSuccessfulAt) : '—')}</span></div>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
   for(const r of items){
     const div = document.createElement('div');
     div.className = 'proof-entry';
@@ -2509,7 +2592,20 @@ function updateRegionVizFromRows(rows){
       agg.set(coord.region, prev);
     }
   }
-  regionViz = Array.from(agg.values()).slice(0, 20);
+  if(agg.size){
+    regionViz = Array.from(agg.values()).slice(0, 20);
+    return;
+  }
+
+  regionViz = worldNodesFromSnapshot().map((node)=>({
+    region: node.region,
+    label: node.label,
+    x: node.x,
+    y: node.y,
+    count: 1,
+    zone: toZoneFromWorldState(node.state),
+    intensity: null,
+  })).slice(0, 20);
 }
 
 async function fetchBaselineBestEffort(){
@@ -3091,6 +3187,8 @@ function openPosturePdfWindow(snapshot = {}){
 
 function updateDerivedFromState(){
   const decisions = Array.isArray(state.decisions) ? state.decisions : [];
+  const worldNodes = worldNodesFromSnapshot();
+  const worldFlows = worldFlowsFromSnapshot();
   decisionsByFrameId.clear();
   for(const d of decisions){
     const frameId = d?.decisionFrameId || d?.decisionFrame?.id;
@@ -3111,11 +3209,24 @@ function updateDerivedFromState(){
   state.derived.decisionFreshnessMs = rows[0] ? Math.max(0, now - rows[0].createdMs) : null;
 
   const uniqueRegions = new Set(state.derived.displayRows.flatMap((r)=>[r.src, r.dst].filter(Boolean)));
+  if(!uniqueRegions.size && worldNodes.length){
+    for(const node of worldNodes){
+      if(node?.region) uniqueRegions.add(node.region);
+    }
+  }
+  const hasRows = state.derived.displayRows.length > 0;
   state.derived.uniqueRegionCount = uniqueRegions.size;
-  state.derived.reroutesHr = state.derived.displayRows.filter((r)=>r.action === 'REROUTE').length;
-  state.derived.denyAlerts = state.derived.displayRows.filter((r)=>r.action === 'DENY' || r.zone === 'red').length;
-  state.derived.p95Latency = quantile(state.derived.displayRows.map((r)=>r.totalLatencyMs).filter((v)=>v!=null), 0.95);
-  state.derived.doctrineVersion = rows[0]?.doctrineVersion || '—';
+  state.derived.routedPathCount = hasRows ? state.derived.displayRows.length : worldFlows.length;
+  state.derived.reroutesHr = hasRows
+    ? state.derived.displayRows.filter((r)=>r.action === 'REROUTE').length
+    : worldFlows.length;
+  state.derived.denyAlerts = hasRows
+    ? state.derived.displayRows.filter((r)=>r.action === 'DENY' || r.zone === 'red').length
+    : worldNodes.filter((node)=>String(node?.state || '').toLowerCase() === 'blocked').length;
+  state.derived.p95Latency =
+    quantile(state.derived.displayRows.map((r)=>r.totalLatencyMs).filter((v)=>v!=null), 0.95) ??
+    safeNumber(state.commandCenter?.health?.latency?.p95TotalMs ?? state.overview?.metrics?.p95TotalMs);
+  state.derived.doctrineVersion = rows[0]?.doctrineVersion || state.commandCenter?.governance?.source || '—';
 }
 
 function renderOperational(){
@@ -3163,13 +3274,18 @@ function renderOperational(){
   const lastHour = state.derived.lastHourRows;
   const lastMinute = state.derived.lastMinuteRows;
   const displayRows = state.derived.displayRows;
+  const hasRows = displayRows.length > 0;
   const decisionCount = state.derived.rows.length;
+  const routingCount = hasRows ? state.derived.reroutesHr : state.derived.routedPathCount;
+  const routingLabel = hasRows ? 'Reroutes / hr' : 'Routed Paths';
   setText('decision-count', formatNumber(decisionCount));
   setText('visor-count', formatNumber(decisionCount));
   setText('active-regions', formatNumber(state.derived.uniqueRegionCount));
   setText('visor-active-regions', formatNumber(state.derived.uniqueRegionCount));
-  setText('reroutes-hr', formatNumber(state.derived.reroutesHr));
-  setText('visor-reroutes-hr', formatNumber(state.derived.reroutesHr));
+  setText('reroutes-hr', formatNumber(routingCount));
+  setText('visor-reroutes-hr', formatNumber(routingCount));
+  setText('routing-count-label', routingLabel);
+  setText('visor-routing-count-label', routingLabel);
   setText('visor-alerts', formatNumber(state.derived.denyAlerts));
   setText('strip-p95', formatMs(state.derived.p95Latency));
   setText('visor-p95', formatMs(state.derived.p95Latency));
@@ -3189,19 +3305,19 @@ function renderOperational(){
 
   const dpm = state.derived.hasLiveWindow ? lastMinute.length : displayRows.length;
   setText('kpi-dpm', formatNumber(dpm));
-  setText('kpi-dpm-delta', state.derived.hasLiveWindow ? 'Last minute' : 'Visible feed');
+  setText('kpi-dpm-delta', state.derived.hasLiveWindow ? 'Last minute' : hasRows ? 'Visible feed' : 'Public feed idle');
 
   const totalActions = displayRows.length || 1;
-  const rerouteRate = (displayRows.filter((r)=>r.action==='REROUTE').length / totalActions) * 100;
-  const delayRate = (displayRows.filter((r)=>r.action==='DELAY').length / totalActions) * 100;
-  const denyRate = (displayRows.filter((r)=>r.action==='DENY').length / totalActions) * 100;
+  const rerouteRate = displayRows.length ? (displayRows.filter((r)=>r.action==='REROUTE').length / totalActions) * 100 : 0;
+  const delayRate = displayRows.length ? (displayRows.filter((r)=>r.action==='DELAY').length / totalActions) * 100 : 0;
+  const denyRate = displayRows.length ? (displayRows.filter((r)=>r.action==='DENY').length / totalActions) * 100 : 0;
   setText('kpi-reroute-rate', formatPct(rerouteRate));
   setText('kpi-delay-rate', formatPct(delayRate));
   setText('kpi-deny-rate', formatPct(denyRate));
-  setText('kpi-reroute-rate-delta', state.derived.hasLiveWindow ? 'Last hour' : 'Visible feed');
-  setText('kpi-delay-rate-delta', state.derived.hasLiveWindow ? 'Last hour' : 'Visible feed');
-  setText('kpi-deny-rate-delta', state.derived.hasLiveWindow ? 'Last hour' : 'Visible feed');
-  setText('kpi-p95-latency-delta', state.derived.hasLiveWindow ? 'Last hour' : 'Visible feed');
+  setText('kpi-reroute-rate-delta', state.derived.hasLiveWindow ? 'Last hour' : hasRows ? 'Visible feed' : 'No public decisions');
+  setText('kpi-delay-rate-delta', state.derived.hasLiveWindow ? 'Last hour' : hasRows ? 'Visible feed' : 'No public decisions');
+  setText('kpi-deny-rate-delta', state.derived.hasLiveWindow ? 'Last hour' : hasRows ? 'Visible feed' : 'No public decisions');
+  setText('kpi-p95-latency-delta', hasRows ? (state.derived.hasLiveWindow ? 'Last hour' : 'Visible feed') : 'Engine p95');
 
   pushSpark(0, dpm);
   pushSpark(2, rerouteRate);
@@ -3232,16 +3348,23 @@ function renderOperational(){
   if(!lastSeenFrameId){
     feedEl.innerHTML = '';
     const initial = rows.slice(0, 12).reverse();
-    for(const row of initial) feedEl.appendChild(buildDecisionCard(row));
+    if(initial.length){
+      for(const row of initial) feedEl.appendChild(buildDecisionCard(row));
+    } else if(hasSnapshot){
+      feedEl.appendChild(buildIdleDecisionCard());
+    }
   } else if(unseen.length){
     for(const row of unseen.reverse()){
       feedEl.insertBefore(buildDecisionCard(row), feedEl.firstChild);
     }
+  } else if(!rows.length && hasSnapshot){
+    feedEl.innerHTML = '';
+    feedEl.appendChild(buildIdleDecisionCard());
   }
 
   lastSeenFrameId = newestFrameId || lastSeenFrameId;
   feedCount = feedEl.children.length;
-  feedCountEl.textContent = String(feedCount);
+  feedCountEl.textContent = rows.length ? String(feedCount) : 'IDLE';
   while(feedEl.children.length > 40) feedEl.removeChild(feedEl.lastChild);
   buildProofListFromRows(rows);
 }

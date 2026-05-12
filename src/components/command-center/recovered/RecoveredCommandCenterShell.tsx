@@ -252,7 +252,7 @@ export function RecoveredCommandCenterShell() {
   }
 
   if (!vm) {
-    return <div className="flex min-h-screen items-center justify-center bg-[#05070d] text-slate-200">Loading CO2 Grid...</div>
+    return <div className="flex min-h-screen items-center justify-center bg-[#05070d] text-slate-200">Loading HaloGrid...</div>
   }
 
   const scale = zoomLevel === 1 ? 0.9 : zoomLevel === 2 ? 1.02 : 1.18
@@ -610,7 +610,7 @@ export function RecoveredCommandCenterShell() {
       <AnimatePresence>
         {manualOpen && (
           <motion.aside initial={{ x: 540, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 540, opacity: 0 }} className="fixed right-4 top-24 z-40 h-[calc(100vh-120px)] w-[520px] overflow-hidden rounded-[30px]">
-      <Drawer title="CO2 Grid control guide" subtitle="Operator Manual" onClose={() => setManualOpen(false)} className="h-full overflow-hidden">
+      <Drawer title="HaloGrid control guide" subtitle="Operator Manual" onClose={() => setManualOpen(false)} className="h-full overflow-hidden">
               <div className="h-[calc(100%-24px)] overflow-y-auto">
                 <div className="space-y-6">
                   {HALOGRID_MANUAL_SECTIONS.map((section) => (
@@ -642,7 +642,7 @@ export function RecoveredCommandCenterShell() {
                   <MessageSquare className="mt-1 h-5 w-5 text-cyan-300" />
                   <div>
                     <div className="text-sm font-semibold text-white">Not configured</div>
-      <div className="mt-2 text-sm leading-6" style={{ color: THEME.muted }}>The recovered CO2 Grid shell keeps the comms surface visible, but this repo has no live chat backend configured, so messages are not simulated.</div>
+      <div className="mt-2 text-sm leading-6" style={{ color: THEME.muted }}>The recovered HaloGrid shell keeps the comms surface visible, but this repo has no live chat backend configured, so messages are not simulated.</div>
                   </div>
                 </div>
               </div>
@@ -677,12 +677,12 @@ export function RecoveredCommandCenterShell() {
             <motion.div initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 24, opacity: 0 }} onClick={(event) => event.stopPropagation()} className="max-w-xl rounded-[32px] p-6" style={glassStyle()}>
               <div className="flex items-start justify-between gap-4">
                 <div>
-      <div className="text-[12px] uppercase tracking-[0.28em]" style={{ color: '#cfeeff' }}>CO2 Grid restored</div>
+      <div className="text-[12px] uppercase tracking-[0.28em]" style={{ color: '#cfeeff' }}>HaloGrid restored</div>
                   <h1 className="mt-2 text-3xl font-black text-white">Recovered command-center shell</h1>
                 </div>
                 <button type="button" onClick={() => setWelcomeOpen(false)} className="rounded-full border p-1.5" style={{ borderColor: THEME.border }}><X className="h-4 w-4" /></button>
               </div>
-      <p className="mt-4 text-sm leading-7" style={{ color: '#dbeafe' }}>This console keeps the recovered CO2 Grid look while reading the live command-center routes underneath it. Drag the globe, scroll to zoom, click a region to freeze the decision, and use the top rail for Globe Mode, alarms, and the Elite manual.</p>
+      <p className="mt-4 text-sm leading-7" style={{ color: '#dbeafe' }}>This console keeps the recovered HaloGrid look while reading the live command-center routes underneath it. Drag the globe, scroll to zoom, click a region to freeze the decision, and use the top rail for Globe Mode, alarms, and the Elite manual.</p>
               <div className="mt-5 flex flex-wrap gap-3">
       <ControlButton active onClick={() => setWelcomeOpen(false)}>ENTER CO2 GRID</ControlButton>
                 <ControlButton onClick={() => { setWelcomeOpen(false); setManualOpen(true) }} disabled={!isElite}>

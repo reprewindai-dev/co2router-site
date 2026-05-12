@@ -1,54 +1,81 @@
-# CO2 Router — Product Copy
+# CO2 Router Product Copy
+
+This file follows the master distribution doctrine in [master-distribution-doctrine.md](./master-distribution-doctrine.md).
 
 ## Tagline
-Route AI and cloud workloads to the cleanest, cheapest compute — automatically.
+
+Deterministic pre-execution governance for compute.
 
 ## Hero Headline
-Your traffic. Your carbon footprint. Optimized in real time.
+
+Decision authority before execution.
 
 ## Hero Subheadline
-CO2 Router automatically routes every API call and cloud workload to the cleanest, cheapest compute available — with no code changes.
 
-## Short Description (PeerSpot / meta description)
-CO2 Router is a carbon-aware traffic routing layer that intercepts outbound API and cloud compute requests and redirects them to the lowest-carbon, lowest-cost endpoint available in real time. It plugs into any existing stack via a single DNS or proxy swap — no code changes required.
+CO2 Router is the Deterministic Environmental Execution Control Plane. It applies the Lowest Defensible Signal Doctrine, returns one of five binding actions, and seals the result with a replayable SHA-256 ProofHash.
+
+## Short Description
+
+CO2 Router is the decision authority + proof layer for governed compute. It evaluates carbon, water, latency, cost, and policy before execution, then returns a binding governance decision with replayable proof.
 
 ## Full Description
-CO2 Router sits between your application and your compute or AI provider, scoring every available region and provider by live carbon intensity, latency, and cost before routing each request. It pulls real-time grid data from electricity maps and integrates with multi-cloud and multi-provider configurations to make routing decisions in under 5 ms.
 
-### Key capabilities
-- Real-time carbon intensity scoring across AWS, GCP, Azure, and bare-metal regions
-- AI inference traffic routing to lowest-emission endpoints without latency penalty
-- Cost arbitrage layer — automatically prefers cheaper regions when carbon intensity is equivalent
-- Drop-in proxy architecture: one DNS change, zero application refactoring
-- Audit log and emissions dashboard for ESG reporting and DORA compliance evidence
+CO2 Router sits in front of execution targets and determines whether a workload should run, reroute, delay, throttle, or deny before resources are allocated. The system applies deterministic doctrine order, treats water as a first-class authorization constraint, emits enforcement artifacts, and preserves replayable proof against the same decision frame.
 
-### Who it's for
-Engineering teams at companies with public sustainability commitments, regulated enterprises needing emissions audit trails, and AI infrastructure teams managing multi-region inference costs.
+### Locked phrases to preserve
+
+- Deterministic Pre-Execution Governance
+- Five binding actions: run_now, reroute, delay, throttle, deny
+- Lowest Defensible Signal Doctrine
+- SHA-256 ProofHash — tamper-evident, replayable
+- Quality-tiered governance lease
+- Decision authority + proof layer
+- Not a recommendation. A binding governance decision.
+
+### Core capabilities
+
+- Deterministic doctrine order across carbon, water, latency, cost, and policy
+- One canonical outcome: `run_now`, `reroute`, `delay`, `throttle`, or `deny`
+- SHA-256 ProofHash, replay, and traceability on every governed decision
+- Enforcement outputs for CI/CD, Kubernetes, queue, and API control points
+- Degraded-state honesty and proof-depth visibility through the governance lease
+
+### Who it is for
+
+- Platform engineering teams with authority over runtime and regional execution
+- Infrastructure governance leaders who need replayable proof and policy traceability
+- Regulated buyers who need pre-execution evidence instead of after-the-fact reporting
 
 ### Deployment
-SaaS proxy (hosted), self-hosted Docker container, or embedded SDK.
 
-## Value Props (website sections)
+- Hosted control plane
+- Managed private deployment
+- Self-hosted container for approved enterprise programs
+
+## Value Propositions
 
 ### Value Prop 1
-**Cut emissions without cutting performance**
-Carbon-aware routing decisions made in <5 ms, invisible to your users.
+
+**Control execution before spend and risk are locked in**
+CO2 Router decides whether compute is allowed to run before workloads consume the wrong region, window, or policy posture.
 
 ### Value Prop 2
-**Reduce cloud spend automatically**
-Cost arbitrage runs alongside carbon scoring, so you save money while going green.
+
+**Prove the decision, not just the outcome**
+Every decision carries a replayable proof frame, doctrine trace, and SHA-256 ProofHash.
 
 ### Value Prop 3
-**Ship your ESG audit trail**
-Every routing decision is logged with carbon, cost, and latency metadata, ready for compliance reports.
+
+**Commercialize governance depth**
+Pricing expands with decision volume, enforcement coverage, and governance requirements instead of dashboard seats.
 
 ## CTA
-Start routing cleaner → Get Early Access
 
-## PeerSpot Categories
-- PRIMARY: Virtual Routers — https://www.peerspot.com/categories/virtual-routers
-- API Management — https://www.peerspot.com/categories/api-management
-- AIOps — https://www.peerspot.com/categories/aiops
-- Network Automation — https://www.peerspot.com/categories/network-automation
-- Software Defined Networking (SDN) — https://www.peerspot.com/categories/software-defined-networking-sdn
-- Network Traffic Analysis (NTA) — https://www.peerspot.com/categories/network-traffic-analysis-nta
+Inspect the live governance surface → Request pilot access
+
+## Prohibited Phrases
+
+- carbon routing
+- sustainability tool
+- scheduling optimization
+- AI-powered

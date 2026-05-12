@@ -1,5 +1,6 @@
 import Link from 'next/link'
 
+import { masterDistributionDoctrine } from '@/content/master-distribution'
 import { pricingTiers } from '@/lib/pricing'
 
 export default function PricingPage() {
@@ -9,7 +10,9 @@ export default function PricingPage() {
         <div className="eyebrow">Pricing</div>
         <h1 className="mt-3 text-4xl font-semibold text-white sm:text-5xl">Charge for control, enforcement, and proof.</h1>
         <p className="mt-4 max-w-3xl text-base leading-7 text-slate-300">
-          CO2 Router is sold as execution approval infrastructure. The commercial surface is tied to decisioning, enforcement, proof, and governance depth, not to a generic sustainability dashboard seat count.
+          CO2 Router is sold as the {masterDistributionDoctrine.authorityLine.toLowerCase()}. The
+          commercial surface is tied to binding decisions, enforcement, proof, and governance
+          depth, not to seat-count reporting software.
         </p>
       </section>
 
@@ -48,7 +51,8 @@ export default function PricingPage() {
           <div className="grid gap-4 md:grid-cols-2">
             <div className="rounded-3xl border border-white/10 bg-black/20 p-5 text-sm leading-7 text-slate-300">
               <div className="text-base font-semibold text-white">Entry path</div>
-              Start with one live decision loop, one control point, and one proof trail that your team can inspect under real conditions.
+              Start with one live decision loop, one control point, and one quality-tiered
+              governance lease your team can inspect under real conditions.
             </div>
             <div className="rounded-3xl border border-white/10 bg-black/20 p-5 text-sm leading-7 text-slate-300">
               <div className="text-base font-semibold text-white">Scaling logic</div>

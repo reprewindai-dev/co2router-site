@@ -5,7 +5,7 @@ export default function AcceptableUsePage() {
     <LegalPageShell
       eyebrow="Acceptable use"
       title="How CO2 Router may and may not be used."
-      summary="The platform is designed for legitimate workload routing, sustainability governance, proof generation, and infrastructure operations. Misuse that undermines service integrity, customer safety, or downstream systems is not allowed."
+      summary="The platform is designed for legitimate workload routing, environmental governance, proof generation, and infrastructure operations. Misuse that undermines service integrity, customer safety, or downstream systems is not allowed."
       sections={[
         {
           heading: 'Permitted use',

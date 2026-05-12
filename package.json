@@ -11,6 +11,7 @@
     "start": "next start",
     "lint": "next lint",
     "type-check": "tsc --noEmit -p tsconfig.typecheck.json",
+    "publish:blog": "node scripts/publish-blog.mjs",
     "audit:halogrid": "node scripts/halogrid-release-audit.mjs"
   },
   "dependencies": {

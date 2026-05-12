@@ -14,6 +14,7 @@ import { getFooterLinkSections, getFooterTagline, getHeaderSubtitle, getPrimaryN
 import { getAudienceForHost, getSiteUrlForHost } from '@/lib/site-host'
 
 import './globals.css'
+import '@/components/co2-control-panel/styles.css'
 import { Providers } from './providers'
 
 function shouldHideChrome(pathname: string): boolean {

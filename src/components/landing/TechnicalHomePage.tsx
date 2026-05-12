@@ -1,5 +1,7 @@
 import Link from 'next/link'
 
+import { masterDistributionDoctrine } from '@/content/master-distribution'
+
 export function TechnicalHomePage() {
   const panels = [
     {
@@ -52,15 +54,13 @@ export function TechnicalHomePage() {
         <div className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr]">
           <div className="max-w-4xl">
             <div className="text-[11px] uppercase tracking-[0.28em] text-cyan-300">
-              Technical Overview
+              {masterDistributionDoctrine.eyebrow}
             </div>
             <h1 className="mt-3 text-4xl font-black tracking-[-0.05em] text-white sm:text-5xl">
-              CO2 Router is the live technical interface.
+              CO2 Router is the live proof and governance interface.
             </h1>
             <p className="mt-5 max-w-3xl text-sm leading-8 text-slate-300 sm:text-base">
-              This domain is the system-facing surface: live demo, architecture, doctrine order,
-              proof, replay, provenance, and developer entry points. It exists to prove how the
-              control plane works, not to retell the commercial story.
+              {masterDistributionDoctrine.technicalHeroBody}
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link

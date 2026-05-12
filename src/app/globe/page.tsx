@@ -74,6 +74,12 @@ function actionLabel(a:RouterAction){
 }
 function fmtTime(ts:number){ return new Date(ts).toLocaleTimeString('en-CA',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'}) }
 
+const statusMap: Record<RegionState, 'optimal' | 'acceptable' | 'stressed' | 'critical'> = {
+  green: 'optimal',
+  yellow: 'acceptable',
+  red: 'critical',
+}
+
 // Map internal Region to GlobeZone RegionNode format
 function mapToRegionNode(r: Region, status: 'optimal' | 'acceptable' | 'stressed' | 'critical'): import('@/components/co2-control-panel/types').RegionNode {
   return {
@@ -275,13 +281,6 @@ function LivePageContent() {
   const marginalCount= regions.filter(r=>r.state==='yellow').length
   const blockedCount = regions.filter(r=>r.state==='red').length
 
-  // Map regions to GlobeZone format with proper status
-  const statusMap: Record<RegionState, 'optimal' | 'acceptable' | 'stressed' | 'critical'> = {
-    green: 'optimal',
-    yellow: 'acceptable',
-    red: 'critical',
-  }
-  
   const regionNodes = useMemo(() => 
     regions.map(r => mapToRegionNode(r, statusMap[r.state])),
     [regions]

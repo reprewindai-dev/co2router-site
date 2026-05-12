@@ -27,6 +27,18 @@ export const dynamic = 'force-dynamic'
 
 const OVERVIEW_CACHE_TTL_MS = 365 * 24 * 60 * 60 * 1000
 const SNAPSHOT_CACHE_CONTROL = 'no-store, max-age=0'
+const DEFAULT_OVERVIEW_SIMULATION_DEFAULTS: ControlSurfaceOverview['simulationDefaults'] = {
+  preferredRegions: ['us-east1', 'eu-west1', 'us-west1'],
+  waterPolicyProfile: 'default',
+  jobType: 'standard',
+  criticality: 'standard',
+  carbonWeight: 0.55,
+  waterWeight: 0.35,
+  latencyWeight: 0.05,
+  costWeight: 0.05,
+  allowDelay: true,
+  estimatedEnergyKwh: 2.5,
+}
 
 type DecisionRow = {
   decisionFrameId: string
@@ -140,21 +152,28 @@ function deriveFallbackRate(decisions: ControlSurfaceDecisionSummary[]) {
   return Number((fallbackCount / decisions.length).toFixed(4))
 }
 
-function buildFallbackOverviewResponse(totalMs: number, reason: string) {
-  const liveDecision = {
+function buildOverviewPlaceholderDecision(input: {
+  generatedAt?: string
+  reasonCode: string
+  recommendation: string
+  proofHash?: string
+}) {
+  const generatedAt = input.generatedAt ?? new Date().toISOString()
+
+  return {
     decision: 'run_now',
     decisionMode: 'runtime_authorization',
-    reasonCode: 'OVERVIEW_FALLBACK',
+    reasonCode: input.reasonCode,
     decisionFrameId: 'overview-fallback',
     selectedRunner: 'fallback-runner',
     selectedRegion: 'us-east-1',
-    recommendation: 'Overview data is hydrating from the live control plane.',
+    recommendation: input.recommendation,
     signalConfidence: 0,
     fallbackUsed: true,
     signalMode: 'fallback',
     accountingMethod: 'average',
     notBefore: null,
-    proofHash: 'unavailable',
+    proofHash: input.proofHash ?? 'unavailable',
     waterAuthority: {
       authorityMode: 'fallback',
       scenario: 'current',
@@ -205,10 +224,10 @@ function buildFallbackOverviewResponse(totalMs: number, reason: string) {
       carbon_delta: 0,
       water_delta: 0,
       signals_used: ['fallback'],
-      timestamp: new Date().toISOString(),
+      timestamp: generatedAt,
       dataset_versions: {},
       confidence_score: 0,
-      proof_hash: 'unavailable',
+      proof_hash: input.proofHash ?? 'unavailable',
       provider_snapshot_refs: [],
     },
     latencyMs: {
@@ -229,6 +248,77 @@ function buildFallbackOverviewResponse(totalMs: number, reason: string) {
       withinEnvelope: false,
     },
   } as CiRouteResponse
+}
+
+function buildIdleOverviewSnapshot(input: {
+  generatedAt: string
+  health: CiHealthSnapshot
+  slo: CiSloSnapshot
+  providers: ControlSurfaceProviderNode[]
+  ledgerResult: LedgerSummary | null
+  metricsResult: MetricsResponse | null
+  outbox: OutboxMetrics | null
+}) {
+  const liveDecision = buildOverviewPlaceholderDecision({
+    generatedAt: input.generatedAt,
+    reasonCode: 'PUBLIC_DECISION_FEED_IDLE',
+    recommendation:
+      'Live control-plane health is attached. No public governed decision frame has been persisted yet.',
+    proofHash: 'public-feed-idle',
+  })
+
+  const carbonAvoidedKg = input.ledgerResult?.carbonAvoidedPeriodKg ?? 0
+
+  return {
+    generatedAt: input.generatedAt,
+    service: {
+      status: input.health.status,
+      proofPosture: 'Live public fabric attached. Decision feed idle.',
+      detail: `DB ${input.health.checks.database ? 'ok' : 'degraded'} | Water artifacts ${
+        input.health.checks.waterArtifacts.schemaCompatible ? 'verified' : 'degraded'
+      } | Public decision feed idle`,
+    },
+    impact: {
+      totalDecisions:
+        input.ledgerResult?.totalJobsRouted ?? input.metricsResult?.totalDecisions ?? 0,
+      carbonAvoidedKg,
+      carbonReductionMultiplier: input.ledgerResult?.carbonReductionMultiplier ?? null,
+      waterShiftedLiters: 0,
+      costOptimizedUsd: Number((carbonAvoidedKg * 0.42).toFixed(2)),
+      delayedDecisions: 0,
+    },
+    liveDecision,
+    replay: null,
+    decisions: [],
+    actionDistribution: [],
+    providers: input.providers,
+    scenarioPreviews: [],
+    timeline: [],
+    metrics: {
+      fallbackRate: input.metricsResult?.fallbackRate ?? 0,
+      highConfidenceDecisionPct: input.ledgerResult?.highConfidenceDecisionPct ?? 0,
+      providerDisagreementRatePct: input.ledgerResult?.providerDisagreementRatePct ?? 0,
+      p50TotalMs: input.slo.p50.totalMs,
+      p50ComputeMs: input.slo.p50.computeMs,
+      p95TotalMs: input.slo.p95.totalMs,
+      p95ComputeMs: input.slo.p95.computeMs,
+      p99TotalMs: input.slo.p99.totalMs,
+      p99ComputeMs: input.slo.p99.computeMs,
+      currentTotalMs: input.slo.current.totalMs,
+      currentComputeMs: input.slo.current.computeMs,
+    },
+    health: input.health,
+    slo: input.slo,
+    outbox: input.outbox,
+    simulationDefaults: DEFAULT_OVERVIEW_SIMULATION_DEFAULTS,
+  } satisfies ControlSurfaceOverview
+}
+
+function buildFallbackOverviewResponse(totalMs: number, reason: string) {
+  const liveDecision = buildOverviewPlaceholderDecision({
+    reasonCode: 'OVERVIEW_FALLBACK',
+    recommendation: 'Overview data is hydrating from the live control plane.',
+  })
 
   const overview: ControlSurfaceOverview = {
     generatedAt: new Date().toISOString(),
@@ -295,18 +385,7 @@ function buildFallbackOverviewResponse(totalMs: number, reason: string) {
       withinBudget: { total: false, compute: false },
     },
     outbox: null,
-    simulationDefaults: {
-      preferredRegions: ['us-east1', 'eu-west1', 'us-west1'],
-      waterPolicyProfile: 'default',
-      jobType: 'standard',
-      criticality: 'standard',
-      carbonWeight: 0.55,
-      waterWeight: 0.35,
-      latencyWeight: 0.05,
-      costWeight: 0.05,
-      allowDelay: true,
-      estimatedEnergyKwh: 2.5,
-    },
+    simulationDefaults: DEFAULT_OVERVIEW_SIMULATION_DEFAULTS,
   }
 
   const serialized = JSON.stringify(overview)
@@ -819,6 +898,19 @@ async function buildOverviewSnapshot() {
         : { freshness: [], providers: {} }
     const provenance = provenanceResult.status === 'fulfilled' ? provenanceResult.value : null
     const outbox = outboxResult.status === 'fulfilled' ? outboxResult.value : null
+    const providers = buildProviders(providerTrust, provenance)
+
+    if (decisionFeed.decisions.length === 0) {
+      return buildIdleOverviewSnapshot({
+        generatedAt: new Date().toISOString(),
+        health,
+        slo,
+        providers,
+        ledgerResult,
+        metricsResult,
+        outbox,
+      })
+    }
 
     const replay = await getReplayBundle(decisionFeed.decisions)
     const liveDecision = replay?.replay ?? replay?.persisted
@@ -831,7 +923,6 @@ async function buildOverviewSnapshot() {
     const totalDecisionCount = ledgerResult?.totalJobsRouted ?? metricsResult?.totalDecisions ?? decisionFeed.decisions.length
     const carbonAvoidedKg = ledgerResult?.carbonAvoidedPeriodKg ?? 0
     const carbonReductionMultiplier = ledgerResult?.carbonReductionMultiplier ?? null
-    const providers = buildProviders(providerTrust, provenance)
     const actionDistribution = buildActionDistribution(decisions)
     const timeline = buildTimeline(decisions, replay, outbox, providers)
     const scenarioPreviews = await getScenarioPreviews(liveDecision)
@@ -957,18 +1048,7 @@ async function buildOverviewSnapshot() {
       health,
       slo,
       outbox,
-      simulationDefaults: {
-        preferredRegions: ['us-east1', 'eu-west1', 'us-west1'],
-        waterPolicyProfile: 'default',
-        jobType: 'standard',
-        criticality: 'standard',
-        carbonWeight: 0.55,
-        waterWeight: 0.35,
-        latencyWeight: 0.05,
-        costWeight: 0.05,
-        allowDelay: true,
-        estimatedEnergyKwh: 2.5,
-      },
+      simulationDefaults: DEFAULT_OVERVIEW_SIMULATION_DEFAULTS,
     }
 
     return overview
@@ -1048,9 +1128,10 @@ export async function GET() {
     recordDashboardMetric(dashboardTelemetryMetricNames.routeErrorCount, 'counter', 1, {
       route: 'overview',
     })
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to build control surface overview' },
-      { status: 500 }
+    const totalMs = performance.now() - startedAt
+    return buildFallbackOverviewResponse(
+      totalMs,
+      error instanceof Error ? error.message : 'Failed to build control surface overview'
     )
   }
 }

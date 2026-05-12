@@ -71,11 +71,7 @@ export async function GET() {
     recordDashboardMetric(dashboardTelemetryMetricNames.routeErrorCount, 'counter', 1, {
       route: 'live-system',
     })
-    return NextResponse.json(
-      {
-        error: error instanceof Error ? error.message : 'Failed to build live system snapshot',
-      },
-      { status: 500 }
-    )
+    const totalMs = performance.now() - startedAt
+    return buildFallbackResponse(totalMs)
   }
 }

@@ -11,7 +11,7 @@ export interface SiteLinkSection {
 const commercialPrimaryNavLinks: SiteLink[] = [
   { href: '/', label: 'Overview' },
   { href: '/console', label: 'Console' },
-  { href: '/access', label: 'Free Trial' },
+  { href: '/access', label: 'Pilot Access' },
   { href: '/pricing', label: 'Pricing' },
   { href: '/company/about', label: 'Company' },
   { href: '/contact', label: 'Contact' },
@@ -119,13 +119,13 @@ export function getFooterLinkSections(audience: 'commercial' | 'technical'): Sit
 export function getHeaderSubtitle(audience: 'commercial' | 'technical') {
   return audience === 'technical'
     ? 'Live Decision Surface'
-    : 'Decision Infrastructure Interface'
+    : 'Decision Authority + Proof Layer'
 }
 
 export function getFooterTagline(audience: 'commercial' | 'technical') {
   return audience === 'technical'
     ? 'Inspect the live demo, proof, replay, and deterministic execution authority.'
-    : 'Authorize compute before it runs. Prove every decision.'
+    : 'Deterministic pre-execution governance. Authorize compute before it runs. Prove every decision.'
 }
 
 export const primaryNavLinks: SiteLink[] = commercialPrimaryNavLinks
