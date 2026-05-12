@@ -14,11 +14,12 @@ import { getFooterLinkSections, getFooterTagline, getHeaderSubtitle, getPrimaryN
 import { getAudienceForHost, getSiteUrlForHost } from '@/lib/site-host'
 
 import './globals.css'
+import '@/components/co2-control-panel/styles.css'
 import { Providers } from './providers'
 
 function shouldHideChrome(pathname: string): boolean {
   // Hide site chrome for homepage and console to show full HaloGrid
-  return pathname === '/' || pathname === '' || pathname.startsWith('/console')
+  return pathname === '/' || pathname === '' || pathname.startsWith('/console') || pathname.startsWith('/live')
 }
 
 const spaceGrotesk = Space_Grotesk({ subsets: ['latin'] })
