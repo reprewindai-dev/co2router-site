@@ -1,4 +1,5 @@
 import { getServerBrokerBaseUrl } from '@/lib/broker-url'
+import { buildFallbackDecision } from '@/lib/demo-fallback'
 import type { GreenRoutingResult, PolicyDelayResponse } from '@/types'
 
 export type DemoRouteRequest = {
@@ -85,6 +86,17 @@ export async function buildDemoRoutingDecision(
   input: DemoRouteRequest
 ): Promise<GreenRoutingResult | PolicyDelayResponse> {
   const scenario = normalizeScenario(input.scenario)
+  const request = scenarioRequest(scenario)
 
-  return getMcpJson<GreenRoutingResult | PolicyDelayResponse>('/api/v1/route/green', scenarioRequest(scenario))
+  try {
+    return await getMcpJson<GreenRoutingResult | PolicyDelayResponse>('/api/v1/route/green', request)
+  } catch {
+    // Engine unreachable — return a computed fallback so the live demo stays functional.
+    // Response is clearly marked with fallback_used=true and syntheticFlag=true.
+    return buildFallbackDecision(request.preferredRegions, {
+      carbon: request.carbonWeight ?? 0.6,
+      latency: request.latencyWeight ?? 0.25,
+      cost: request.costWeight ?? 0.15,
+    })
+  }
 }
