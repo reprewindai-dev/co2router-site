@@ -87,6 +87,8 @@ export async function fetchEngineJson<T>(
     const token = getInternalApiKey()
     if (token) {
       headers.set('authorization', `Bearer ${token}`)
+      headers.set('x-ecobe-internal-key', token)
+      headers.set('x-api-key', token)
     }
   }
 

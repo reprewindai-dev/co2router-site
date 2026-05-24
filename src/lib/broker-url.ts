@@ -19,39 +19,31 @@ function normalizeAbsoluteUrl(value: string | null | undefined) {
 
 export function getBrokerBaseUrl() {
   const raw =
-    process.env.ECOBE_API_URL ||
     process.env.MCP_API_URL ||
-    process.env.NEXT_PUBLIC_MCP_API_URL ||
     process.env.ECOBE_MVP_URL ||
+    process.env.ECOBE_API_URL ||
+    process.env.NEXT_PUBLIC_MCP_API_URL ||
     process.env.NEXT_PUBLIC_ECOBE_API_URL ||
+    process.env.CO2ROUTER_ENGINE_URL ||
+    process.env.ECOBE_ENGINE_URL ||
     ''
 
   return normalizeEnvValue(raw).replace(/\/$/, '')
 }
 
 export function getServerBrokerBaseUrl() {
-  const directEngineBase =
-    normalizeAbsoluteUrl(process.env.ECOBE_API_URL) ||
+  const brokerBase =
     normalizeAbsoluteUrl(process.env.MCP_API_URL) ||
-    normalizeAbsoluteUrl(process.env.ECOBE_MVP_URL)
+    normalizeAbsoluteUrl(process.env.ECOBE_MVP_URL) ||
+    normalizeAbsoluteUrl(process.env.ECOBE_API_URL)
 
-  const isProductionRuntime =
-    process.env.VERCEL_ENV === 'production' || process.env.NODE_ENV === 'production'
-
-  if (isProductionRuntime) {
-    if (directEngineBase) {
-      try {
-        const host = new URL(directEngineBase).host
-        if (host === 'co2router.tech') {
-          return directEngineBase
-        }
-      } catch {
-        // fall through to canonical host
-      }
-    }
-
-    return CANONICAL_ENGINE_BASE_URL
+  if (brokerBase) {
+    return brokerBase
   }
+
+  const directEngineBase =
+    normalizeAbsoluteUrl(process.env.CO2ROUTER_ENGINE_URL) ||
+    normalizeAbsoluteUrl(process.env.ECOBE_ENGINE_URL)
 
   if (directEngineBase) {
     return directEngineBase

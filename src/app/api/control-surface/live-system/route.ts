@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 
 import { getLiveSystemSnapshot } from '@/lib/control-surface/live-system'
-import { FALLBACK_LIVE_SYSTEM_SNAPSHOT } from '@/lib/control-surface/fallbacks'
 import { getCachedSnapshot } from '@/lib/control-surface/snapshot-cache'
 import {
   dashboardTelemetryMetricNames,
@@ -10,25 +9,8 @@ import {
 
 export const dynamic = 'force-dynamic'
 
-const LIVE_SYSTEM_CACHE_TTL_MS = 365 * 24 * 60 * 60 * 1000
+const LIVE_SYSTEM_CACHE_TTL_MS = 5_000
 const SNAPSHOT_CACHE_CONTROL = 'no-store, max-age=0'
-function buildFallbackResponse(totalMs: number) {
-  const snapshot = FALLBACK_LIVE_SYSTEM_SNAPSHOT
-  const serialized = JSON.stringify(snapshot)
-  const responseBytes = Buffer.byteLength(serialized)
-
-  const response = new NextResponse(serialized, {
-    status: 200,
-    headers: {
-      'content-type': 'application/json',
-    },
-  })
-  response.headers.set('x-co2router-snapshot-cache', 'fallback')
-  response.headers.set('x-co2router-response-bytes', String(responseBytes))
-  response.headers.set('Cache-Control', SNAPSHOT_CACHE_CONTROL)
-  response.headers.set('Server-Timing', `total;dur=${totalMs.toFixed(1)}`)
-  return response
-}
 
 export async function GET() {
   const startedAt = performance.now()
@@ -72,6 +54,18 @@ export async function GET() {
       route: 'live-system',
     })
     const totalMs = performance.now() - startedAt
-    return buildFallbackResponse(totalMs)
+    const message =
+      error instanceof Error ? error.message : 'CO2 Router live-system backend refresh failed.'
+    const response = NextResponse.json(
+      {
+        error: 'CO2 Router live-system backend unavailable',
+        detail: message,
+      },
+      { status: 503 },
+    )
+    response.headers.set('x-co2router-snapshot-cache', 'unavailable')
+    response.headers.set('Cache-Control', SNAPSHOT_CACHE_CONTROL)
+    response.headers.set('Server-Timing', `total;dur=${totalMs.toFixed(1)}`)
+    return response
   }
 }
