@@ -167,32 +167,32 @@ export function CommercialHomePage() {
               </div>
             </div>
             <p className="mb-6 text-slate-400">
-              Full mission-control view for cross-region governance. Track lane shifts, alarm
-              posture, and global execution authority in one immersive surface.
+              The 3D globe view is being hardened against the same broker-backed runtime contract.
+              Until every globe label is backend-sourced, it opens the truthful live surface.
             </p>
             <ul className="mb-6 space-y-2 text-sm text-slate-400">
               <li className="flex items-center gap-2">
                 <span className="h-1.5 w-1.5 rounded-full bg-purple-400" />
-                Interactive globe with governed execution lanes
+                Broker-backed command state only
               </li>
               <li className="flex items-center gap-2">
                 <span className="h-1.5 w-1.5 rounded-full bg-purple-400" />
-                Global signal posture with binding action overlays
+                No simulated lanes, labels, or proof frames
               </li>
               <li className="flex items-center gap-2">
                 <span className="h-1.5 w-1.5 rounded-full bg-purple-400" />
-                Real-time decision feed and operator alarm queue
+                Real-time broker health and decision availability
               </li>
               <li className="flex items-center gap-2">
                 <span className="h-1.5 w-1.5 rounded-full bg-purple-400" />
-                Replayable proof context for every governed lane
+                Proof and replay posture shown only when the backend exposes it
               </li>
             </ul>
             <Link
-              href="/globe"
+              href="/live"
               className="inline-flex h-12 w-full items-center justify-center rounded-2xl border border-purple-400/40 bg-purple-400/20 px-6 text-sm font-semibold text-purple-300 transition hover:bg-purple-400/30"
             >
-              Open 3D Globe
+              Open Live Surface
             </Link>
           </div>
         </div>

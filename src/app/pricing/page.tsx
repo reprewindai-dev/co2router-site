@@ -1,6 +1,5 @@
 import Link from 'next/link'
 
-import { masterDistributionDoctrine } from '@/content/master-distribution'
 import { pricingTiers } from '@/lib/pricing'
 
 export default function PricingPage() {
@@ -8,15 +7,16 @@ export default function PricingPage() {
     <div className="space-y-8 pb-10">
       <section className="surface-card-strong p-8">
         <div className="eyebrow">Pricing</div>
-        <h1 className="mt-3 text-4xl font-semibold text-white sm:text-5xl">Charge for control, enforcement, and proof.</h1>
+        <h1 className="mt-3 text-4xl font-semibold text-white sm:text-5xl">Founding customer pricing for workload control.</h1>
         <p className="mt-4 max-w-3xl text-base leading-7 text-slate-300">
-          CO2 Router is sold as the {masterDistributionDoctrine.authorityLine.toLowerCase()}. The
-          commercial surface is tied to binding decisions, enforcement, proof, and governance
-          depth, not to seat-count reporting software.
+          CO2 Router is priced by controlled workload paths, not seats. Early customers get
+          founding pricing while the platform is hardened against real production use. Start with
+          one decision loop, prove the value, then expand into deeper enforcement, proof, and
+          governance.
         </p>
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-3">
+      <section className="grid gap-6 lg:grid-cols-5">
         {pricingTiers.map((tier) => (
           <div key={tier.name} className="surface-card flex h-full flex-col p-6">
             <div className="eyebrow">{tier.name}</div>

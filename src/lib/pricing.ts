@@ -1,5 +1,5 @@
 export interface PricingTier {
-  name: 'Operator' | 'Governance' | 'Assurance'
+  name: 'Starter Pilot' | 'Validation' | 'Operator' | 'Governance' | 'Assurance'
   price: string
   entry: string
   description: string
@@ -11,36 +11,65 @@ export interface PricingTier {
 
 export const pricingTiers: PricingTier[] = [
   {
-    name: 'Operator',
-    price: 'From $2,500/mo',
-    entry: 'One live control point for a single team.',
+    name: 'Starter Pilot',
+    price: '$250/mo',
+    entry: 'Test the first decision loop.',
     description:
-      'For buyers who need one production decision loop with canonical decision storage, proof visibility, and a real enforcement wedge.',
-    scale: 'Best for teams running up to 250k decisions per month.',
+      'For small teams or early evaluators who want to prove the broker and decision loop before committing to a production rollout.',
+    scale: 'Includes 10k decisions per month and one lightweight production-adjacent path.',
     highlights: [
-      'Decision API v1 and control-surface access',
-      'CI/CD or HTTP control-point rollout',
-      'Canonical decision storage and replay references',
-      'Pilot onboarding with one production runtime path',
+      'Sandbox plus one lightweight production-adjacent path',
+      'Decision API access and basic decision logs',
+      'Basic proof hash visibility',
+      'HTTP or CI/CD integration with email support',
+    ],
+    ctaLabel: 'Start pilot',
+  },
+  {
+    name: 'Validation',
+    price: '$750/mo',
+    entry: 'Put one real workload under control.',
+    description:
+      'For teams validating CO2 Router against one real workload path with canonical decisions and proof visibility.',
+    scale: 'Includes 50k decisions per month and one production control point.',
+    highlights: [
+      'CI/CD or HTTP enforcement path',
+      'Canonical decision storage',
+      'Proof visibility and basic replay references',
+      'Onboarding support for the first workload',
     ],
     ctaLabel: 'Request access',
   },
   {
+    name: 'Operator',
+    price: '$1,500/mo',
+    entry: 'Run one production decision layer.',
+    description:
+      'For a team using CO2 Router in a real operating path with control-surface access, history, and policy controls.',
+    scale: 'Includes 250k decisions per month and one production runtime path.',
+    highlights: [
+      'Decision API v1 and control-surface access',
+      'Proof visibility and decision history',
+      'Basic policy controls',
+      'Priority support',
+    ],
+    ctaLabel: 'Request operator access',
+    highlightOnLanding: true,
+  },
+  {
     name: 'Governance',
-    price: 'From $8,000/mo',
-    entry: 'Multi-team governance with production enforcement depth.',
+    price: '$3,500/mo',
+    entry: 'Multi-workload policy and proof.',
     description:
       'For organizations standardizing policy, proof, and runtime control across multiple workloads, regions, and entry points.',
-    scale:
-      'Built for high-volume decisioning, additional adapters, and regulated operating environments.',
+    scale: 'Includes 1M decisions per month, multiple workloads, and multi-team policy controls.',
     highlights: [
       'Multi-team policy governance and approval controls',
       'Enhanced proof export and replay visibility',
       'Kubernetes, queue, and webhook adapter coverage',
       'Operational support for regulated workload posture',
     ],
-    ctaLabel: 'Request access',
-    highlightOnLanding: true,
+    ctaLabel: 'Talk to us',
   },
   {
     name: 'Assurance',
