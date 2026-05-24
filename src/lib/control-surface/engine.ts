@@ -1,4 +1,5 @@
 import crypto from 'crypto'
+import axios from 'axios'
 import { getServerBrokerBaseUrl } from '@/lib/broker-url'
 import { getInternalApiKey as resolveInternalApiKey } from '@/lib/internal-api-key'
 
@@ -100,29 +101,37 @@ export async function fetchEngineJson<T>(
   const timeout = setTimeout(() => timeoutController.abort(), timeoutMs)
   const mergedSignal = mergeAbortSignals([init.signal, timeoutController.signal])
 
-  let response: Response
   try {
-    response = await fetch(`${baseUrl}/api/v1${path}`, {
-      ...init,
-      headers,
-      cache: 'no-store',
+    const response = await axios.request<T>({
+      url: `${baseUrl}/api/v1${path}`,
+      method: (init.method ?? 'GET') as any,
+      headers: Object.fromEntries(headers.entries()),
+      data: init.body,
       signal: mergedSignal,
+      timeout: timeoutMs,
+      validateStatus: () => true,
     })
+
+    if (response.status < 200 || response.status >= 300) {
+      const detail =
+        typeof response.data === 'string'
+          ? response.data
+          : JSON.stringify(response.data)
+      throw new Error(`MCP broker request failed for ${path}: ${response.status} ${detail}`)
+    }
+
+    return response.data as T
   } catch (error) {
     if (timeoutController.signal.aborted) {
+      throw new Error(`MCP broker request timed out for ${path} after ${timeoutMs}ms`)
+    }
+    if (axios.isAxiosError(error) && error.code === 'ECONNABORTED') {
       throw new Error(`MCP broker request timed out for ${path} after ${timeoutMs}ms`)
     }
     throw error
   } finally {
     clearTimeout(timeout)
   }
-
-  if (!response.ok) {
-    const text = await response.text()
-    throw new Error(`MCP broker request failed for ${path}: ${response.status} ${text}`)
-  }
-
-  return (await response.json()) as T
 }
 
 export function hasInternalApiKey() {

@@ -665,33 +665,6 @@ function buildWorldNodes(
     })
   }
 
-  // Keep the execution fabric legible when the live feed is thin. The known
-  // region anchors define the governed footprint; sparse decisions should not
-  // collapse the map into a single floating node.
-  if (seen.size <= 2) {
-    Object.entries(REGION_ANCHORS).forEach(([region]) => {
-      if (!seen.has(region)) {
-        seen.set(region, {
-          decisionFrameId: `fabric:${region}`,
-          createdAt: new Date().toISOString(),
-          action: 'run_now',
-          reasonCode: 'FABRIC_REGION',
-          selectedRegion: region,
-          proofHash: null,
-          traceAvailable: false,
-          governanceSource: null,
-          latencyTotalMs: null,
-          latencyComputeMs: null,
-          signalMode: null,
-          accountingMethod: null,
-          waterAuthorityMode: null,
-          fallbackUsed: false,
-          systemState: 'active',
-        })
-      }
-    })
-  }
-
   return Array.from(seen.values()).map((decision, index) => {
     const anchor = resolveRegionAnchor(decision.selectedRegion, index)
     return {
