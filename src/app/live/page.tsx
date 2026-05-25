@@ -130,6 +130,24 @@ function globeSignalLabel(region: WorldRegionState) {
   return 'registered route - no current live signal'
 }
 
+function globeRegionGroup(regionCode: string): { label: string; color: string } {
+  const normalized = regionCode.toUpperCase()
+
+  if (normalized.startsWith('US-')) return { label: 'United States', color: '#5b8cff' }
+  if (normalized.startsWith('CA-')) return { label: 'Canada', color: '#22d3ee' }
+  if (normalized.startsWith('EU-')) return { label: 'Europe', color: '#b56cff' }
+  if (normalized.startsWith('AP-')) return { label: 'Asia Pacific', color: '#ff7ac8' }
+  if (normalized.startsWith('SA-')) return { label: 'South America', color: '#ff8f5a' }
+  if (normalized.startsWith('AF-')) return { label: 'Africa', color: '#2dd4bf' }
+  if (normalized.startsWith('ME-')) return { label: 'Middle East', color: '#f0abfc' }
+
+  if (normalized.includes('US-') || normalized.startsWith('SFO') || normalized.startsWith('US-')) {
+    return { label: 'United States', color: '#5b8cff' }
+  }
+
+  return { label: 'Cloud edge', color: '#cbd5e1' }
+}
+
 function actionLabel(action: string | null | undefined) {
   switch (action) {
     case 'run_now':
@@ -553,6 +571,7 @@ export default function LivePage() {
 
     return command.world.nodes.map((region) => {
       const coords = resolveGlobeCoords(region)
+      const group = globeRegionGroup(region.region)
       return {
         id: region.region,
         name: region.label,
@@ -561,6 +580,8 @@ export default function LivePage() {
         carbonIntensity: Math.round(region.carbonIntensityGPerKwh ?? 0),
         renewablePercentage: 0,
         signalLabel: globeSignalLabel(region),
+        groupLabel: group.label,
+        groupColor: group.color,
         activeDecisions: decisionCountByRegion.get(region.region) ?? (region.decisionFrameId ? 1 : 0),
         totalSaved: 0,
         status: globeNodeStatus(region),

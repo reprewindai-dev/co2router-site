@@ -147,15 +147,22 @@ function RoutingArcs({ arcs }: { arcs: RoutingArc[] }) {
 // Region markers with pulse
 function RegionMarkers({ 
   regions, 
-  onRegionClick 
+  selectedRegionId,
+  onRegionClick,
+  onSelectRegion,
 }: { 
   regions: RegionNode[]
+  selectedRegionId?: string | null
   onRegionClick?: (region: RegionNode) => void 
+  onSelectRegion?: (region: RegionNode | null) => void
 }) {
+  const [hoveredRegionId, setHoveredRegionId] = useState<string | null>(null)
+
   return (
     <group>
       {regions.map((region) => {
         const pos = latLngToVector3(region.lat, region.lng, 2.05)
+        const isOpen = hoveredRegionId === region.id || selectedRegionId === region.id
         
         const statusColor = {
           optimal: '#00ff88',
@@ -163,29 +170,45 @@ function RegionMarkers({
           stressed: '#ffaa00',
           critical: '#ff4444',
         }[region.status]
+        const ringColor = region.groupColor ?? '#7dd3fc'
         
         return (
           <group key={region.id} position={pos}>
             {/* Main marker */}
             <mesh
-              onClick={() => onRegionClick?.(region)}
+              onPointerOver={(event) => {
+                event.stopPropagation()
+                setHoveredRegionId(region.id)
+              }}
+              onPointerOut={(event) => {
+                event.stopPropagation()
+                setHoveredRegionId(null)
+              }}
+              onClick={(event) => {
+                event.stopPropagation()
+                onSelectRegion?.(selectedRegionId === region.id ? null : region)
+                onRegionClick?.(region)
+              }}
             >
-              <sphereGeometry args={[0.03, 16, 16]} />
+              <sphereGeometry args={[isOpen ? 0.04 : 0.03, 16, 16]} />
               <meshBasicMaterial color={statusColor} />
             </mesh>
             
-            {/* Pulse ring */}
-            <PulseRing color={statusColor} />
+            {/* Region-group ring */}
+            <PulseRing color={ringColor} active={isOpen} />
             
             {/* Label */}
-            <Html distanceFactor={10}>
-              <div className="region-label">
-                <div className="region-name">{region.name}</div>
-                <div className="region-stats">
-                  {region.signalLabel ?? `${region.carbonIntensity}g/kWh - ${region.renewablePercentage}% renewable`}
+            {isOpen && (
+              <Html distanceFactor={10}>
+                <div className="region-label" style={{ pointerEvents: 'none' }}>
+                  <div className="region-name">{region.name}</div>
+                  <div className="region-stats">
+                    {region.groupLabel ? `${region.groupLabel} - ` : ''}
+                    {region.signalLabel ?? `${region.carbonIntensity}g/kWh - ${region.renewablePercentage}% renewable`}
+                  </div>
                 </div>
-              </div>
-            </Html>
+              </Html>
+            )}
           </group>
         )
       })}
@@ -194,21 +217,21 @@ function RegionMarkers({
 }
 
 // Pulsing ring effect
-function PulseRing({ color }: { color: string }) {
+function PulseRing({ color, active }: { color: string; active?: boolean }) {
   const ringRef = useRef<THREE.Mesh>(null)
   
   useFrame((state) => {
     if (ringRef.current) {
-      const scale = 1 + Math.sin(state.clock.elapsedTime * 2) * 0.3
+      const scale = 1 + Math.sin(state.clock.elapsedTime * 2) * (active ? 0.36 : 0.18)
       ringRef.current.scale.set(scale, scale, 1)
       ;(ringRef.current.material as THREE.MeshBasicMaterial).opacity = 
-        0.5 - Math.sin(state.clock.elapsedTime * 2) * 0.3
+        (active ? 0.72 : 0.42) - Math.sin(state.clock.elapsedTime * 2) * (active ? 0.24 : 0.12)
     }
   })
   
   return (
     <mesh ref={ringRef} rotation={[0, 0, 0]}>
-      <ringGeometry args={[0.05, 0.06, 32]} />
+      <ringGeometry args={[0.052, active ? 0.069 : 0.063, 32]} />
       <meshBasicMaterial color={color} transparent opacity={0.5} side={THREE.DoubleSide} />
     </mesh>
   )
@@ -236,6 +259,15 @@ export function GlobeZone({
   onRegionClick?: (region: RegionNode) => void
 }) {
   const [selectedRegion, setSelectedRegion] = useState<RegionNode | null>(null)
+  const groupLegend = useMemo(() => {
+    const seen = new Map<string, string>()
+    for (const region of regions) {
+      if (region.groupLabel && region.groupColor && !seen.has(region.groupLabel)) {
+        seen.set(region.groupLabel, region.groupColor)
+      }
+    }
+    return Array.from(seen.entries())
+  }, [regions])
   
   return (
     <div className="globe-zone">
@@ -260,7 +292,12 @@ export function GlobeZone({
         <RoutingArcs arcs={arcs} />
         
         {/* Region markers */}
-        <RegionMarkers regions={regions} onRegionClick={onRegionClick} />
+        <RegionMarkers
+          regions={regions}
+          selectedRegionId={selectedRegion?.id ?? null}
+          onSelectRegion={setSelectedRegion}
+          onRegionClick={onRegionClick}
+        />
         
         {/* Controls */}
         <OrbitControls
@@ -281,6 +318,53 @@ export function GlobeZone({
             <div className="badge-status">ACTIVE</div>
           </div>
         </div>
+        {groupLegend.length > 0 && (
+          <div
+            className="route-region-legend"
+            style={{
+              position: 'absolute',
+              right: 16,
+              bottom: 16,
+              display: 'flex',
+              flexWrap: 'wrap',
+              justifyContent: 'flex-end',
+              gap: 8,
+              maxWidth: 420,
+              pointerEvents: 'none',
+            }}
+          >
+            {groupLegend.map(([label, color]) => (
+              <div
+                key={label}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  borderRadius: 999,
+                  border: '1px solid rgba(148,163,184,0.16)',
+                  background: 'rgba(2,6,23,0.62)',
+                  padding: '5px 8px',
+                  color: '#94a3b8',
+                  fontSize: 9,
+                  fontWeight: 700,
+                  letterSpacing: '0.14em',
+                  textTransform: 'uppercase',
+                }}
+              >
+                <span
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: 999,
+                    border: `2px solid ${color}`,
+                    boxShadow: `0 0 10px ${color}`,
+                  }}
+                />
+                {label}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )
