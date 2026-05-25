@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
+import type { RegionNode, RoutingArc } from '@/components/co2-control-panel/types'
 import type {
   CommandCenterDecisionItem,
   CommandCenterSnapshot,
@@ -35,6 +36,98 @@ type LoadState = {
   data: LivePayload | null
   error: string | null
   loading: boolean
+}
+
+const REGION_GLOBE_COORDS: Record<string, { lat: number; lng: number }> = {
+  'AF-ZA': { lat: -26.2, lng: 28.0 },
+  'AP-AU-NSW': { lat: -33.9, lng: 151.2 },
+  'AP-AU-QLD': { lat: -27.5, lng: 153.0 },
+  'AP-AU-SA': { lat: -34.9, lng: 138.6 },
+  'AP-AU-VIC': { lat: -37.8, lng: 145.0 },
+  'AP-IN-SOUTH': { lat: 13.1, lng: 80.3 },
+  'AP-IN-WEST': { lat: 19.1, lng: 72.9 },
+  'AP-JP-OSAKA': { lat: 34.7, lng: 135.5 },
+  'AP-JP-TOKYO': { lat: 35.7, lng: 139.7 },
+  'AP-KR': { lat: 37.6, lng: 127.0 },
+  'AP-SG': { lat: 1.35, lng: 103.8 },
+  'AP-TW': { lat: 25.0, lng: 121.6 },
+  'CA-BC': { lat: 49.3, lng: -123.1 },
+  'CA-ON': { lat: 43.7, lng: -79.4 },
+  'CA-QC': { lat: 45.5, lng: -73.6 },
+  'EU-AT': { lat: 48.2, lng: 16.4 },
+  'EU-BE': { lat: 50.9, lng: 4.4 },
+  'EU-CH': { lat: 47.4, lng: 8.5 },
+  'EU-DE': { lat: 50.1, lng: 8.7 },
+  'EU-DK1': { lat: 56.2, lng: 9.5 },
+  'EU-DK2': { lat: 55.7, lng: 12.6 },
+  'EU-ES': { lat: 40.4, lng: -3.7 },
+  'EU-FI': { lat: 60.2, lng: 24.9 },
+  'EU-FR': { lat: 48.9, lng: 2.4 },
+  'EU-GB': { lat: 51.5, lng: -0.1 },
+  'EU-IT': { lat: 45.5, lng: 9.2 },
+  'EU-NL': { lat: 52.4, lng: 4.9 },
+  'EU-NO': { lat: 59.9, lng: 10.8 },
+  'EU-PL': { lat: 52.2, lng: 21.0 },
+  'EU-PT': { lat: 38.7, lng: -9.1 },
+  'EU-SE': { lat: 59.3, lng: 18.1 },
+  'ME-AE': { lat: 24.5, lng: 54.4 },
+  'SA-BR-S': { lat: -25.4, lng: -49.3 },
+  'SA-BR-SE': { lat: -23.6, lng: -46.6 },
+  'SA-CL-SEN': { lat: -33.4, lng: -70.7 },
+  'SA-CO': { lat: 4.7, lng: -74.1 },
+  'US-CAL-CISO': { lat: 37.8, lng: -122.4 },
+  'US-MIDA-PJM': { lat: 39.0, lng: -77.0 },
+  'US-MIDW-MISO': { lat: 41.9, lng: -87.6 },
+  'US-NE-ISNE': { lat: 42.4, lng: -71.1 },
+  'US-NW-BPAT': { lat: 45.5, lng: -122.7 },
+  'US-TEX-ERCO': { lat: 32.8, lng: -96.8 },
+  sfo1: { lat: 37.8, lng: -122.4 },
+  'us-west1': { lat: 45.5, lng: -122.7 },
+  'us-west-1': { lat: 37.8, lng: -122.4 },
+  'us-west-2': { lat: 45.5, lng: -122.7 },
+  'us-east-1': { lat: 39.0, lng: -77.0 },
+  'us-east-2': { lat: 40.4, lng: -83.0 },
+  'eu-west-1': { lat: 53.3, lng: -6.3 },
+  'eu-central-1': { lat: 50.1, lng: 8.7 },
+  'eu-north-1': { lat: 59.3, lng: 18.1 },
+  'ap-southeast-1': { lat: 1.35, lng: 103.8 },
+  'ap-northeast-1': { lat: 35.7, lng: 139.7 },
+}
+
+function resolveGlobeCoords(region: WorldRegionState) {
+  const direct =
+    REGION_GLOBE_COORDS[region.region] ??
+    REGION_GLOBE_COORDS[region.region.toUpperCase()] ??
+    REGION_GLOBE_COORDS[region.region.toLowerCase()]
+  if (direct) return direct
+
+  return {
+    lat: 90 - region.y * 1.8,
+    lng: region.x * 3.6 - 180,
+  }
+}
+
+function globeNodeStatus(region: WorldRegionState): RegionNode['status'] {
+  if (region.action === 'deny' || region.state === 'blocked') return 'critical'
+  if (region.action === 'delay' || region.action === 'throttle') return 'stressed'
+
+  const intensity = region.carbonIntensityGPerKwh
+  if (typeof intensity === 'number') {
+    if (intensity <= 100) return 'optimal'
+    if (intensity <= 300) return 'acceptable'
+    if (intensity <= 500) return 'stressed'
+    return 'critical'
+  }
+
+  return region.state === 'active' ? 'acceptable' : 'stressed'
+}
+
+function globeSignalLabel(region: WorldRegionState) {
+  if (typeof region.carbonIntensityGPerKwh === 'number') {
+    return `${Math.round(region.carbonIntensityGPerKwh)}g/kWh live signal`
+  }
+  if (region.action) return `${actionLabel(region.action)} - ${region.reasonCode ?? 'decision frame'}`
+  return 'registered route - no current live signal'
 }
 
 function actionLabel(action: string | null | undefined) {
@@ -450,8 +543,53 @@ export default function LivePage() {
       ? decisionForRegion(selectedRegion, command.decisionCore.recentDecisions)
       : null
 
-  const globeRegions = useMemo(() => [], [])
-  const globeArcs = useMemo(() => [], [])
+  const globeRegions = useMemo<RegionNode[]>(() => {
+    if (!command) return []
+
+    const decisionCountByRegion = new Map<string, number>()
+    for (const decision of command.decisionCore.recentDecisions) {
+      decisionCountByRegion.set(decision.selectedRegion, (decisionCountByRegion.get(decision.selectedRegion) ?? 0) + 1)
+    }
+
+    return command.world.nodes.map((region) => {
+      const coords = resolveGlobeCoords(region)
+      return {
+        id: region.region,
+        name: region.label,
+        lat: coords.lat,
+        lng: coords.lng,
+        carbonIntensity: Math.round(region.carbonIntensityGPerKwh ?? 0),
+        renewablePercentage: 0,
+        signalLabel: globeSignalLabel(region),
+        activeDecisions: decisionCountByRegion.get(region.region) ?? (region.decisionFrameId ? 1 : 0),
+        totalSaved: 0,
+        status: globeNodeStatus(region),
+      }
+    })
+  }, [command])
+
+  const globeArcs = useMemo<RoutingArc[]>(() => {
+    if (!command || globeRegions.length === 0) return []
+
+    const regionById = new Map(globeRegions.map((region) => [region.id, region]))
+    return command.world.flows.flatMap((flow) => {
+      const from = regionById.get(flow.fromRegion)
+      const to = regionById.get(flow.toRegion)
+      if (!from || !to) return []
+
+      return [
+        {
+          id: flow.id,
+          from,
+          to,
+          decisions: [],
+          totalVolume: 1,
+          carbonSaved: flow.mode === 'route' ? 1 : 0,
+          animated: true,
+        },
+      ]
+    })
+  }, [command, globeRegions])
 
   const handleTierClick = (nextTier: Tier) => {
     if (nextTier === 'pro' || nextTier === 'elite') {

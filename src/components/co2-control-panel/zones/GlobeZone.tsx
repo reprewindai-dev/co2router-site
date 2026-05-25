@@ -182,7 +182,7 @@ function RegionMarkers({
               <div className="region-label">
                 <div className="region-name">{region.name}</div>
                 <div className="region-stats">
-                  {region.carbonIntensity}g/kWh · {region.renewablePercentage}% renewable
+                  {region.signalLabel ?? `${region.carbonIntensity}g/kWh - ${region.renewablePercentage}% renewable`}
                 </div>
               </div>
             </Html>

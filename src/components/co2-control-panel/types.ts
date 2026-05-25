@@ -24,6 +24,7 @@ export interface RegionNode {
   lng: number
   carbonIntensity: number // g CO2/kWh
   renewablePercentage: number
+  signalLabel?: string
   activeDecisions: number
   totalSaved: number // kg CO2
   status: 'optimal' | 'acceptable' | 'stressed' | 'critical'
