@@ -93,7 +93,8 @@ export default function DevelopersApiPage() {
           <div className="text-[11px] uppercase tracking-[0.22em] text-cyan-300">Broker boundary</div>
           <div className="mt-4 rounded-2xl border border-white/8 bg-slate-950/60 p-4">
             <pre className="overflow-x-auto text-xs leading-6 text-slate-200">
-              <code>{`Public SaaS API -> runtime /api/v1/*
+              <code>{`Official broker base -> https://api.co2router.com
+Public SaaS API -> runtime /api/v1/*
 Brokered engine API -> runtime /api/v1/* allowlist
 Direct engine URLs are not for client use`}</code>
             </pre>
