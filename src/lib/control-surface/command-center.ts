@@ -718,6 +718,32 @@ function buildBackendRegionNodes(regions: DashboardRegionsResponse['regions']): 
     })
 }
 
+function mergeRegisteredAndDecisionNodes(
+  registeredNodes: WorldRegionState[],
+  decisionNodes: WorldRegionState[]
+): WorldRegionState[] {
+  const merged = new Map<string, WorldRegionState>()
+
+  for (const node of registeredNodes) {
+    merged.set(node.region, node)
+  }
+
+  for (const node of decisionNodes) {
+    const existing = merged.get(node.region)
+    merged.set(node.region, {
+      ...existing,
+      ...node,
+      label: existing?.label ?? node.label,
+      x: existing?.x ?? node.x,
+      y: existing?.y ?? node.y,
+      carbonIntensityGPerKwh: existing?.carbonIntensityGPerKwh ?? node.carbonIntensityGPerKwh,
+      signalFetchedAt: existing?.signalFetchedAt ?? node.signalFetchedAt,
+    })
+  }
+
+  return Array.from(merged.values())
+}
+
 function buildWorldFlows(selectedReplay: LiveSystemReplayResponse | null): WorldRoutingFlow[] {
   if (!selectedReplay) return []
 
@@ -968,7 +994,7 @@ export async function getCommandCenterSnapshot(
     const backendRegionNodes =
       regionsSettled.status === 'fulfilled' ? buildBackendRegionNodes(regionsSettled.value.regions) : []
     const decisionWorldNodes = buildWorldNodes(recentDecisions, selectedTrace, selectedReplay)
-    const worldNodes = decisionWorldNodes.length > 0 ? decisionWorldNodes : backendRegionNodes
+    const worldNodes = mergeRegisteredAndDecisionNodes(backendRegionNodes, decisionWorldNodes)
     const worldFlows = buildWorldFlows(selectedReplay)
     const waterShiftedLiters = decisionFeed.decisions.reduce(
       (sum, decision) =>
