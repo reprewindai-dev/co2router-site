@@ -16,7 +16,6 @@ function formatProviderName(name: string) {
     EMBER_STRUCTURAL_BASELINE: 'Ember structural baseline',
     WATTTIME_MOER: 'WattTime MOER',
     EIA930: 'EIA-930',
-    ELECTRICITY_MAPS: 'Electricity Maps',
     aqueduct: 'Aqueduct',
     aware: 'AWARE',
     nrel: 'NREL',

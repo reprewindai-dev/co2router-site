@@ -237,7 +237,6 @@ function buildOverviewPlaceholderDecision(input: {
       cacheStatus: 'fallback',
       influencedDecision: false,
       providers: {
-        electricityMaps: null,
         wattTime: null,
         validation: null,
       },
