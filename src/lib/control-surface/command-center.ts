@@ -163,6 +163,58 @@ const REGION_ANCHORS: Record<string, { label: string; x: number; y: number }> = 
   'ap-northeast-1': { label: 'AP NorthEast 1', x: 83, y: 18 },
 }
 
+const CANONICAL_REGION_ALIASES: Record<string, string> = {
+  'iad1': 'US-MIDA-PJM',
+  'eastus': 'US-MIDA-PJM',
+  'eastus2': 'US-MIDA-PJM',
+  'us-east-1': 'US-MIDA-PJM',
+  'us-east-2': 'US-MIDA-PJM',
+  'us-east4': 'US-MIDA-PJM',
+  'cle1': 'US-MIDW-MISO',
+  'us-central1': 'US-MIDW-MISO',
+  'centralus': 'US-MIDW-MISO',
+  'pdx1': 'US-NW-BPAT',
+  'us-west1': 'US-NW-BPAT',
+  'us-west-2': 'US-NW-BPAT',
+  'westus2': 'US-NW-BPAT',
+  'sfo1': 'US-CAL-CISO',
+  'us-west-1': 'US-CAL-CISO',
+  'southcentralus': 'US-TEX-ERCO',
+  'yul1': 'CA-QC',
+  'canadaeast': 'CA-QC',
+  'canadacentral': 'CA-ON',
+  'lhr1': 'EU-GB',
+  'eu-west-2': 'EU-GB',
+  'europe-west2': 'EU-GB',
+  'uksouth': 'EU-GB',
+  'uknorth': 'EU-GB',
+  'cdg1': 'EU-FR',
+  'francecentral': 'EU-FR',
+  'arn1': 'EU-SE',
+  'fra1': 'EU-DE',
+  'eu-central-1': 'EU-DE',
+  'dub1': 'EU-GB',
+  'sin1': 'AP-SG',
+  'ap-southeast-1': 'AP-SG',
+  'hnd1': 'AP-JP-TOKYO',
+  'ap-northeast-1': 'AP-JP-TOKYO',
+  'japaneast': 'AP-JP-TOKYO',
+  'kix1': 'AP-JP-OSAKA',
+  'ap-northeast-3': 'AP-JP-OSAKA',
+  'syd1': 'AP-AU-NSW',
+  'australiaeast': 'AP-AU-NSW',
+  'gru1': 'SA-BR-SE',
+  'brazilsouth': 'SA-BR-SE',
+  'cpt1': 'AF-ZA',
+  'dxb1': 'ME-AE',
+  'koreacentral': 'AP-KR',
+}
+
+function canonicalizeWorldRegion(region: string) {
+  const trimmed = region.trim()
+  return CANONICAL_REGION_ALIASES[trimmed] ?? CANONICAL_REGION_ALIASES[trimmed.toLowerCase()] ?? trimmed
+}
+
 const FAST_DECISION_FEED_TIMEOUT_MS = 4_000
 const ENABLE_LIVE_DEEP_TRACE = process.env.CO2ROUTER_ENABLE_LIVE_TRACE === 'true'
 const LIVE_PROVIDER_TTL_SEC: Record<string, number> = {
@@ -642,12 +694,17 @@ function buildWorldNodes(
 ): WorldRegionState[] {
   const seen = new Map<string, CommandCenterDecisionItem>()
   decisions.forEach((decision) => {
-    if (!seen.has(decision.selectedRegion)) {
-      seen.set(decision.selectedRegion, decision)
+    const canonicalSelectedRegion = canonicalizeWorldRegion(decision.selectedRegion)
+    if (!seen.has(canonicalSelectedRegion)) {
+      seen.set(canonicalSelectedRegion, {
+        ...decision,
+        selectedRegion: canonicalSelectedRegion,
+      })
     }
   })
 
-  const baselineRegion = selectedReplay?.persisted?.baseline.region ?? selectedReplay?.replay?.baseline.region ?? null
+  const rawBaselineRegion = selectedReplay?.persisted?.baseline.region ?? selectedReplay?.replay?.baseline.region ?? null
+  const baselineRegion = rawBaselineRegion ? canonicalizeWorldRegion(rawBaselineRegion) : null
   if (baselineRegion && !seen.has(baselineRegion)) {
     seen.set(baselineRegion, {
       decisionFrameId: selectedTrace?.decisionFrameId ?? `baseline:${baselineRegion}`,
@@ -751,8 +808,12 @@ function buildWorldFlows(selectedReplay: LiveSystemReplayResponse | null): World
   if (!selectedReplay) return []
 
   const action = selectedReplay.persisted?.decision ?? selectedReplay.replay.decision
-  const baselineRegion = selectedReplay.persisted?.baseline.region ?? selectedReplay.replay.baseline.region
-  const selectedRegion = selectedReplay.persisted?.selectedRegion ?? selectedReplay.replay.selectedRegion
+  const baselineRegion = canonicalizeWorldRegion(
+    selectedReplay.persisted?.baseline.region ?? selectedReplay.replay.baseline.region
+  )
+  const selectedRegion = canonicalizeWorldRegion(
+    selectedReplay.persisted?.selectedRegion ?? selectedReplay.replay.selectedRegion
+  )
   if (!baselineRegion || !selectedRegion) return []
 
   return [
