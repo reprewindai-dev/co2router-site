@@ -163,6 +163,7 @@ const REGION_ANCHORS: Record<string, { label: string; x: number; y: number }> = 
 const FAST_DECISION_FEED_TIMEOUT_MS = 4_000
 const ENABLE_LIVE_DEEP_TRACE = process.env.CO2ROUTER_ENABLE_LIVE_TRACE === 'true'
 const LIVE_PROVIDER_TTL_SEC: Record<string, number> = {
+  ELECTRICITY_MAPS: 3600,
   WATTTIME_MOER: 600,
   GRIDSTATUS: 1800,
   EIA_930: 1800,
@@ -192,6 +193,8 @@ function mapMethodologyProviderName(name: string): string | null {
   const normalized = name.trim().toLowerCase()
 
   switch (normalized) {
+    case 'electricity maps':
+      return 'ELECTRICITY_MAPS'
     case 'watttime':
       return 'WATTTIME_MOER'
     case 'gridstatus eia-930':
@@ -228,6 +231,7 @@ function resolveLiveProviderTtl(provider: string) {
 function isCanonicalCarbonProvider(provider: string) {
   return (
     provider === 'WATTTIME_MOER' ||
+    provider === 'ELECTRICITY_MAPS' ||
     provider === 'GRIDSTATUS' ||
     provider === 'EIA_930' ||
     provider === 'ON_CARBON' ||
@@ -589,6 +593,7 @@ function buildProviders(
   })
 
   const carbonOrder = [
+    'ELECTRICITY_MAPS',
     'WATTTIME_MOER',
     'GRIDSTATUS',
     'EIA_930',
