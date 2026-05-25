@@ -235,6 +235,8 @@ function normalizeProviderIdentity(provider: string): string {
     return 'EMBER_STRUCTURAL_BASELINE'
   }
   if (normalized === 'WATTTIME') return 'WATTTIME_MOER'
+  if (normalized === 'ON_IESO_GENERATOR_OUTPUT') return 'ON_CARBON'
+  if (normalized === 'QC_HYDRO_QUEBEC_OPEN_DATA') return 'QC_CARBON'
   return normalized
 }
 
@@ -258,8 +260,10 @@ function mapMethodologyProviderName(name: string): string | null {
       return 'DK_CARBON'
     case 'fi carbon':
       return 'FI_CARBON'
+    case 'ontario ieso':
     case 'ontario carbon':
       return 'ON_CARBON'
+    case 'quebec hydro-quebec':
     case 'quebec carbon':
       return 'QC_CARBON'
     case 'bc carbon':
