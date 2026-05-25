@@ -499,7 +499,6 @@ function providerLabel(provider: string): string {
 function isCanonicalCarbonProvider(provider: string) {
   return (
     provider === 'WATTTIME_MOER' ||
-    provider === 'GRIDSTATUS' ||
     provider === 'EIA_930' ||
     provider === 'ON_CARBON' ||
     provider === 'QC_CARBON' ||

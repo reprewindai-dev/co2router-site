@@ -108,14 +108,14 @@ export default async function RootLayout({
 
   return (
     <html lang="en">
-      <body className={spaceGrotesk.className} style={hideChrome ? { margin: 0, padding: 0, overflow: 'hidden' } : undefined}>
+      <body className={spaceGrotesk.className} style={hideChrome ? { margin: 0, padding: 0 } : undefined}>
         <Providers>
           <script
             type="application/ld+json"
             dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
           />
           {hideChrome ? (
-            <div style={{ width: '100vw', height: '100vh', overflow: 'hidden' }}>
+            <div style={{ width: '100%', minHeight: '100dvh' }}>
               {children}
             </div>
           ) : (

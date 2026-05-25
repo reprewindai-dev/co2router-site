@@ -164,7 +164,6 @@ const FAST_DECISION_FEED_TIMEOUT_MS = 4_000
 const ENABLE_LIVE_DEEP_TRACE = process.env.CO2ROUTER_ENABLE_LIVE_TRACE === 'true'
 const LIVE_PROVIDER_TTL_SEC: Record<string, number> = {
   WATTTIME_MOER: 600,
-  GRIDSTATUS: 1800,
   EIA_930: 1800,
   GB_CARBON: 1800,
   DK_CARBON: 1800,
@@ -194,8 +193,6 @@ function mapMethodologyProviderName(name: string): string | null {
   switch (normalized) {
     case 'watttime':
       return 'WATTTIME_MOER'
-    case 'gridstatus eia-930':
-      return 'GRIDSTATUS'
     case 'eia-930 direct':
       return 'EIA_930'
     case 'ember':
@@ -228,7 +225,6 @@ function resolveLiveProviderTtl(provider: string) {
 function isCanonicalCarbonProvider(provider: string) {
   return (
     provider === 'WATTTIME_MOER' ||
-    provider === 'GRIDSTATUS' ||
     provider === 'EIA_930' ||
     provider === 'ON_CARBON' ||
     provider === 'QC_CARBON' ||
@@ -461,14 +457,14 @@ function buildProviders(
             ? 'average'
             : 'fallback',
       authorityRole:
-        canonicalKey === 'GRIDSTATUS' || canonicalKey === 'EIA_930' || canonicalKey === 'EMBER_STRUCTURAL_BASELINE'
+        canonicalKey === 'EIA_930' || canonicalKey === 'EMBER_STRUCTURAL_BASELINE'
           ? 'advisory'
           : 'authoritative',
       authorityMode:
         methodology?.authorityMode ??
         (canonicalKey === 'EMBER_STRUCTURAL_BASELINE'
           ? 'structural_baseline'
-          : canonicalKey === 'GRIDSTATUS' || canonicalKey === 'EIA_930'
+          : canonicalKey === 'EIA_930'
             ? 'predictive_telemetry'
             : canonicalKey === 'WATTTIME_MOER'
               ? 'marginal_live'
@@ -590,7 +586,6 @@ function buildProviders(
 
   const carbonOrder = [
     'WATTTIME_MOER',
-    'GRIDSTATUS',
     'EIA_930',
     'ON_CARBON',
     'QC_CARBON',
