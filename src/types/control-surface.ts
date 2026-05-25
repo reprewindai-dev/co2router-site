@@ -749,6 +749,8 @@ export interface WorldRegionState {
   reasonCode: string | null
   carbonIntensityGPerKwh?: number | null
   signalFetchedAt?: string | null
+  signalSource?: string | null
+  signalEstimated?: boolean | null
 }
 
 export interface WorldRoutingFlow {

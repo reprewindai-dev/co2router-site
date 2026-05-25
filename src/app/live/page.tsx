@@ -124,7 +124,13 @@ function globeNodeStatus(region: WorldRegionState): RegionNode['status'] {
 
 function globeSignalLabel(region: WorldRegionState) {
   if (typeof region.carbonIntensityGPerKwh === 'number') {
-    return `${Math.round(region.carbonIntensityGPerKwh)}g/kWh live signal`
+    const signalKind =
+      region.reasonCode === 'REGION_STRUCTURAL_BASELINE'
+        ? 'structural baseline'
+        : region.signalEstimated
+          ? 'estimated signal'
+          : 'live signal'
+    return `${Math.round(region.carbonIntensityGPerKwh)}g/kWh ${signalKind}`
   }
   if (region.action) return `${actionLabel(region.action)} - ${region.reasonCode ?? 'decision frame'}`
   return 'registered route - no current live signal'
@@ -190,14 +196,21 @@ function stateColor(state: WorldExecutionState) {
 
 function routeSignalLabel(region: WorldRegionState) {
   if (region.decisionFrameId) return actionLabel(region.action)
-  if (typeof region.carbonIntensityGPerKwh === 'number') return 'LIVE'
+  if (region.reasonCode === 'REGION_STRUCTURAL_BASELINE') return 'BASELINE'
+  if (typeof region.carbonIntensityGPerKwh === 'number') return region.signalEstimated ? 'EST' : 'LIVE'
   return 'NO SIGNAL'
 }
 
 function routeSignalColor(region: WorldRegionState) {
   if (region.decisionFrameId) return actionColor(region.action)
+  if (region.reasonCode === 'REGION_STRUCTURAL_BASELINE') return '#67e8f9'
   if (typeof region.carbonIntensityGPerKwh === 'number') return '#4ade80'
   return '#fbbf24'
+}
+
+function routeSignalSourceLabel(region: WorldRegionState) {
+  if (!region.signalSource) return 'not attached'
+  return region.signalSource.replace(/_/g, ' ').toLowerCase()
 }
 
 function formatTime(value: string | number | null | undefined) {
@@ -766,10 +779,18 @@ export default function LivePage() {
                       x
                     </button>
                   </div>
-                  <div className="mt-4 grid grid-cols-4 gap-3">
+                  <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
                     {[
                       ['State', selectedRegion.state, stateColor(selectedRegion.state)],
                       ['Action', actionLabel(selectedRegion.action), actionColor(selectedRegion.action)],
+                      [
+                        'Carbon',
+                        typeof selectedRegion.carbonIntensityGPerKwh === 'number'
+                          ? `${Math.round(selectedRegion.carbonIntensityGPerKwh)}g/kWh`
+                          : 'unavailable',
+                        routeSignalColor(selectedRegion),
+                      ],
+                      ['Source', routeSignalSourceLabel(selectedRegion), '#67e8f9'],
                       ['Reason', selectedRegion.reasonCode ?? 'unavailable', '#94a3b8'],
                       [
                         'Trace',

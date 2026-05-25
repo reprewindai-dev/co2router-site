@@ -145,6 +145,9 @@ type DashboardRegionsResponse = {
     country: string | null
     carbonIntensityGPerKwh: number | null
     fetchedAt: string | null
+    source?: string | null
+    isEstimated?: boolean | null
+    metadata?: Record<string, unknown> | null
   }>
 }
 
@@ -692,18 +695,28 @@ function buildBackendRegionNodes(regions: DashboardRegionsResponse['regions']): 
     .map((region, index) => {
       const code = region.code.trim()
       const anchor = resolveRegionAnchor(code, index)
-      const hasLiveCarbon = typeof region.carbonIntensityGPerKwh === 'number'
+      const hasCarbonSignal = typeof region.carbonIntensityGPerKwh === 'number'
+      const source = region.source?.trim() || null
+      const sourceKey = source ? normalizeProviderIdentity(source) : null
+      const structuralOnly = sourceKey === 'EMBER_STRUCTURAL_BASELINE'
+      const reasonCode = hasCarbonSignal
+        ? structuralOnly
+          ? 'REGION_STRUCTURAL_BASELINE'
+          : 'REGION_SIGNAL_LIVE'
+        : 'REGION_REGISTERED_NO_CURRENT_SIGNAL'
       return {
         region: code,
         label: region.name?.trim() || anchor.label,
         x: anchor.x,
         y: anchor.y,
-        state: hasLiveCarbon ? 'active' : 'marginal',
+        state: hasCarbonSignal ? 'active' : 'marginal',
         decisionFrameId: null,
         action: null,
-        reasonCode: hasLiveCarbon ? 'REGION_SIGNAL_LIVE' : 'REGION_REGISTERED_NO_CURRENT_SIGNAL',
+        reasonCode,
         carbonIntensityGPerKwh: region.carbonIntensityGPerKwh,
         signalFetchedAt: region.fetchedAt,
+        signalSource: source,
+        signalEstimated: region.isEstimated ?? null,
       }
     })
 }
