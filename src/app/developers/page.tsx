@@ -55,6 +55,19 @@ export default function DevelopersPage() {
         </p>
       </section>
 
+      <section id="mirrored-signal-stack" className="surface-card p-6">
+        <div className="eyebrow">Mirrored Signal Stack</div>
+        <p className="mt-4 text-base leading-7 text-slate-300">
+          Carbon and water signals are mirrored, versioned, freshness-scored, and bound to proof frames before they become decision authority.
+        </p>
+        <a
+          href="/developers/mirrored-signal-stack"
+          className="mt-5 inline-flex rounded-2xl border border-cyan-300/30 bg-cyan-300/10 px-4 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-cyan-200"
+        >
+          Open MSS architecture
+        </a>
+      </section>
+
       <section id="adapters" className="surface-card p-6">
         <div className="eyebrow">Adapters</div>
         <p className="mt-4 text-base leading-7 text-slate-300">

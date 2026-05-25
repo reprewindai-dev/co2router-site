@@ -20,6 +20,7 @@
     "mcp": "https://mcp.co2router.com/mcp",
     "x402": "https://x402.co2router.com",
     "docs": "https://co2router.com/developers",
+    "mirroredSignalStack": "https://co2router.com/developers/mirrored-signal-stack",
     "status": "https://co2router.com/status"
   },
   "download": {
@@ -108,6 +109,25 @@
       "Provider rows must be fresh before they are promoted to active",
       "Fallback and structural baselines remain labeled as fallback or baseline"
     ]
+  },
+  "mirroredSignalStack": {
+    "purpose": "Local, versioned mirror of external carbon and water telemetry for audit-grade routing decisions.",
+    "modes": ["live", "forecast", "degraded", "fallback", "baseline"],
+    "proofFields": [
+      "decision timestamp",
+      "policy version",
+      "provider snapshot hash",
+      "source timestamp",
+      "fetch timestamp",
+      "signal age",
+      "mode",
+      "confidence",
+      "fallback reason",
+      "append-only log reference"
+    ],
+    "fastLoop": "Carbon telemetry drives near-real-time placement, delay, reroute, throttle, and deny decisions.",
+    "slowLoop": "Water scarcity and watershed risk update on their own cadence and gate eligibility or penalty weight.",
+    "auditRule": "Last-known-good values may be used for safety, but they are labeled degraded and are not promoted as active live routes."
   },
   "requiredRuntimeEnvironment": {
     "site": [

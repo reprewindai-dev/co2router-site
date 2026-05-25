@@ -66,6 +66,21 @@ Configured but key-gated source classes:
 
 - Fingrid Finland API
 
+## Mirrored Signal Stack
+
+CO2 Router uses a Mirrored Signal Stack for audit-grade routing. External carbon
+and water feeds are pulled into a local versioned mirror before they become
+decision authority. Each fetch records provider, metric, location, value, unit,
+source timestamp, fetch timestamp, age, mode, and confidence.
+
+If a provider is unavailable or stale, the runtime can use last-known-good or
+baseline posture for safety, but the decision frame is labeled degraded or
+fallback. Last-known-good values are not promoted as current active routes.
+
+The technical reference is available at:
+
+https://co2router.com/developers/mirrored-signal-stack
+
 ## x402 Agent Access
 
 Agent-facing paid access is exposed through `https://x402.co2router.com`.
