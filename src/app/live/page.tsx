@@ -77,6 +77,18 @@ function stateColor(state: WorldExecutionState) {
   return '#f87171'
 }
 
+function routeSignalLabel(region: WorldRegionState) {
+  if (region.decisionFrameId) return actionLabel(region.action)
+  if (typeof region.carbonIntensityGPerKwh === 'number') return 'LIVE'
+  return 'NO SIGNAL'
+}
+
+function routeSignalColor(region: WorldRegionState) {
+  if (region.decisionFrameId) return actionColor(region.action)
+  if (typeof region.carbonIntensityGPerKwh === 'number') return '#4ade80'
+  return '#fbbf24'
+}
+
 function formatTime(value: string | number | null | undefined) {
   if (!value) return 'unavailable'
   const date = new Date(value)
@@ -261,8 +273,9 @@ function RegionList({
         background: 'rgba(6,13,24,0.72)',
       }}
     >
-      <div className="mb-3 px-1 text-[9px] uppercase tracking-[0.22em] text-slate-500">
-        Backend regions
+      <div className="mb-3 flex items-center justify-between px-1 text-[9px] uppercase tracking-[0.22em] text-slate-500">
+        <span>Backend regions</span>
+        <span className="font-mono text-cyan-300/70">{command.world.nodes.length}</span>
       </div>
       <div className="space-y-1.5">
         {command.world.nodes.map((region) => (
@@ -295,15 +308,20 @@ function RegionList({
               <span
                 className="flex-shrink-0 rounded-full px-1.5 py-0.5 text-[8px] uppercase"
                 style={{
-                  color: actionColor(region.action),
-                  background: `${actionColor(region.action)}18`,
+                  color: routeSignalColor(region),
+                  background: `${routeSignalColor(region)}18`,
                 }}
               >
-                {actionLabel(region.action)}
+                {routeSignalLabel(region)}
               </span>
             </div>
-            <div className="truncate font-mono text-[9px] text-slate-500">
-              {region.decisionFrameId ?? 'no frame bound'}
+            <div className="flex items-center justify-between gap-2 font-mono text-[9px] text-slate-500">
+              <span className="truncate">{region.region}</span>
+              <span className="flex-shrink-0 text-slate-400">
+                {typeof region.carbonIntensityGPerKwh === 'number'
+                  ? `${Math.round(region.carbonIntensityGPerKwh)}g`
+                  : 'registered'}
+              </span>
             </div>
           </button>
         ))}

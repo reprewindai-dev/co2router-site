@@ -707,6 +707,8 @@ function buildBackendRegionNodes(regions: DashboardRegionsResponse['regions']): 
         decisionFrameId: null,
         action: null,
         reasonCode: hasLiveCarbon ? 'REGION_SIGNAL_LIVE' : 'REGION_REGISTERED_NO_CURRENT_SIGNAL',
+        carbonIntensityGPerKwh: region.carbonIntensityGPerKwh,
+        signalFetchedAt: region.fetchedAt,
       }
     })
 }
