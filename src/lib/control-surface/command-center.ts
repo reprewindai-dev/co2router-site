@@ -138,6 +138,16 @@ type MetricsResponse = {
   fallbackRate: number
 }
 
+type DashboardRegionsResponse = {
+  regions: Array<{
+    code: string
+    name: string | null
+    country: string | null
+    carbonIntensityGPerKwh: number | null
+    fetchedAt: string | null
+  }>
+}
+
 const REGION_ANCHORS: Record<string, { label: string; x: number; y: number }> = {
   'us-west-2': { label: 'US West 2', x: 14, y: 25 },
   'us-west-1': { label: 'US West 1', x: 17, y: 28 },
@@ -680,6 +690,27 @@ function buildWorldNodes(
   })
 }
 
+function buildBackendRegionNodes(regions: DashboardRegionsResponse['regions']): WorldRegionState[] {
+  return regions
+    .filter((region) => typeof region.code === 'string' && region.code.trim().length > 0)
+    .slice(0, 42)
+    .map((region, index) => {
+      const code = region.code.trim()
+      const anchor = resolveRegionAnchor(code, index)
+      const hasLiveCarbon = typeof region.carbonIntensityGPerKwh === 'number'
+      return {
+        region: code,
+        label: region.name?.trim() || anchor.label,
+        x: anchor.x,
+        y: anchor.y,
+        state: hasLiveCarbon ? 'active' : 'marginal',
+        decisionFrameId: null,
+        action: null,
+        reasonCode: hasLiveCarbon ? 'REGION_SIGNAL_LIVE' : 'REGION_REGISTERED_NO_CURRENT_SIGNAL',
+      }
+    })
+}
+
 function buildWorldFlows(selectedReplay: LiveSystemReplayResponse | null): WorldRoutingFlow[] {
   if (!selectedReplay) return []
 
@@ -780,13 +811,14 @@ export async function getCommandCenterSnapshot(
   const describeFailure = (error: unknown) => (error instanceof Error ? error.message : 'Unknown engine failure.')
   const generatedAt = new Date().toISOString()
 
-  const [healthSettled, sloSettled, decisionsSettled, provenanceSettled] = await Promise.allSettled([
+  const [healthSettled, sloSettled, decisionsSettled, provenanceSettled, regionsSettled] = await Promise.allSettled([
     fetchEngineJson<CiHealthSnapshot>('/ci/health'),
     fetchEngineJson<CiSloSnapshot>('/ci/slo'),
     fetchEngineJson<DecisionFeed>('/ci/decisions?limit=8', undefined, {
       timeoutMs: FAST_DECISION_FEED_TIMEOUT_MS,
     }),
     fetchEngineJson<WaterProvenanceResponse>('/water/provenance'),
+    fetchEngineJson<DashboardRegionsResponse>('/dashboard/regions'),
   ])
 
     const [ledgerResult, metricsResult, providerTrust, methodologyProvidersResult] = await Promise.all([
@@ -926,7 +958,10 @@ export async function getCommandCenterSnapshot(
           ])
         : [null, null]
 
-    const worldNodes = buildWorldNodes(recentDecisions, selectedTrace, selectedReplay)
+    const backendRegionNodes =
+      regionsSettled.status === 'fulfilled' ? buildBackendRegionNodes(regionsSettled.value.regions) : []
+    const decisionWorldNodes = buildWorldNodes(recentDecisions, selectedTrace, selectedReplay)
+    const worldNodes = decisionWorldNodes.length > 0 ? decisionWorldNodes : backendRegionNodes
     const worldFlows = buildWorldFlows(selectedReplay)
     const waterShiftedLiters = decisionFeed.decisions.reduce(
       (sum, decision) =>
