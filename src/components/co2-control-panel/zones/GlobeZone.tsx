@@ -2,7 +2,7 @@
 
 import { useRef, useMemo, useEffect, useState } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { OrbitControls, Stars, Html } from '@react-three/drei'
+import { OrbitControls, Stars } from '@react-three/drei'
 import * as THREE from 'three'
 import type { RegionNode, RoutingArc, RoutingDecision } from '../types'
 
@@ -150,11 +150,13 @@ function RegionMarkers({
   selectedRegionId,
   onRegionClick,
   onSelectRegion,
+  onHoverRegion,
 }: { 
   regions: RegionNode[]
   selectedRegionId?: string | null
   onRegionClick?: (region: RegionNode) => void 
   onSelectRegion?: (region: RegionNode | null) => void
+  onHoverRegion?: (region: RegionNode | null) => void
 }) {
   const [hoveredRegionId, setHoveredRegionId] = useState<string | null>(null)
 
@@ -179,10 +181,12 @@ function RegionMarkers({
               onPointerOver={(event) => {
                 event.stopPropagation()
                 setHoveredRegionId(region.id)
+                onHoverRegion?.(region)
               }}
               onPointerOut={(event) => {
                 event.stopPropagation()
                 setHoveredRegionId(null)
+                onHoverRegion?.(null)
               }}
               onClick={(event) => {
                 event.stopPropagation()
@@ -190,25 +194,13 @@ function RegionMarkers({
                 onRegionClick?.(region)
               }}
             >
-              <sphereGeometry args={[isOpen ? 0.04 : 0.03, 16, 16]} />
+              <sphereGeometry args={[isOpen ? 0.032 : 0.023, 16, 16]} />
               <meshBasicMaterial color={statusColor} />
             </mesh>
             
             {/* Region-group ring */}
             <PulseRing color={ringColor} active={isOpen} />
             
-            {/* Label */}
-            {isOpen && (
-              <Html distanceFactor={10}>
-                <div className="region-label" style={{ pointerEvents: 'none' }}>
-                  <div className="region-name">{region.name}</div>
-                  <div className="region-stats">
-                    {region.groupLabel ? `${region.groupLabel} - ` : ''}
-                    {region.signalLabel ?? `${region.carbonIntensity}g/kWh - ${region.renewablePercentage}% renewable`}
-                  </div>
-                </div>
-              </Html>
-            )}
           </group>
         )
       })}
@@ -222,16 +214,16 @@ function PulseRing({ color, active }: { color: string; active?: boolean }) {
   
   useFrame((state) => {
     if (ringRef.current) {
-      const scale = 1 + Math.sin(state.clock.elapsedTime * 2) * (active ? 0.36 : 0.18)
+      const scale = 1 + Math.sin(state.clock.elapsedTime * 2) * (active ? 0.26 : 0.12)
       ringRef.current.scale.set(scale, scale, 1)
       ;(ringRef.current.material as THREE.MeshBasicMaterial).opacity = 
-        (active ? 0.72 : 0.42) - Math.sin(state.clock.elapsedTime * 2) * (active ? 0.24 : 0.12)
+        (active ? 0.68 : 0.34) - Math.sin(state.clock.elapsedTime * 2) * (active ? 0.18 : 0.08)
     }
   })
   
   return (
     <mesh ref={ringRef} rotation={[0, 0, 0]}>
-      <ringGeometry args={[0.052, active ? 0.069 : 0.063, 32]} />
+      <ringGeometry args={[0.04, active ? 0.054 : 0.048, 32]} />
       <meshBasicMaterial color={color} transparent opacity={0.5} side={THREE.DoubleSide} />
     </mesh>
   )
@@ -259,6 +251,7 @@ export function GlobeZone({
   onRegionClick?: (region: RegionNode) => void
 }) {
   const [selectedRegion, setSelectedRegion] = useState<RegionNode | null>(null)
+  const [hoveredRegion, setHoveredRegion] = useState<RegionNode | null>(null)
   const groupLegend = useMemo(() => {
     const seen = new Map<string, string>()
     for (const region of regions) {
@@ -268,6 +261,7 @@ export function GlobeZone({
     }
     return Array.from(seen.entries())
   }, [regions])
+  const activeRegion = hoveredRegion ?? selectedRegion
   
   return (
     <div className="globe-zone">
@@ -296,6 +290,7 @@ export function GlobeZone({
           regions={regions}
           selectedRegionId={selectedRegion?.id ?? null}
           onSelectRegion={setSelectedRegion}
+          onHoverRegion={setHoveredRegion}
           onRegionClick={onRegionClick}
         />
         
@@ -318,6 +313,80 @@ export function GlobeZone({
             <div className="badge-status">ACTIVE</div>
           </div>
         </div>
+        {activeRegion && (
+          <div
+            className="route-region-detail"
+            style={{
+              position: 'absolute',
+              left: 22,
+              bottom: 22,
+              width: 'min(360px, calc(100% - 44px))',
+              borderRadius: 16,
+              border: `1px solid ${activeRegion.groupColor ?? 'rgba(125,211,252,0.45)'}`,
+              background: 'rgba(2,6,23,0.86)',
+              boxShadow: `0 18px 50px rgba(0,0,0,0.35), 0 0 28px ${activeRegion.groupColor ?? 'rgba(125,211,252,0.16)'}`,
+              padding: '14px 16px',
+              pointerEvents: 'none',
+              backdropFilter: 'blur(16px)',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 10,
+                marginBottom: 8,
+              }}
+            >
+              <div
+                style={{
+                  color: activeRegion.groupColor ?? '#7dd3fc',
+                  fontSize: 9,
+                  fontWeight: 800,
+                  letterSpacing: '0.18em',
+                  textTransform: 'uppercase',
+                }}
+              >
+                {activeRegion.groupLabel ?? 'Route region'}
+              </div>
+              <div
+                style={{
+                  borderRadius: 999,
+                  border: '1px solid rgba(148,163,184,0.18)',
+                  color: '#94a3b8',
+                  fontSize: 9,
+                  fontWeight: 700,
+                  padding: '3px 7px',
+                  textTransform: 'uppercase',
+                }}
+              >
+                {selectedRegion?.id === activeRegion.id ? 'selected' : 'hover'}
+              </div>
+            </div>
+            <div
+              style={{
+                color: '#f8fafc',
+                fontSize: 18,
+                fontWeight: 800,
+                lineHeight: 1.15,
+                marginBottom: 8,
+              }}
+            >
+              {activeRegion.name}
+            </div>
+            <div
+              style={{
+                color: '#cbd5e1',
+                fontSize: 12,
+                lineHeight: 1.5,
+              }}
+            >
+              {activeRegion.signalLabel ??
+                `${activeRegion.carbonIntensity}g/kWh - ${activeRegion.renewablePercentage}% renewable`}
+            </div>
+          </div>
+        )}
         {groupLegend.length > 0 && (
           <div
             className="route-region-legend"
