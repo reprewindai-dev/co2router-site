@@ -1,4 +1,4 @@
-const CANONICAL_ENGINE_BASE_URL = 'https://co2router.tech'
+const CANONICAL_BROKER_BASE_URL = 'https://api.co2router.com'
 
 function normalizeEnvValue(value: string | null | undefined) {
   const trimmed = String(value ?? '').trim()
@@ -54,7 +54,7 @@ export function getServerBrokerBaseUrl() {
     return browserBase
   }
 
-  return CANONICAL_ENGINE_BASE_URL
+  return CANONICAL_BROKER_BASE_URL
 }
 
 export function getBrokerHost() {

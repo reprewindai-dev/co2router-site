@@ -10,7 +10,7 @@ let baselineCache: { at: number; body: unknown } | null = null
 
 function baselineCacheHeaders() {
   return {
-    // Cache at the Vercel edge to prevent expensive recompute timeouts.
+    // Cache at the site edge to prevent expensive recompute timeouts.
     'cache-control': 'public, max-age=0, s-maxage=300, stale-while-revalidate=600',
   }
 }

@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { Space_Grotesk } from 'next/font/google'
 import { headers } from 'next/headers'
-import { Analytics } from '@vercel/analytics/next'
 
 import { SiteChrome } from '@/components/site/SiteChrome'
 import {
@@ -131,7 +130,6 @@ export default async function RootLayout({
             </SiteChrome>
           )}
         </Providers>
-        <Analytics />
       </body>
     </html>
   )

@@ -276,12 +276,12 @@ export const HALOGRID_MANUAL_SECTIONS: HalogridManualSection[] = [
     id: 'operator-notes',
     title: 'Operator Notes',
     paragraphs: [
-      'HaloGrid is now restored as the authoritative command-center console on top of the existing CO2 Router stack. The route, backend connection, and Vercel deployment stay inside the source app. The recovered UI is no longer a disconnected demo.',
+      'HaloGrid is now restored as the authoritative command-center console on top of the existing CO2 Router stack. The route, broker connection, and Coolify deployment stay inside the source app. The recovered UI is no longer a disconnected demo.',
     ],
     bullets: [
       'Console route lives inside the source-backed production app',
       'Current domains and backend wiring remain in place',
-      'Recovered UI now consumes the live HallOGrid data contract',
+      'Recovered UI now consumes the live HaloGrid data contract',
       'The in-app manual matches the operator surface instead of a mock narrative',
     ],
   },

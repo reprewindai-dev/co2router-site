@@ -84,7 +84,7 @@ export function TechnicalHomePage() {
             </div>
             <div className="mt-4 space-y-3 text-sm leading-7 text-slate-300">
               <div className="rounded-2xl border border-white/8 bg-slate-950/60 px-4 py-3">
-                Hostname: <span className="font-semibold text-white">co2router.tech</span>
+                Hostname: <span className="font-semibold text-white">co2router.com</span>
               </div>
               <div className="rounded-2xl border border-white/8 bg-slate-950/60 px-4 py-3">
                 Core evidence: architecture, trace, replay, provenance, live demo data, and
