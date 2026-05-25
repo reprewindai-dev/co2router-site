@@ -489,6 +489,10 @@ function normalizeProviderIdentity(provider: string): string {
     return 'EMBER_STRUCTURAL_BASELINE'
   }
   if (normalized === 'WATTTIME') return 'WATTTIME_MOER'
+  if (normalized === 'ON_IESO_GENERATOR_OUTPUT') return 'ON_CARBON'
+  if (normalized === 'QC_HYDRO_QUEBEC_OPEN_DATA') return 'QC_CARBON'
+  if (normalized === 'FR_RTE_ECO2MIX_ODRE' || normalized === 'FR_RTE_ECO2MIX') return 'FR_CARBON'
+  if (normalized === 'BE_ELIA_OPEN_DATA_FUEL_MIX' || normalized === 'BE_ELIA_OPEN_DATA') return 'BE_CARBON'
   return normalized
 }
 
@@ -506,6 +510,8 @@ function isCanonicalCarbonProvider(provider: string) {
     provider === 'GB_CARBON' ||
     provider === 'DK_CARBON' ||
     provider === 'FI_CARBON' ||
+    provider === 'FR_CARBON' ||
+    provider === 'BE_CARBON' ||
     provider === 'EMBER_STRUCTURAL_BASELINE'
   )
 }

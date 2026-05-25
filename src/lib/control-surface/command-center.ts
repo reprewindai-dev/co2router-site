@@ -223,6 +223,8 @@ const LIVE_PROVIDER_TTL_SEC: Record<string, number> = {
   GB_CARBON: 1800,
   DK_CARBON: 1800,
   FI_CARBON: 1800,
+  FR_CARBON: 1800,
+  BE_CARBON: 21600,
   ON_CARBON: 21600,
   QC_CARBON: 21600,
   BC_CARBON: 21600,
@@ -237,6 +239,8 @@ function normalizeProviderIdentity(provider: string): string {
   if (normalized === 'WATTTIME') return 'WATTTIME_MOER'
   if (normalized === 'ON_IESO_GENERATOR_OUTPUT') return 'ON_CARBON'
   if (normalized === 'QC_HYDRO_QUEBEC_OPEN_DATA') return 'QC_CARBON'
+  if (normalized === 'FR_RTE_ECO2MIX_ODRE' || normalized === 'FR_RTE_ECO2MIX') return 'FR_CARBON'
+  if (normalized === 'BE_ELIA_OPEN_DATA_FUEL_MIX' || normalized === 'BE_ELIA_OPEN_DATA') return 'BE_CARBON'
   return normalized
 }
 
@@ -260,6 +264,12 @@ function mapMethodologyProviderName(name: string): string | null {
       return 'DK_CARBON'
     case 'fi carbon':
       return 'FI_CARBON'
+    case 'france rte':
+    case 'france carbon':
+      return 'FR_CARBON'
+    case 'belgium elia':
+    case 'belgium carbon':
+      return 'BE_CARBON'
     case 'ontario ieso':
     case 'ontario carbon':
       return 'ON_CARBON'
@@ -291,6 +301,8 @@ function isCanonicalCarbonProvider(provider: string) {
     provider === 'GB_CARBON' ||
     provider === 'DK_CARBON' ||
     provider === 'FI_CARBON' ||
+    provider === 'FR_CARBON' ||
+    provider === 'BE_CARBON' ||
     provider === 'EMBER_STRUCTURAL_BASELINE'
   )
 }

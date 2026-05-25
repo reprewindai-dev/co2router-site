@@ -1,0 +1,160 @@
+{
+  "schemaVersion": "2026-05-25",
+  "packageId": "co2router.control-plane",
+  "name": "CO2 Router",
+  "version": "2.1.0",
+  "publisher": "CO2 Router",
+  "category": "compute-governance",
+  "summary": "Pre-execution workload decision authority for cloud and AI compute placement.",
+  "description": "CO2 Router checks workload placement before execution across carbon, water, latency, cost, and policy. It returns one binding action with proof posture: run_now, reroute, delay, throttle, or deny.",
+  "positioning": {
+    "primaryLine": "Stop reacting to compute spend. Control workload placement before it runs.",
+    "buyer": "Platform, FinOps, AI infrastructure, sustainability, and governance teams",
+    "notA": ["dashboard", "carbon calculator", "static reporting tool"],
+    "isA": ["API-first control plane", "pre-execution governance layer", "proof-backed routing authority"]
+  },
+  "entrypoints": {
+    "site": "https://co2router.com",
+    "console": "https://co2router.com/live",
+    "api": "https://api.co2router.com",
+    "mcp": "https://mcp.co2router.com/mcp",
+    "x402": "https://x402.co2router.com",
+    "docs": "https://co2router.com/developers",
+    "status": "https://co2router.com/status"
+  },
+  "download": {
+    "manifest": "https://co2router.com/marketplace/co2router.manifest.json",
+    "readme": "https://co2router.com/marketplace/co2router-readme.md",
+    "format": "hosted-json-and-markdown"
+  },
+  "pricing": {
+    "model": "control-depth-and-decision-volume",
+    "plans": [
+      {
+        "name": "Pilot",
+        "priceUsdMonthly": 250,
+        "includedDecisionsMonthly": 10000,
+        "description": "Test the first decision loop."
+      },
+      {
+        "name": "Validation",
+        "priceUsdMonthly": 750,
+        "includedDecisionsMonthly": 50000,
+        "description": "Put one real workload under control."
+      },
+      {
+        "name": "Operator",
+        "priceUsdMonthly": 1500,
+        "includedDecisionsMonthly": 250000,
+        "description": "Run one production decision layer."
+      },
+      {
+        "name": "Governance",
+        "priceUsdMonthly": 3500,
+        "includedDecisionsMonthly": 1000000,
+        "description": "Multi-workload policy and proof."
+      },
+      {
+        "name": "Assurance",
+        "priceUsdMonthly": null,
+        "includedDecisionsMonthly": null,
+        "description": "Custom enterprise evidence and rollout support."
+      }
+    ],
+    "x402Routes": [
+      { "route": "POST /x402/v1/authorize", "priceUsd": 0.04 },
+      { "route": "POST /x402/v1/route", "priceUsd": 0.01 },
+      { "route": "GET /x402/v1/proof/:frameId", "priceUsd": 0.002 },
+      { "route": "GET /x402/v1/intelligence/grid/summary", "priceUsd": 0.005 },
+      { "route": "GET /x402/v1/intelligence/grid/region/:region", "priceUsd": 0.01 },
+      { "route": "POST /x402/v1/compliance/report", "priceUsd": 0.5 }
+    ]
+  },
+  "apiContracts": {
+    "publicBroker": [
+      "GET /api/v1/health",
+      "GET /api/v1/ready",
+      "POST /api/v1/ci/authorize",
+      "POST /api/v1/route/green",
+      "GET /api/v1/dashboard/metrics",
+      "GET /api/v1/dashboard/regions",
+      "GET /api/v1/dashboard/route-coverage",
+      "GET /api/v1/dashboard/provider-trust"
+    ],
+    "agentTools": [
+      "co2router_authorize_workload",
+      "co2router_route_green",
+      "co2router_get_proof",
+      "co2router_get_grid_summary",
+      "co2router_get_region_intelligence",
+      "co2router_generate_compliance_report"
+    ]
+  },
+  "routeCoverage": {
+    "activeProviderClasses": [
+      "EIA-930 direct US balancing-authority fuel mix",
+      "GB Carbon Intensity API",
+      "Denmark Energi Data Service",
+      "RTE eCO2mix via ODRE",
+      "IESO Ontario generator output",
+      "Hydro-Quebec open data"
+    ],
+    "keyedProviderClasses": [
+      "Fingrid Finland API"
+    ],
+    "guardrails": [
+      "No Electricity Maps dependency",
+      "No synthetic regions presented as live routes",
+      "Provider rows must be fresh before they are promoted to active",
+      "Fallback and structural baselines remain labeled as fallback or baseline"
+    ]
+  },
+  "requiredRuntimeEnvironment": {
+    "site": [
+      "ECOBE_API_URL",
+      "MCP_API_URL",
+      "NEXT_PUBLIC_APP_URL"
+    ],
+    "broker": [
+      "ENGINE_BASE_URL",
+      "ECOBE_INTERNAL_API_KEY",
+      "CO2ROUTER_X402_ENABLED",
+      "CO2ROUTER_X402_PUBLIC_URL",
+      "CO2ROUTER_MCP_PUBLIC_URL",
+      "CO2ROUTER_PAY_TO"
+    ],
+    "engine": [
+      "DATABASE_URL",
+      "REDIS_URL",
+      "EIA_API_KEY",
+      "WATTTIME_USER",
+      "WATTTIME_PASSWORD",
+      "EMBER_API_KEY",
+      "FINGRID_API_KEY"
+    ]
+  },
+  "security": {
+    "browserDirectEngineAccess": false,
+    "privateEngineHostnamesExposed": false,
+    "requiresBrokerBoundary": true,
+    "proofHash": "SHA-256 decision frame proof posture",
+    "secretPolicy": "No API keys, database URLs, private keys, or internal tokens are included in this package."
+  },
+  "deployment": {
+    "target": "Coolify on Hetzner",
+    "domains": [
+      "co2router.com",
+      "api.co2router.com",
+      "x402.co2router.com",
+      "mcp.co2router.com"
+    ],
+    "components": [
+      "co2router-site",
+      "ecobe-mvp broker",
+      "ecobe-engineclaude engine",
+      "Postgres",
+      "Redis",
+      "forecast and route refresh workers"
+    ]
+  }
+}
