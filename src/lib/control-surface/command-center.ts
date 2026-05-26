@@ -216,7 +216,6 @@ function canonicalizeWorldRegion(region: string) {
 }
 
 const FAST_DECISION_FEED_TIMEOUT_MS = 4_000
-const ENABLE_LIVE_DEEP_TRACE = process.env.CO2ROUTER_ENABLE_LIVE_TRACE === 'true'
 const LIVE_PROVIDER_TTL_SEC: Record<string, number> = {
   WATTTIME_MOER: 600,
   EIA_930: 1800,
@@ -1055,8 +1054,7 @@ export async function getCommandCenterSnapshot(
     const [selectedTrace, selectedReplay] =
       defaultSelected &&
       defaultSelected.traceAvailable &&
-      hasInternalApiKey() &&
-      ENABLE_LIVE_DEEP_TRACE
+      hasInternalApiKey()
         ? await Promise.all([
             fetchEngineJson<DecisionTraceRawRecord>(
               `/ci/decisions/${encodeURIComponent(defaultSelected.decisionFrameId)}/trace/raw`,

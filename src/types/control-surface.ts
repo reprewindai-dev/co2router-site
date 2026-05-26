@@ -433,6 +433,7 @@ export interface LiveSystemRecentDecision {
   proofHash: string | null
   traceAvailable: boolean
   governanceSource: string | null
+  traceHash?: string | null
 }
 
 export interface LiveSystemTraceLedger {

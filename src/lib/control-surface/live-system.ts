@@ -20,6 +20,7 @@ type DecisionFeedResponse = {
     proofHash?: string | null
     traceAvailable?: boolean
     governanceSource?: string | null
+    traceHash?: string | null
   }>
 }
 
@@ -61,7 +62,6 @@ type SloResponse = {
 
 const REQUIRED_DATASETS = ['aqueduct', 'aware', 'wwf', 'nrel'] as const
 const FAST_DECISION_FEED_TIMEOUT_MS = 4_000
-const ENABLE_LIVE_DEEP_TRACE = process.env.CO2ROUTER_ENABLE_LIVE_TRACE === 'true'
 
 function unavailableTraceLedger(error: string): LiveSystemTraceLedger {
   return {
@@ -96,6 +96,7 @@ export async function getLiveSystemSnapshot(): Promise<LiveSystemSnapshot> {
           proofHash: decision.proofHash ?? null,
           traceAvailable: Boolean(decision.traceAvailable),
           governanceSource: decision.governanceSource ?? null,
+          traceHash: decision.traceHash ?? null,
         }))
       : []
 
@@ -110,8 +111,7 @@ export async function getLiveSystemSnapshot(): Promise<LiveSystemSnapshot> {
   const traceResult =
     latestDecision &&
     latestDecision.traceAvailable &&
-    hasInternalApiKey() &&
-    ENABLE_LIVE_DEEP_TRACE
+    hasInternalApiKey()
       ? await Promise.allSettled([
           fetchEngineJson<LiveSystemTraceResponse>(
             `/ci/decisions/${encodeURIComponent(latestDecision.decisionFrameId)}/trace`,
@@ -137,7 +137,9 @@ export async function getLiveSystemSnapshot(): Promise<LiveSystemSnapshot> {
       : !latestDecision.traceAvailable
         ? 'Trace details are not attached to the latest live decision yet.'
       : !hasInternalApiKey()
-        ? 'Trace details are unavailable for this snapshot.'
+        ? latestDecision.traceHash
+          ? 'Deep trace details require the internal broker key; public trace hash is attached.'
+          : 'Trace details are unavailable for this snapshot.'
         : traceResult?.[0]?.status === 'rejected'
           ? traceResult[0].reason instanceof Error
             ? traceResult[0].reason.message
@@ -150,7 +152,7 @@ export async function getLiveSystemSnapshot(): Promise<LiveSystemSnapshot> {
       : !latestDecision.traceAvailable
         ? 'Replay verification is waiting for a persisted trace frame.'
       : !hasInternalApiKey()
-        ? 'Replay details are unavailable for this snapshot.'
+        ? 'Replay verification requires the internal broker key.'
         : traceResult?.[1]?.status === 'rejected'
           ? traceResult[1].reason instanceof Error
             ? traceResult[1].reason.message
@@ -179,18 +181,28 @@ export async function getLiveSystemSnapshot(): Promise<LiveSystemSnapshot> {
           computedHash: null,
         }))
 
-  const traceLedger =
-    traceResponse
+  const traceLedger = traceResponse
+    ? {
+        available: true,
+        error: replayError,
+        traceAvailable: Boolean(traceResponse.traceAvailable),
+        traceHash: traceResponse.traceHash ?? null,
+        inputSignalHash: traceResponse.inputSignalHash ?? null,
+        sequenceNumber: traceResponse.sequenceNumber ?? null,
+        proofAvailable: Boolean(traceResponse.proofHash),
+        replayConsistent:
+          replayResponse?.deterministicMatch ?? replayResponse?.consistent ?? null,
+      }
+    : latestDecision?.traceAvailable
       ? {
-          available: true,
-          error: replayError,
-          traceAvailable: Boolean(traceResponse.traceAvailable),
-          traceHash: traceResponse.traceHash ?? null,
-          inputSignalHash: traceResponse.inputSignalHash ?? null,
-          sequenceNumber: traceResponse.sequenceNumber ?? null,
-          proofAvailable: Boolean(traceResponse.proofHash),
-          replayConsistent:
-            replayResponse?.deterministicMatch ?? replayResponse?.consistent ?? null,
+          available: Boolean(latestDecision.traceHash ?? latestDecision.proofHash),
+          error: traceError,
+          traceAvailable: true,
+          traceHash: latestDecision.traceHash ?? null,
+          inputSignalHash: null,
+          sequenceNumber: null,
+          proofAvailable: Boolean(latestDecision.proofHash),
+          replayConsistent: null,
         }
       : unavailableTraceLedger(traceError ?? 'Trace is unavailable.')
 
@@ -203,11 +215,15 @@ export async function getLiveSystemSnapshot(): Promise<LiveSystemSnapshot> {
     },
     traceLedger,
     governance: {
-      available: Boolean(traceResponse),
+      available: Boolean(traceResponse) || Boolean(latestDecision?.governanceSource),
       error: traceError,
       frameworkLabel: 'SAIQ',
-      active: traceResponse ? traceResponse.governanceSource !== 'NONE' : null,
-      policyState: traceResponse?.governanceSource ?? null,
+      active: traceResponse
+        ? traceResponse.governanceSource !== 'NONE'
+        : latestDecision?.governanceSource
+          ? latestDecision.governanceSource !== 'NONE'
+          : null,
+      policyState: traceResponse?.governanceSource ?? latestDecision?.governanceSource ?? null,
       latestDecisionAction: traceResponse?.action ?? latestDecision?.action ?? null,
       latestReasonCode: traceResponse?.reasonCode ?? latestDecision?.reasonCode ?? null,
     },

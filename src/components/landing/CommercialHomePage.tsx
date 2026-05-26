@@ -147,7 +147,7 @@ export function CommercialHomePage() {
               </li>
             </ul>
             <Link
-              href="/live"
+              href="/classic"
               className="inline-flex h-12 w-full items-center justify-center rounded-2xl border border-cyan-400/40 bg-cyan-400/20 px-6 text-sm font-semibold text-cyan-300 transition hover:bg-cyan-400/30"
             >
               Open Classic Grid
@@ -167,8 +167,8 @@ export function CommercialHomePage() {
               </div>
             </div>
             <p className="mb-6 text-slate-400">
-              The 3D globe view is being hardened against the same broker-backed runtime contract.
-              Until every globe label is backend-sourced, it opens the truthful live surface.
+              The 3D globe command center renders the same broker-backed runtime contract as a
+              spatial route map for regional posture, live decisions, and proof availability.
             </p>
             <ul className="mb-6 space-y-2 text-sm text-slate-400">
               <li className="flex items-center gap-2">
@@ -192,7 +192,7 @@ export function CommercialHomePage() {
               href="/live"
               className="inline-flex h-12 w-full items-center justify-center rounded-2xl border border-purple-400/40 bg-purple-400/20 px-6 text-sm font-semibold text-purple-300 transition hover:bg-purple-400/30"
             >
-              Open Live Surface
+              Open 3D Globe
             </Link>
           </div>
         </div>

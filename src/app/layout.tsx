@@ -17,8 +17,8 @@ import '@/components/co2-control-panel/styles.css'
 import { Providers } from './providers'
 
 function shouldHideChrome(pathname: string): boolean {
-  // Hide site chrome only for console and live to show full HaloGrid
-  return pathname.startsWith('/console') || pathname.startsWith('/live')
+  // Hide site chrome for operator surfaces so HaloGrid owns the full viewport.
+  return pathname.startsWith('/console') || pathname.startsWith('/live') || pathname.startsWith('/classic')
 }
 
 const spaceGrotesk = Space_Grotesk({ subsets: ['latin'] })
