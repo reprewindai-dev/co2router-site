@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 
 import { fetchEngineJson, hasInternalApiKey } from '@/lib/control-surface/engine'
 import { requireControlSurfaceOperator } from '@/lib/control-surface/operator-auth'
-import type { DecisionTraceRawRecord } from '@/types/control-surface'
+import type { DecisionTraceRawRecord, LiveSystemTraceResponse } from '@/types/control-surface'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,10 +22,16 @@ export async function GET(
     }
 
     const { decisionFrameId } = await context.params
-    const trace = await fetchEngineJson<DecisionTraceRawRecord>(
+    const trace = await fetchEngineJson<DecisionTraceRawRecord | LiveSystemTraceResponse>(
       `/ci/decisions/${encodeURIComponent(decisionFrameId)}/trace/raw`,
       undefined,
       { internal: true }
+    ).catch(() =>
+      fetchEngineJson<LiveSystemTraceResponse>(
+        `/ci/decisions/${encodeURIComponent(decisionFrameId)}/trace`,
+        undefined,
+        { internal: true }
+      )
     )
     return NextResponse.json(trace)
   } catch (error) {

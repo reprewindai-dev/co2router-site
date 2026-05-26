@@ -10,6 +10,7 @@ import type {
   ControlAction,
   ControlSurfaceProviderNode,
   DecisionTraceRawRecord,
+  LiveSystemTraceResponse,
   LiveSystemReplayResponse,
   WorldExecutionState,
   WorldRegionState,
@@ -1051,7 +1052,7 @@ export async function getCommandCenterSnapshot(
     const defaultSelected =
       recentDecisions.find((decision) => decision.traceAvailable) ?? recentDecisions[0] ?? null
 
-    const [selectedTrace, selectedReplay] =
+    const [selectedTrace, selectedReplay, selectedTraceSummary] =
       defaultSelected &&
       defaultSelected.traceAvailable &&
       hasInternalApiKey()
@@ -1066,8 +1067,13 @@ export async function getCommandCenterSnapshot(
               undefined,
               { internal: true, timeoutMs: 4_000 }
             ).catch(() => null),
+            fetchEngineJson<LiveSystemTraceResponse>(
+              `/ci/decisions/${encodeURIComponent(defaultSelected.decisionFrameId)}/trace`,
+              undefined,
+              { internal: true, timeoutMs: 4_000 }
+            ).catch(() => null),
           ])
-        : [null, null]
+        : [null, null, null]
 
     const backendRegionNodes =
       regionsSettled.status === 'fulfilled' ? buildBackendRegionNodes(regionsSettled.value.regions) : []
@@ -1118,8 +1124,16 @@ export async function getCommandCenterSnapshot(
       header: {
         systemActive: health.status === 'healthy',
         systemStatus: health.status,
-        saiqEnforced: selectedTrace ? selectedTrace.payload.governance.source !== 'NONE' : null,
-        traceLocked: selectedTrace ? Boolean(selectedTrace.traceHash) : null,
+        saiqEnforced: selectedTrace
+          ? selectedTrace.payload.governance.source !== 'NONE'
+          : selectedTraceSummary
+            ? selectedTraceSummary.governanceSource !== 'NONE'
+            : null,
+        traceLocked: selectedTrace
+          ? Boolean(selectedTrace.traceHash)
+          : selectedTraceSummary
+            ? Boolean(selectedTraceSummary.traceHash)
+            : null,
         replayVerified: selectedReplay?.deterministicMatch ?? null,
         detail: headerDetail,
       },
@@ -1136,10 +1150,15 @@ export async function getCommandCenterSnapshot(
       },
       governance: {
         frameworkLabel: 'SAIQ',
-        source: selectedTrace?.payload.governance.source ?? null,
-        active: selectedTrace ? selectedTrace.payload.governance.source !== 'NONE' : null,
+        source: selectedTrace?.payload.governance.source ?? selectedTraceSummary?.governanceSource ?? null,
+        active: selectedTrace
+          ? selectedTrace.payload.governance.source !== 'NONE'
+          : selectedTraceSummary
+            ? selectedTraceSummary.governanceSource !== 'NONE'
+            : null,
         strict: selectedTrace?.payload.governance.strict ?? null,
-        enforcementMode: selectedTrace?.payload.decisionPath.operatingMode ?? null,
+        enforcementMode:
+          selectedTrace?.payload.decisionPath.operatingMode ?? selectedTraceSummary?.operatingMode ?? null,
         selectedScore: selectedTrace?.payload.governance.score ?? selectedScore,
         thresholds: extractThresholds(selectedTrace, selectedReplay),
         weights: extractWeights(selectedTrace),
