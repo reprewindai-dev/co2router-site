@@ -2,6 +2,7 @@
 
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
+import type { ReactNode } from 'react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import type { RegionNode, RoutingArc } from '@/components/co2-control-panel/types'
@@ -36,6 +37,17 @@ type LoadState = {
   data: LivePayload | null
   error: string | null
   loading: boolean
+}
+
+type PanelKey = 'regions' | 'status' | 'stream' | 'copilot'
+
+type PanelState = Record<PanelKey, boolean>
+
+const DEFAULT_PANEL_STATE: PanelState = {
+  regions: true,
+  status: true,
+  stream: true,
+  copilot: false,
 }
 
 const REGION_GLOBE_COORDS: Record<string, { lat: number; lng: number }> = {
@@ -263,37 +275,27 @@ async function fetchLivePayload(): Promise<LivePayload> {
   return { command, live }
 }
 
-function TierLock({ tier, onClose }: { tier: 'pro' | 'elite'; onClose: () => void }) {
+function PanelToggleButton({
+  active,
+  children,
+  onClick,
+}: {
+  active: boolean
+  children: ReactNode
+  onClick: () => void
+}) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-xl">
-      <div className="w-full max-w-md rounded-2xl border border-white/10 bg-slate-950 p-8">
-        <div className="mb-4 text-[10px] uppercase tracking-[0.28em] text-cyan-300">
-          {tier === 'pro' ? 'PRO TIER' : 'ELITE TIER'}
-        </div>
-        <h2 className="mb-4 text-3xl font-black tracking-normal text-white">
-          {tier === 'pro' ? 'Unlock Pro access' : 'Unlock Elite access'}
-        </h2>
-        <p className="mb-6 text-sm leading-7 text-slate-300">
-          {tier === 'pro'
-            ? 'Pro includes full decision history, provider feeds, policy inspection, and replay posture.'
-            : 'Elite adds audit exports, compliance reports, SAIQ weight inspection, and operator manuals.'}
-        </p>
-        <div className="flex gap-3">
-          <Link
-            href="/access"
-            className="flex-1 rounded-xl bg-cyan-300 px-5 py-3 text-center text-sm font-bold uppercase tracking-[0.18em] text-slate-950"
-          >
-            Request access
-          </Link>
-          <button
-            onClick={onClose}
-            className="rounded-xl border border-white/10 bg-white/[0.04] px-5 py-3 text-sm text-slate-300"
-          >
-            Back
-          </button>
-        </div>
-      </div>
-    </div>
+    <button
+      onClick={onClick}
+      className="rounded-lg border px-2.5 py-1 text-[9px] uppercase tracking-[0.14em] transition"
+      style={{
+        borderColor: active ? 'rgba(56,189,248,0.35)' : 'rgba(255,255,255,0.08)',
+        background: active ? 'rgba(56,189,248,0.1)' : 'rgba(255,255,255,0.025)',
+        color: active ? '#67e8f9' : '#64748b',
+      }}
+    >
+      {children}
+    </button>
   )
 }
 
@@ -301,19 +303,65 @@ function FixedGlobeStatus({
   command,
   live,
   error,
+  collapsed,
+  onToggle,
+  onClose,
 }: {
   command: CommandCenterSnapshot
   live: LiveSystemSnapshot
   error: string | null
+  collapsed: boolean
+  onToggle: () => void
+  onClose: () => void
 }) {
   const active = command.world.nodes.filter((node) => node.state === 'active').length
   const marginal = command.world.nodes.filter((node) => node.state === 'marginal').length
   const blocked = command.world.nodes.filter((node) => node.state === 'blocked').length
   const latest = command.decisionCore.recentDecisions[0] ?? null
 
+  if (collapsed) {
+    return (
+      <button
+        onClick={onToggle}
+        className="absolute left-4 top-4 z-20 rounded-full border border-cyan-300/20 bg-slate-950/80 px-3 py-2 text-left shadow-2xl backdrop-blur-xl"
+        aria-label="Expand globe status"
+      >
+        <div className="flex items-center gap-2">
+          <span
+            className="h-2 w-2 rounded-full"
+            style={{
+              background: command.runtime.mode === 'live' ? '#4ade80' : '#fbbf24',
+              boxShadow: `0 0 10px ${command.runtime.mode === 'live' ? '#4ade80' : '#fbbf24'}`,
+            }}
+          />
+          <span className="text-[9px] uppercase tracking-[0.16em] text-cyan-200">Globe</span>
+          <span className="text-[9px] uppercase tracking-[0.16em] text-slate-400">
+            {active}/{marginal}/{blocked}
+          </span>
+        </div>
+      </button>
+    )
+  }
+
   return (
-    <div className="absolute left-6 top-6 z-10 w-[330px] rounded-2xl border border-cyan-300/20 bg-slate-950/90 p-4 shadow-2xl backdrop-blur-xl">
-      <div className="flex items-start justify-between gap-3">
+    <div className="absolute left-4 top-4 z-20 w-[300px] rounded-2xl border border-cyan-300/20 bg-slate-950/90 p-4 shadow-2xl backdrop-blur-xl">
+      <div className="absolute right-3 top-3 flex gap-1">
+        <button
+          onClick={onToggle}
+          className="grid h-6 w-6 place-items-center rounded-lg border border-white/10 bg-white/[0.04] text-[10px] text-slate-400 hover:text-cyan-200"
+          aria-label="Minimize globe status"
+        >
+          -
+        </button>
+        <button
+          onClick={onClose}
+          className="grid h-6 w-6 place-items-center rounded-lg border border-white/10 bg-white/[0.04] text-[10px] text-slate-400 hover:text-cyan-200"
+          aria-label="Close globe status"
+        >
+          x
+        </button>
+      </div>
+      <div className="flex items-start justify-between gap-3 pr-14">
         <div>
           <div className="text-[9px] uppercase tracking-[0.24em] text-cyan-300">Globe status</div>
           <div className="mt-1 text-xl font-black tracking-normal text-white">
@@ -383,10 +431,12 @@ function RegionList({
   command,
   selectedRegionId,
   onSelect,
+  onClose,
 }: {
   command: CommandCenterSnapshot
   selectedRegionId: string | null
   onSelect: (region: WorldRegionState) => void
+  onClose: () => void
 }) {
   return (
     <aside
@@ -397,9 +447,18 @@ function RegionList({
         background: 'rgba(6,13,24,0.72)',
       }}
     >
-      <div className="mb-3 flex items-center justify-between px-1 text-[9px] uppercase tracking-[0.22em] text-slate-500">
+      <div className="mb-3 flex items-center justify-between gap-3 px-1 text-[9px] uppercase tracking-[0.22em] text-slate-500">
         <span>Backend regions</span>
-        <span className="font-mono text-cyan-300/70">{command.world.nodes.length}</span>
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-cyan-300/70">{command.world.nodes.length}</span>
+          <button
+            onClick={onClose}
+            className="rounded border border-white/10 px-1.5 py-0.5 text-[9px] text-slate-500 hover:text-cyan-200"
+            aria-label="Close backend regions panel"
+          >
+            x
+          </button>
+        </div>
       </div>
       <div className="space-y-1.5">
         {command.world.nodes.map((region) => (
@@ -454,7 +513,13 @@ function RegionList({
   )
 }
 
-function DecisionStream({ decisions }: { decisions: CommandCenterDecisionItem[] }) {
+function DecisionStream({
+  decisions,
+  onClose,
+}: {
+  decisions: CommandCenterDecisionItem[]
+  onClose: () => void
+}) {
   return (
     <aside
       className="flex w-[320px] flex-shrink-0 flex-col overflow-hidden"
@@ -468,7 +533,16 @@ function DecisionStream({ decisions }: { decisions: CommandCenterDecisionItem[] 
         style={{ borderBottom: '1px solid rgba(56,189,248,0.06)' }}
       >
         <span className="text-[9px] uppercase tracking-[0.22em] text-slate-500">Decision stream</span>
-        <span className="text-[9px] text-cyan-300/70">{decisions.length} frames</span>
+        <div className="flex items-center gap-2">
+          <span className="text-[9px] text-cyan-300/70">{decisions.length} frames</span>
+          <button
+            onClick={onClose}
+            className="rounded border border-white/10 px-1.5 py-0.5 text-[9px] text-slate-500 hover:text-cyan-200"
+            aria-label="Close decision stream panel"
+          >
+            x
+          </button>
+        </div>
       </div>
       <div className="flex-1 space-y-1.5 overflow-y-auto px-3 py-2">
         {decisions.length === 0 && (
@@ -519,9 +593,114 @@ function DecisionStream({ decisions }: { decisions: CommandCenterDecisionItem[] 
   )
 }
 
+function OperatorCopilot({
+  command,
+  live,
+  selectedRegion,
+  onClose,
+}: {
+  command: CommandCenterSnapshot
+  live: LiveSystemSnapshot
+  selectedRegion: WorldRegionState | null
+  onClose: () => void
+}) {
+  const active = command.world.nodes.filter((node) => node.state === 'active')
+  const marginal = command.world.nodes.filter((node) => node.state === 'marginal')
+  const cleanestActive = active
+    .filter((node) => typeof node.carbonIntensityGPerKwh === 'number')
+    .sort((a, b) => (a.carbonIntensityGPerKwh ?? 9999) - (b.carbonIntensityGPerKwh ?? 9999))[0]
+  const newestDecision = command.decisionCore.recentDecisions[0] ?? null
+  const verifiedDatasets = live.providers.datasets.filter(
+    (dataset) => dataset.verificationStatus === 'verified',
+  ).length
+
+  const recommendations = [
+    cleanestActive
+      ? {
+          title: 'Lowest current active route',
+          body: `${cleanestActive.label} is the cleanest active route currently exposed by the broker at ${Math.round(
+            cleanestActive.carbonIntensityGPerKwh ?? 0,
+          )}g/kWh.`,
+        }
+      : {
+          title: 'No active route with current carbon signal',
+          body: 'Keep routing authority conservative until the broker exposes a current source-backed signal.',
+        },
+    marginal.length > 0
+      ? {
+          title: 'Marginal route cleanup',
+          body: `${marginal.length} routes are registered but not fully active. Promote only routes with current provider-backed samples; keep stale routes marginal.`,
+        }
+      : {
+          title: 'No marginal route cleanup required',
+          body: 'All registered routes in this view are currently active or blocked.',
+        },
+    newestDecision
+      ? {
+          title: 'Latest governed decision',
+          body: `${actionLabel(newestDecision.action)} on ${newestDecision.selectedRegion} with ${
+            newestDecision.traceAvailable ? 'trace available' : 'trace pending'
+          }.`,
+        }
+      : {
+          title: 'No recent decision frame',
+          body: 'The broker did not return a recent decision frame for operator guidance.',
+        },
+    {
+      title: 'Proof posture',
+      body: `${verifiedDatasets}/${live.providers.datasets.length} datasets are verified; replay is ${
+        command.header.replayVerified ? 'verified' : 'pending'
+      } and trace lock is ${command.header.traceLocked ? 'active' : 'not active'}.`,
+    },
+  ]
+
+  return (
+    <aside
+      className="absolute right-4 top-4 z-20 w-[340px] rounded-2xl border border-cyan-300/20 bg-slate-950/[0.92] p-4 shadow-2xl backdrop-blur-xl"
+      aria-label="CO2 Router copilot"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="text-[9px] uppercase tracking-[0.24em] text-cyan-300">Operator copilot</div>
+          <div className="mt-1 text-lg font-black tracking-normal text-white">Live routing guidance</div>
+        </div>
+        <button
+          onClick={onClose}
+          className="grid h-7 w-7 place-items-center rounded-lg border border-white/10 bg-white/[0.04] text-[10px] text-slate-400 hover:text-cyan-200"
+          aria-label="Close operator copilot"
+        >
+          x
+        </button>
+      </div>
+
+      {selectedRegion && (
+        <div className="mt-3 rounded-xl border border-white/10 bg-white/[0.03] p-3">
+          <div className="text-[9px] uppercase tracking-[0.16em] text-slate-500">Selected route</div>
+          <div className="mt-1 truncate text-sm font-bold text-white">{selectedRegion.label}</div>
+          <div className="mt-1 text-[11px] leading-5 text-slate-400">
+            {globeSignalLabel(selectedRegion)}
+          </div>
+        </div>
+      )}
+
+      <div className="mt-3 space-y-2">
+        {recommendations.map((item) => (
+          <div key={item.title} className="rounded-xl border border-white/10 bg-black/20 p-3">
+            <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-cyan-200">
+              {item.title}
+            </div>
+            <p className="mt-1 text-[11px] leading-5 text-slate-400">{item.body}</p>
+          </div>
+        ))}
+      </div>
+    </aside>
+  )
+}
+
 export default function LivePage() {
-  const [tier, setTier] = useState<Tier>('freeview')
-  const [lockTarget, setLockTarget] = useState<'pro' | 'elite' | null>(null)
+  const [tier, setTier] = useState<Tier>('elite')
+  const [panels, setPanels] = useState<PanelState>(DEFAULT_PANEL_STATE)
+  const [statusCollapsed, setStatusCollapsed] = useState(true)
   const [loadState, setLoadState] = useState<LoadState>({
     data: null,
     error: null,
@@ -529,13 +708,20 @@ export default function LivePage() {
   })
   const [selectedRegionId, setSelectedRegionId] = useState<string | null>(null)
   const [paused, setPaused] = useState(false)
-  const [clock, setClock] = useState(Date.now())
+  const [clock, setClock] = useState<number | null>(null)
+
+  const setPanel = useCallback((panel: PanelKey, value: boolean) => {
+    setPanels((current) => ({ ...current, [panel]: value }))
+    if (panel === 'status' && value) setStatusCollapsed(true)
+  }, [])
 
   const refresh = useCallback(async () => {
     try {
       const data = await fetchLivePayload()
       setLoadState({ data, error: null, loading: false })
-      setSelectedRegionId((current) => current ?? data.command.world.nodes[0]?.region ?? null)
+      setSelectedRegionId((current) =>
+        current && data.command.world.nodes.some((node) => node.region === current) ? current : null,
+      )
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to load CO2 Router backend data.'
       setLoadState((current) => ({
@@ -551,6 +737,7 @@ export default function LivePage() {
   }, [refresh])
 
   useEffect(() => {
+    setClock(Date.now())
     const timer = setInterval(() => setClock(Date.now()), 1000)
     return () => clearInterval(timer)
   }, [])
@@ -566,9 +753,7 @@ export default function LivePage() {
   const command = loadState.data?.command ?? null
   const live = loadState.data?.live ?? null
   const selectedRegion =
-    command?.world.nodes.find((region) => region.region === selectedRegionId) ??
-    command?.world.nodes[0] ??
-    null
+    command?.world.nodes.find((region) => region.region === selectedRegionId) ?? null
   const selectedDecision =
     selectedRegion && command
       ? decisionForRegion(selectedRegion, command.decisionCore.recentDecisions)
@@ -625,18 +810,8 @@ export default function LivePage() {
     })
   }, [command, globeRegions])
 
-  const handleTierClick = (nextTier: Tier) => {
-    if (nextTier === 'pro' || nextTier === 'elite') {
-      setLockTarget(nextTier)
-      return
-    }
-    setTier(nextTier)
-  }
-
   return (
     <div className="flex min-h-screen flex-col bg-[#060d18] font-mono text-slate-200">
-      {lockTarget && <TierLock tier={lockTarget} onClose={() => setLockTarget(null)} />}
-
       <header
         className="flex flex-shrink-0 items-center justify-between gap-4 px-5 py-2.5"
         style={{
@@ -683,14 +858,34 @@ export default function LivePage() {
           <span className="hidden text-[10px] uppercase tracking-[0.18em] text-cyan-300/50 lg:block">
             Broker {command?.runtime.mode ?? 'loading'}
           </span>
+          <div className="hidden h-4 w-px bg-white/10 xl:block" />
+          <span className="hidden text-[10px] uppercase tracking-[0.18em] text-emerald-300/70 xl:block">
+            Owner admin
+          </span>
         </div>
 
         <div className="flex flex-shrink-0 items-center gap-2">
+          <div className="hidden gap-1 lg:flex">
+            {[
+              ['regions', 'Regions'],
+              ['status', 'Status'],
+              ['stream', 'Stream'],
+              ['copilot', 'Copilot'],
+            ].map(([key, label]) => (
+              <PanelToggleButton
+                key={key}
+                active={panels[key as PanelKey]}
+                onClick={() => setPanel(key as PanelKey, !panels[key as PanelKey])}
+              >
+                {label}
+              </PanelToggleButton>
+            ))}
+          </div>
           <div className="flex gap-0.5 rounded-xl bg-white/[0.03] p-0.5">
             {(['freeview', 'pro', 'elite'] as const).map((item) => (
               <button
                 key={item}
-                onClick={() => handleTierClick(item)}
+                onClick={() => setTier(item)}
                 className="rounded-[10px] px-3 py-1 text-[9px] uppercase tracking-[0.16em] transition"
                 style={{
                   background: tier === item ? 'rgba(56,189,248,0.15)' : 'transparent',
@@ -708,7 +903,9 @@ export default function LivePage() {
           >
             {paused ? '>' : '||'}
           </button>
-          <span className="ml-1 text-[10px] tabular-nums text-cyan-300/50">{formatTime(clock)}</span>
+          <span className="ml-1 text-[10px] tabular-nums text-cyan-300/50">
+            {clock ? formatTime(clock) : '--:--:--'}
+          </span>
           <Link
             href="/"
             className="ml-2 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-1.5 text-[10px] uppercase tracking-[0.16em] text-slate-400"
@@ -748,16 +945,40 @@ export default function LivePage() {
         </main>
       ) : (
         <div className="flex flex-1 overflow-hidden" style={{ minHeight: 0 }}>
-          <RegionList
-            command={command}
-            selectedRegionId={selectedRegion?.region ?? null}
-            onSelect={(region) => setSelectedRegionId(region.region)}
-          />
+          {panels.regions && (
+            <RegionList
+              command={command}
+              selectedRegionId={selectedRegion?.region ?? null}
+              onSelect={(region) => setSelectedRegionId(region.region)}
+              onClose={() => setPanel('regions', false)}
+            />
+          )}
 
           <main className="relative flex flex-1 flex-col overflow-hidden" style={{ minHeight: 0 }}>
             <div className="relative flex-1">
-              <GlobeZone regions={globeRegions} arcs={globeArcs} />
-              <FixedGlobeStatus command={command} live={live} error={loadState.error} />
+              <GlobeZone
+                regions={globeRegions}
+                arcs={globeArcs}
+                onRegionClick={(region) => setSelectedRegionId(region.id)}
+              />
+              {panels.status && (
+                <FixedGlobeStatus
+                  command={command}
+                  live={live}
+                  error={loadState.error}
+                  collapsed={statusCollapsed}
+                  onToggle={() => setStatusCollapsed((value) => !value)}
+                  onClose={() => setPanel('status', false)}
+                />
+              )}
+              {panels.copilot && (
+                <OperatorCopilot
+                  command={command}
+                  live={live}
+                  selectedRegion={selectedRegion}
+                  onClose={() => setPanel('copilot', false)}
+                />
+              )}
 
               {selectedRegion && (
                 <div className="absolute bottom-6 left-6 right-6 z-10 rounded-2xl border border-white/10 bg-slate-950/90 p-5 shadow-2xl backdrop-blur-xl">
@@ -811,7 +1032,12 @@ export default function LivePage() {
             </div>
           </main>
 
-          <DecisionStream decisions={command.decisionCore.recentDecisions} />
+          {panels.stream && (
+            <DecisionStream
+              decisions={command.decisionCore.recentDecisions}
+              onClose={() => setPanel('stream', false)}
+            />
+          )}
         </div>
       )}
 
