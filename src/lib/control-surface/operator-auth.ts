@@ -1,8 +1,10 @@
 import crypto from 'crypto'
 import { NextResponse } from 'next/server'
 
+import { getOperatorKey } from '@/lib/internal-api-key'
+
 function getExpectedOperatorKey() {
-  return process.env.CO2ROUTER_OPERATOR_KEY || process.env.ECOBE_OPERATOR_KEY || null
+  return getOperatorKey()
 }
 
 function getPresentedOperatorKey(request: Request) {
