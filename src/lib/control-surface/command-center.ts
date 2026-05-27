@@ -67,6 +67,27 @@ type DecisionFeed = {
   decisions: DecisionRow[]
 }
 
+type CarbonLedgerDecisionRow = {
+  decisionFrameId: string
+  createdAt: string
+  baselineRegion: string | null
+  chosenRegion: string | null
+  baselineCarbonGPerKwh: number | null
+  chosenCarbonGPerKwh: number | null
+  carbonSavedG: number | null
+  confidenceScore: number | null
+  fallbackUsed: boolean | null
+  sourceUsed: string | null
+  estimatedFlag: boolean | null
+  syntheticFlag: boolean | null
+  jobClass: string | null
+  workloadType: string | null
+}
+
+type CarbonLedgerDecisionFeed = {
+  decisions: CarbonLedgerDecisionRow[]
+}
+
 type ProviderTrustResponse = {
   freshness: Array<{
     provider: string
@@ -377,6 +398,65 @@ function buildCommandCenterDecisionItem(decision: DecisionRow): CommandCenterDec
     fallbackUsed: decision.fallbackUsed,
     systemState: toWorldExecutionState(decision),
   }
+}
+
+function buildDecisionRowsFromLedger(feed: CarbonLedgerDecisionFeed | null): DecisionRow[] {
+  if (!feed?.decisions?.length) return []
+
+  return feed.decisions
+    .filter((decision) => Boolean(decision.decisionFrameId && decision.chosenRegion))
+    .map((decision) => {
+      const baselineCarbon = decision.baselineCarbonGPerKwh ?? decision.chosenCarbonGPerKwh ?? 0
+      const chosenCarbon = decision.chosenCarbonGPerKwh ?? baselineCarbon
+      const selectedRegion = canonicalizeWorldRegion(decision.chosenRegion ?? 'unknown')
+      const baselineRegion = decision.baselineRegion ? canonicalizeWorldRegion(decision.baselineRegion) : selectedRegion
+      const rerouted = baselineRegion !== selectedRegion
+      const signalMode =
+        decision.sourceUsed?.toUpperCase().includes('WATTTIME') ? 'marginal' : 'average'
+
+      return {
+        decisionFrameId: decision.decisionFrameId,
+        createdAt: decision.createdAt,
+        selectedRunner: selectedRegion,
+        selectedRegion,
+        carbonIntensity: chosenCarbon,
+        baseline: baselineCarbon,
+        savings:
+          baselineCarbon > 0
+            ? Number((((baselineCarbon - chosenCarbon) / baselineCarbon) * 100).toFixed(2))
+            : 0,
+        decisionAction: rerouted ? 'reroute' : 'run_now',
+        action: rerouted ? 'reroute' : 'run_now',
+        reasonCode: rerouted ? 'CARBON_LEDGER_REROUTE_FRAME' : 'CARBON_LEDGER_RUN_FRAME',
+        signalConfidence: decision.confidenceScore ?? 0,
+        decisionMode: 'runtime_authorization',
+        signalMode,
+        accountingMethod: signalMode === 'marginal' ? 'marginal' : 'average',
+        notBefore: null,
+        proofHash: undefined,
+        waterAuthorityMode: 'fallback',
+        waterScenario: 'current',
+        facilityId: null,
+        waterEvidenceRefs: [],
+        waterImpactLiters: null,
+        waterBaselineLiters: null,
+        waterScarcityImpact: null,
+        waterStressIndex: null,
+        waterConfidence: null,
+        fallbackUsed: Boolean(decision.fallbackUsed || decision.estimatedFlag || decision.syntheticFlag),
+        jobType: decision.workloadType ?? decision.jobClass ?? 'carbon-ledger',
+        metadata: {
+          source: 'carbon-ledger',
+          sourceUsed: decision.sourceUsed,
+          baselineRegion,
+          carbonSavedG: decision.carbonSavedG,
+        },
+        traceAvailable: false,
+        governanceSource: 'CARBON_LEDGER',
+        traceHash: null,
+        latencyMs: null,
+      } satisfies DecisionRow
+    })
 }
 
 function buildProviders(
@@ -924,7 +1004,14 @@ export async function getCommandCenterSnapshot(
   const describeFailure = (error: unknown) => (error instanceof Error ? error.message : 'Unknown engine failure.')
   const generatedAt = new Date().toISOString()
 
-  const [healthSettled, sloSettled, decisionsSettled, provenanceSettled, regionsSettled] = await Promise.allSettled([
+  const [
+    healthSettled,
+    sloSettled,
+    decisionsSettled,
+    provenanceSettled,
+    regionsSettled,
+    ledgerDecisionsSettled,
+  ] = await Promise.allSettled([
     fetchEngineJson<CiHealthSnapshot>('/ci/health'),
     fetchEngineJson<CiSloSnapshot>('/ci/slo'),
     fetchEngineJson<DecisionFeed>('/ci/decisions?limit=8', undefined, {
@@ -932,6 +1019,7 @@ export async function getCommandCenterSnapshot(
     }),
     fetchEngineJson<WaterProvenanceResponse>('/water/provenance'),
     fetchEngineJson<DashboardRegionsResponse>('/dashboard/regions'),
+    fetchEngineJson<CarbonLedgerDecisionFeed>('/dashboard/carbon-ledger-decisions?limit=8'),
   ])
 
     const [ledgerResult, metricsResult, providerTrust, methodologyProvidersResult] = await Promise.all([
@@ -1046,8 +1134,16 @@ export async function getCommandCenterSnapshot(
     providers,
   }
 
-  if (decisionsSettled.status === 'fulfilled') {
-    const decisionFeed = decisionsSettled.value
+  const ciDecisionFeed = decisionsSettled.status === 'fulfilled' ? decisionsSettled.value : { decisions: [] }
+  const ledgerDecisionRows =
+    ledgerDecisionsSettled.status === 'fulfilled'
+      ? buildDecisionRowsFromLedger(ledgerDecisionsSettled.value)
+      : []
+  const decisionFeed: DecisionFeed =
+    ciDecisionFeed.decisions.length > 0 ? ciDecisionFeed : { decisions: ledgerDecisionRows }
+  const decisionFeedSource = ciDecisionFeed.decisions.length > 0 ? 'ci' : ledgerDecisionRows.length > 0 ? 'carbon-ledger' : 'empty'
+
+  if (decisionsSettled.status === 'fulfilled' || ledgerDecisionRows.length > 0) {
     const recentDecisions = decisionFeed.decisions.map(buildCommandCenterDecisionItem)
     const defaultSelected =
       recentDecisions.find((decision) => decision.traceAvailable) ?? recentDecisions[0] ?? null
@@ -1135,7 +1231,10 @@ export async function getCommandCenterSnapshot(
             ? Boolean(selectedTraceSummary.traceHash)
             : null,
         replayVerified: selectedReplay?.deterministicMatch ?? null,
-        detail: headerDetail,
+        detail:
+          decisionFeedSource === 'carbon-ledger'
+            ? `${headerDetail} | feed carbon ledger`
+            : headerDetail,
       },
       impact,
       world: {

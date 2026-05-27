@@ -27,6 +27,7 @@ const GlobeZone = dynamic(
 )
 
 type Tier = 'freeview' | 'pro' | 'elite'
+type ViewMode = 'globe' | 'topology'
 
 type LivePayload = {
   command: CommandCenterSnapshot
@@ -43,11 +44,22 @@ type PanelKey = 'regions' | 'status' | 'stream' | 'copilot'
 
 type PanelState = Record<PanelKey, boolean>
 
+type ProjectedLiveRegion = WorldRegionState & {
+  px: number
+  py: number
+  groupLabel: string
+  groupColor: string
+}
+
 const DEFAULT_PANEL_STATE: PanelState = {
   regions: true,
   status: true,
   stream: true,
   copilot: false,
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value))
 }
 
 const REGION_GLOBE_COORDS: Record<string, { lat: number; lng: number }> = {
@@ -256,6 +268,21 @@ function decisionForRegion(
     decisions.find((decision) => decision.selectedRegion === region.region) ??
     null
   )
+}
+
+function projectLiveRegion(region: WorldRegionState, index: number): ProjectedLiveRegion {
+  const coords = resolveGlobeCoords(region)
+  const group = globeRegionGroup(region.region)
+  const rowOffset = ((index % 4) - 1.5) * 0.85
+  const colOffset = (((index * 7) % 5) - 2) * 0.65
+
+  return {
+    ...region,
+    px: clamp(((coords.lng + 180) / 360) * 100 + colOffset, 4, 96),
+    py: clamp(((90 - coords.lat) / 180) * 100 + rowOffset, 6, 94),
+    groupLabel: group.label,
+    groupColor: group.color,
+  }
 }
 
 async function fetchJson<T>(path: string): Promise<T> {
@@ -697,8 +724,213 @@ function OperatorCopilot({
   )
 }
 
+function LiveTopologyFallback({
+  command,
+  selectedRegion,
+  hoveredRegion,
+  onSelect,
+  onHover,
+}: {
+  command: CommandCenterSnapshot
+  selectedRegion: WorldRegionState | null
+  hoveredRegion: ProjectedLiveRegion | null
+  onSelect: (region: WorldRegionState) => void
+  onHover: (region: ProjectedLiveRegion | null) => void
+}) {
+  const nodes = useMemo(
+    () => command.world.nodes.map(projectLiveRegion),
+    [command.world.nodes],
+  )
+  const selectedProjected =
+    selectedRegion ? nodes.find((node) => node.region === selectedRegion.region) ?? null : null
+  const selectedOrHovered = hoveredRegion ?? selectedProjected
+  const nodeByRegion = useMemo(() => new Map(nodes.map((node) => [node.region, node])), [nodes])
+  const flowSegments = command.world.flows.flatMap((flow) => {
+    const from = nodeByRegion.get(flow.fromRegion)
+    const to = nodeByRegion.get(flow.toRegion)
+    if (!from || !to) return []
+    return [{ ...flow, from, to }]
+  })
+  const detailStyle = selectedOrHovered
+    ? {
+        ...(selectedOrHovered.px > 58
+          ? { right: `${clamp(100 - selectedOrHovered.px + 2, 2, 52)}%` }
+          : { left: `${clamp(selectedOrHovered.px + 2, 2, 54)}%` }),
+        ...(selectedOrHovered.py > 54
+          ? { bottom: `${clamp(100 - selectedOrHovered.py + 2, 2, 42)}%` }
+          : { top: `${clamp(selectedOrHovered.py + 2, 4, 54)}%` }),
+      }
+    : undefined
+
+  return (
+    <section className="absolute inset-0 overflow-hidden bg-[#050b14]">
+      <div
+        className="absolute inset-0 opacity-75"
+        style={{
+          backgroundImage:
+            'linear-gradient(rgba(56,189,248,0.055) 1px, transparent 1px), linear-gradient(90deg, rgba(56,189,248,0.055) 1px, transparent 1px), radial-gradient(circle at 50% 46%, rgba(56,189,248,0.13), transparent 48%)',
+          backgroundSize: '48px 48px, 48px 48px, 100% 100%',
+        }}
+      />
+      <svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+        {[20, 40, 60, 80].map((x) => (
+          <line key={`lon-${x}`} x1={x} x2={x} y1="0" y2="100" stroke="rgba(148,163,184,0.08)" strokeWidth="0.08" />
+        ))}
+        {[22, 38, 54, 70].map((y) => (
+          <line key={`lat-${y}`} x1="0" x2="100" y1={y} y2={y} stroke="rgba(148,163,184,0.08)" strokeWidth="0.08" />
+        ))}
+        {flowSegments.map((flow) => (
+          <line
+            key={flow.id}
+            x1={flow.from.px}
+            y1={flow.from.py}
+            x2={flow.to.px}
+            y2={flow.to.py}
+            stroke={flow.mode === 'route' ? '#38bdf8' : '#f87171'}
+            strokeWidth="0.24"
+            strokeDasharray={flow.mode === 'route' ? '1.2 0.8' : '0.6 0.7'}
+            opacity="0.72"
+            vectorEffect="non-scaling-stroke"
+          />
+        ))}
+      </svg>
+
+      <div className="absolute left-5 top-4 z-10 rounded-full border border-cyan-300/15 bg-slate-950/80 px-3 py-2 text-[9px] uppercase tracking-[0.22em] text-cyan-300/70 backdrop-blur">
+        2D topology - broker-backed routes
+      </div>
+      <div className="absolute right-5 top-4 z-10 flex flex-wrap justify-end gap-2">
+        {[
+          ['US', '#5b8cff'],
+          ['CA', '#22d3ee'],
+          ['EU', '#b56cff'],
+          ['AP', '#ff7ac8'],
+          ['SA', '#ff8f5a'],
+          ['AF/ME', '#2dd4bf'],
+        ].map(([label, color]) => (
+          <div
+            key={label}
+            className="rounded-full border border-white/10 bg-slate-950/75 px-2 py-1 text-[8px] uppercase tracking-[0.16em] text-slate-300 backdrop-blur"
+          >
+            <span className="mr-1 inline-block h-2 w-2 rounded-full" style={{ background: color }} />
+            {label}
+          </div>
+        ))}
+      </div>
+
+      {flowSegments.length === 0 && (
+        <div className="absolute bottom-4 left-5 z-10 rounded-xl border border-white/10 bg-slate-950/80 px-3 py-2 text-[10px] text-slate-400 backdrop-blur">
+          No backend route edge returned yet. Nodes remain live/registered from ecobe-mvp.
+        </div>
+      )}
+
+      {nodes.map((node) => {
+        const selected = selectedRegion?.region === node.region
+        const hovered = hoveredRegion?.region === node.region
+        const nodeColor = stateColor(node.state)
+        const size = selected || hovered ? 30 : 24
+
+        return (
+          <button
+            key={node.region}
+            onClick={() => onSelect(node)}
+            onMouseEnter={() => onHover(node)}
+            onMouseLeave={() => onHover(null)}
+            className="absolute z-20 grid place-items-center rounded-full transition"
+            style={{
+              left: `${node.px}%`,
+              top: `${node.py}%`,
+              width: size,
+              height: size,
+              transform: 'translate(-50%, -50%)',
+              background: 'rgba(2,6,23,0.82)',
+              border: `3px solid ${node.groupColor}`,
+              boxShadow: selected
+                ? `0 0 0 8px ${node.groupColor}24, 0 0 22px ${nodeColor}55`
+                : `0 0 0 5px ${node.groupColor}16, 0 0 12px ${nodeColor}33`,
+            }}
+            aria-label={`${node.label} ${routeSignalLabel(node)}`}
+          >
+            <span
+              className="h-3.5 w-3.5 rounded-full"
+              style={{
+                background: nodeColor,
+                boxShadow: `0 0 10px ${nodeColor}`,
+              }}
+            />
+            {node.decisionFrameId && (
+              <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border border-slate-950 bg-cyan-300" />
+            )}
+          </button>
+        )
+      })}
+
+      {selectedOrHovered && (
+        <div
+          className="absolute z-30 w-[320px] rounded-2xl border border-cyan-300/20 bg-slate-950/95 p-4 shadow-2xl backdrop-blur-xl"
+          style={detailStyle}
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full" style={{ background: selectedOrHovered.groupColor }} />
+                <span className="text-[9px] uppercase tracking-[0.18em] text-slate-400">
+                  {selectedOrHovered.groupLabel}
+                </span>
+              </div>
+              <div className="mt-1 truncate text-base font-black text-white">{selectedOrHovered.label}</div>
+              <div className="mt-1 truncate text-[10px] text-slate-500">{selectedOrHovered.region}</div>
+            </div>
+            <span
+              className="rounded-full px-2 py-1 text-[8px] font-bold uppercase"
+              style={{
+                color: routeSignalColor(selectedOrHovered),
+                background: `${routeSignalColor(selectedOrHovered)}18`,
+              }}
+            >
+              {routeSignalLabel(selectedOrHovered)}
+            </span>
+          </div>
+
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            {[
+              [
+                'Carbon',
+                typeof selectedOrHovered.carbonIntensityGPerKwh === 'number'
+                  ? `${Math.round(selectedOrHovered.carbonIntensityGPerKwh)}g/kWh`
+                  : 'unavailable',
+                routeSignalColor(selectedOrHovered),
+              ],
+              ['State', selectedOrHovered.state, stateColor(selectedOrHovered.state)],
+              ['Source', routeSignalSourceLabel(selectedOrHovered), '#67e8f9'],
+              ['Action', actionLabel(selectedOrHovered.action), actionColor(selectedOrHovered.action)],
+            ].map(([label, value, color]) => (
+              <div key={String(label)} className="rounded-xl border border-white/10 bg-white/[0.03] p-2">
+                <div className="text-[8px] uppercase tracking-[0.16em] text-slate-500">{label}</div>
+                <div className="mt-1 truncate text-[11px] font-bold" style={{ color: String(color) }}>
+                  {value}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-3 rounded-xl border border-white/10 bg-black/25 p-3">
+            <div className="text-[8px] uppercase tracking-[0.16em] text-slate-500">Backend frame</div>
+            <div className="mt-1 truncate text-[10px] text-cyan-300/70">
+              {selectedOrHovered.decisionFrameId ?? 'No decision frame bound to this route'}
+            </div>
+            <div className="mt-1 text-[10px] leading-4 text-slate-400">
+              {selectedOrHovered.reasonCode ?? 'Registered route awaiting current provider signal.'}
+            </div>
+          </div>
+        </div>
+      )}
+    </section>
+  )
+}
+
 export default function LivePage() {
   const [tier, setTier] = useState<Tier>('elite')
+  const [viewMode, setViewMode] = useState<ViewMode>('globe')
   const [panels, setPanels] = useState<PanelState>(DEFAULT_PANEL_STATE)
   const [statusCollapsed, setStatusCollapsed] = useState(true)
   const [loadState, setLoadState] = useState<LoadState>({
@@ -707,6 +939,7 @@ export default function LivePage() {
     loading: true,
   })
   const [selectedRegionId, setSelectedRegionId] = useState<string | null>(null)
+  const [hoveredTopologyRegion, setHoveredTopologyRegion] = useState<ProjectedLiveRegion | null>(null)
   const [paused, setPaused] = useState(false)
   const [clock, setClock] = useState<number | null>(null)
 
@@ -882,6 +1115,25 @@ export default function LivePage() {
             ))}
           </div>
           <div className="flex gap-0.5 rounded-xl bg-white/[0.03] p-0.5">
+            {([
+              ['globe', '3D'],
+              ['topology', '2D'],
+            ] as const).map(([mode, label]) => (
+              <button
+                key={mode}
+                onClick={() => setViewMode(mode)}
+                className="rounded-[10px] px-3 py-1 text-[9px] uppercase tracking-[0.16em] transition"
+                style={{
+                  background: viewMode === mode ? 'rgba(45,212,191,0.16)' : 'transparent',
+                  color: viewMode === mode ? '#5eead4' : '#64748b',
+                }}
+                aria-pressed={viewMode === mode}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <div className="flex gap-0.5 rounded-xl bg-white/[0.03] p-0.5">
             {(['freeview', 'pro', 'elite'] as const).map((item) => (
               <button
                 key={item}
@@ -956,11 +1208,21 @@ export default function LivePage() {
 
           <main className="relative flex flex-1 flex-col overflow-hidden" style={{ minHeight: 0 }}>
             <div className="relative flex-1">
-              <GlobeZone
-                regions={globeRegions}
-                arcs={globeArcs}
-                onRegionClick={(region) => setSelectedRegionId(region.id)}
-              />
+              {viewMode === 'globe' ? (
+                <GlobeZone
+                  regions={globeRegions}
+                  arcs={globeArcs}
+                  onRegionClick={(region) => setSelectedRegionId(region.id)}
+                />
+              ) : (
+                <LiveTopologyFallback
+                  command={command}
+                  selectedRegion={selectedRegion}
+                  hoveredRegion={hoveredTopologyRegion}
+                  onSelect={(region) => setSelectedRegionId(region.region)}
+                  onHover={setHoveredTopologyRegion}
+                />
+              )}
               {panels.status && (
                 <FixedGlobeStatus
                   command={command}

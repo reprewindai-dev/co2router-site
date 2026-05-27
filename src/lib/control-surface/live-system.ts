@@ -24,6 +24,22 @@ type DecisionFeedResponse = {
   }>
 }
 
+type CarbonLedgerDecisionFeed = {
+  decisions: Array<{
+    decisionFrameId: string
+    createdAt: string
+    baselineRegion: string | null
+    chosenRegion: string | null
+    baselineCarbonGPerKwh: number | null
+    chosenCarbonGPerKwh: number | null
+    confidenceScore: number | null
+    fallbackUsed: boolean | null
+    sourceUsed: string | null
+    estimatedFlag: boolean | null
+    syntheticFlag: boolean | null
+  }>
+}
+
 type WaterProvenanceResponse = {
   bundleSchemaVersion?: string
   manifestSchemaVersion?: string
@@ -77,15 +93,16 @@ function unavailableTraceLedger(error: string): LiveSystemTraceLedger {
 }
 
 export async function getLiveSystemSnapshot(): Promise<LiveSystemSnapshot> {
-  const [decisionsResult, provenanceResult, sloResult] = await Promise.allSettled([
+  const [decisionsResult, ledgerDecisionsResult, provenanceResult, sloResult] = await Promise.allSettled([
     fetchEngineJson<DecisionFeedResponse>('/ci/decisions?limit=5', undefined, {
       timeoutMs: FAST_DECISION_FEED_TIMEOUT_MS,
     }),
+    fetchEngineJson<CarbonLedgerDecisionFeed>('/dashboard/carbon-ledger-decisions?limit=5'),
     fetchEngineJson<WaterProvenanceResponse>('/water/provenance'),
     fetchEngineJson<SloResponse>('/ci/slo'),
   ])
 
-  const recentDecisions =
+  const ciDecisions =
     decisionsResult.status === 'fulfilled'
       ? decisionsResult.value.decisions.map((decision) => ({
           decisionFrameId: decision.decisionFrameId,
@@ -99,11 +116,35 @@ export async function getLiveSystemSnapshot(): Promise<LiveSystemSnapshot> {
           traceHash: decision.traceHash ?? null,
         }))
       : []
+  const ledgerDecisions =
+    ledgerDecisionsResult.status === 'fulfilled'
+      ? ledgerDecisionsResult.value.decisions
+          .filter((decision) => Boolean(decision.decisionFrameId && decision.chosenRegion))
+          .map((decision) => {
+            const baseline = decision.baselineRegion ?? decision.chosenRegion ?? 'unknown'
+            const chosen = decision.chosenRegion ?? baseline
+            const rerouted = baseline !== chosen
+            return {
+              decisionFrameId: decision.decisionFrameId,
+              createdAt: decision.createdAt,
+              action: rerouted ? 'reroute' : 'run_now',
+              reasonCode: rerouted ? 'CARBON_LEDGER_REROUTE_FRAME' : 'CARBON_LEDGER_RUN_FRAME',
+              selectedRegion: chosen,
+              proofHash: null,
+              traceAvailable: false,
+              governanceSource: 'CARBON_LEDGER',
+              traceHash: null,
+            }
+          })
+      : []
+  const recentDecisions = ciDecisions.length > 0 ? ciDecisions : ledgerDecisions
 
   if (decisionsResult.status === 'rejected') {
-    throw decisionsResult.reason instanceof Error
-      ? decisionsResult.reason
-      : new Error('Live decision feed is unavailable.')
+    if (ledgerDecisions.length === 0) {
+      throw decisionsResult.reason instanceof Error
+        ? decisionsResult.reason
+        : new Error('Live decision feed is unavailable.')
+    }
   }
 
   const latestDecision = recentDecisions[0] ?? null
@@ -134,6 +175,8 @@ export async function getLiveSystemSnapshot(): Promise<LiveSystemSnapshot> {
   const traceError =
     !latestDecision
       ? 'No recent decision is available for trace inspection.'
+      : latestDecision.governanceSource === 'CARBON_LEDGER'
+        ? 'Latest frame is from the carbon ledger; trace/replay is not attached to this record yet.'
       : !latestDecision.traceAvailable
         ? 'Trace details are not attached to the latest live decision yet.'
       : !hasInternalApiKey()
@@ -149,6 +192,8 @@ export async function getLiveSystemSnapshot(): Promise<LiveSystemSnapshot> {
   const replayError =
     !latestDecision
       ? 'No recent decision is available for replay verification.'
+      : latestDecision.governanceSource === 'CARBON_LEDGER'
+        ? 'Replay verification is waiting for the CI trace envelope for this carbon-ledger frame.'
       : !latestDecision.traceAvailable
         ? 'Replay verification is waiting for a persisted trace frame.'
       : !hasInternalApiKey()
@@ -209,7 +254,7 @@ export async function getLiveSystemSnapshot(): Promise<LiveSystemSnapshot> {
   return {
     generatedAt: new Date().toISOString(),
     recentDecisions: {
-      available: decisionsResult.status === 'fulfilled',
+      available: decisionsResult.status === 'fulfilled' || ledgerDecisions.length > 0,
       error: recentDecisions.length === 0 ? 'No recent public decisions are available yet.' : null,
       items: recentDecisions,
     },
