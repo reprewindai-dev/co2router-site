@@ -1242,7 +1242,7 @@ export default function LivePage() {
                 />
               )}
 
-              {selectedRegion && (
+              {viewMode === 'topology' && selectedRegion && (
                 <div className="absolute bottom-6 left-6 right-6 z-10 rounded-2xl border border-white/10 bg-slate-950/90 p-5 shadow-2xl backdrop-blur-xl">
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0">

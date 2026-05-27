@@ -160,6 +160,21 @@ function RegionMarkers({
 }) {
   const [hoveredRegionId, setHoveredRegionId] = useState<string | null>(null)
 
+  const openRegion = (region: RegionNode) => {
+    setHoveredRegionId(region.id)
+    onHoverRegion?.(region)
+  }
+
+  const closeRegion = (region: RegionNode) => {
+    setHoveredRegionId((current) => (current === region.id ? null : current))
+    onHoverRegion?.(null)
+  }
+
+  const selectRegion = (region: RegionNode) => {
+    onSelectRegion?.(selectedRegionId === region.id ? null : region)
+    onRegionClick?.(region)
+  }
+
   return (
     <group>
       {regions.map((region) => {
@@ -176,25 +191,41 @@ function RegionMarkers({
         
         return (
           <group key={region.id} position={pos}>
+            {/* Larger invisible target keeps WebGL hover/click usable while the visible marker stays compact. */}
+            <mesh
+              onPointerOver={(event) => {
+                event.stopPropagation()
+                openRegion(region)
+              }}
+              onPointerOut={(event) => {
+                event.stopPropagation()
+                closeRegion(region)
+              }}
+              onClick={(event) => {
+                event.stopPropagation()
+                selectRegion(region)
+              }}
+            >
+              <sphereGeometry args={[0.11, 16, 16]} />
+              <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+            </mesh>
+
             {/* Main marker */}
             <mesh
               onPointerOver={(event) => {
                 event.stopPropagation()
-                setHoveredRegionId(region.id)
-                onHoverRegion?.(region)
+                openRegion(region)
               }}
               onPointerOut={(event) => {
                 event.stopPropagation()
-                setHoveredRegionId(null)
-                onHoverRegion?.(null)
+                closeRegion(region)
               }}
               onClick={(event) => {
                 event.stopPropagation()
-                onSelectRegion?.(selectedRegionId === region.id ? null : region)
-                onRegionClick?.(region)
+                selectRegion(region)
               }}
             >
-              <sphereGeometry args={[isOpen ? 0.032 : 0.023, 16, 16]} />
+              <sphereGeometry args={[isOpen ? 0.042 : 0.03, 20, 20]} />
               <meshBasicMaterial color={statusColor} />
             </mesh>
             
