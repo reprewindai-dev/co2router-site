@@ -350,7 +350,7 @@ function FixedGlobeStatus({
     return (
       <button
         onClick={onToggle}
-        className="absolute left-4 top-4 z-20 rounded-full border border-cyan-300/20 bg-slate-950/80 px-3 py-2 text-left shadow-2xl backdrop-blur-xl"
+        className="absolute right-4 top-4 z-20 rounded-full border border-cyan-300/20 bg-slate-950/80 px-3 py-2 text-left shadow-2xl backdrop-blur-xl"
         aria-label="Expand globe status"
       >
         <div className="flex items-center gap-2">
@@ -371,7 +371,7 @@ function FixedGlobeStatus({
   }
 
   return (
-    <div className="absolute left-4 top-4 z-20 w-[300px] rounded-2xl border border-cyan-300/20 bg-slate-950/90 p-4 shadow-2xl backdrop-blur-xl">
+    <div className="absolute right-4 top-4 z-20 w-[300px] rounded-2xl border border-cyan-300/20 bg-slate-950/90 p-4 shadow-2xl backdrop-blur-xl">
       <div className="absolute right-3 top-3 flex gap-1">
         <button
           onClick={onToggle}

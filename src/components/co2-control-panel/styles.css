@@ -248,12 +248,15 @@
 
 .globe-overlay {
   position: absolute;
-  top: 20px;
-  left: 20px;
+  inset: 0;
   z-index: 10;
+  pointer-events: none;
 }
 
 .earth-approval-badge {
+  position: absolute;
+  top: 24px;
+  left: 24px;
   display: flex;
   align-items: center;
   gap: 12px;
