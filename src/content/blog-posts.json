@@ -1,0 +1,278 @@
+[
+  {
+    "slug": "how-co2-router-turns-carbon-policy-into-a-revenue-control",
+    "title": "How CO2 Router turns carbon policy into a revenue control",
+    "description": "Why a control plane has to turn carbon-aware placement into an enforceable buying decision before compute starts.",
+    "publishedAt": "2026-05-27",
+    "readTime": "7 min read",
+    "summary": "CO2 Router becomes monetizable when policy is enforced before execution. The decision frame binds workloads to governed outcomes, with proof attached for replay, provenance, and customer accountability.",
+    "keywords": [
+      "carbon policy enforcement",
+      "revenue control plane",
+      "deterministic execution governance",
+      "proof replay provenance",
+      "HaloGrid operations"
+    ],
+    "heroMedia": {
+      "type": "video",
+      "src": "/blog-media/the-ai-making-the-cloud-greener.mp4",
+      "poster": "/blog-media/co2router-poster.svg",
+      "alt": "CO2 Router decision sequence showing carbon-aware enforcement before execution"
+    },
+    "sections": [
+      {
+        "heading": "Policy only matters if it changes the buy decision",
+        "paragraphs": [
+          "If a sustainability rule appears after compute starts, it is reporting, not control. The revenue opportunity comes from deciding before the workload receives runtime capacity.",
+          "CO2 Router treats the control plane as the monetizable boundary. Each request is evaluated against carbon, water, and operating constraints, then admitted, rerouted, delayed, throttled, or denied."
+        ]
+      },
+      {
+        "heading": "Proof must stay attached to the transaction",
+        "paragraphs": [
+          "A binding decision without evidence is not durable enough for enterprise buyers. The system keeps proof, trace, replay, and provenance attached to the same frame that authorizes execution.",
+          "That gives operations, finance, and compliance the same source of truth instead of reconstructing intent from logs after the fact."
+        ]
+      },
+      {
+        "heading": "Existing media has to reinforce the control plane story",
+        "paragraphs": [
+          "The release uses the same CO2 Router media themes already stored under `/blog-media` so the published post stays self-contained and deployable.",
+          "The video, poster, and symbol assets all reinforce the same thesis: this is execution infrastructure that can be sold, audited, and scaled."
+        ]
+      }
+    ],
+    "relatedLinks": [
+      {
+        "href": "/console",
+        "label": "Open the control surface"
+      },
+      {
+        "href": "/assurance",
+        "label": "Inspect assurance"
+      },
+      {
+        "href": "/system/provenance",
+        "label": "Review provenance"
+      }
+    ],
+    "media": [
+      {
+        "type": "video",
+        "src": "/blog-media/the-ai-making-the-cloud-greener.mp4",
+        "poster": "/blog-media/co2router-poster.svg"
+      },
+      {
+        "type": "image",
+        "src": "/blog-media/co2router-symbol.png"
+      }
+    ]
+  },
+  {
+    "slug": "how-co2-router-turns-carbon-governance-into-revenue-control",
+    "title": "How CO2 Router turns carbon governance into revenue control",
+    "description": "Why carbon-aware execution becomes a billable control layer when policy, placement, and proof all live in the same decision frame.",
+    "publishedAt": "2026-05-27",
+    "readTime": "7 min read",
+    "summary": "CO2 Router becomes monetizable when carbon governance is enforced before execution and attached to proof, replay, and commercial control. The platform stops being a report and becomes a paid operating layer.",
+    "keywords": [
+      "carbon governance",
+      "revenue control layer",
+      "deterministic routing",
+      "execution proof",
+      "enterprise sustainability"
+    ],
+    "heroMedia": {
+      "type": "video",
+      "src": "/blog-media/the-ai-making-the-cloud-greener.mp4",
+      "poster": "/blog-media/co2router-poster.svg",
+      "alt": "CO2 Router control plane sequence showing carbon governance as an execution and billing layer"
+    },
+    "sections": [
+      {
+        "heading": "Policy becomes product when it is enforced before compute starts",
+        "paragraphs": [
+          "A carbon policy that only reports after runtime has no commercial leverage. The value appears when the control plane binds the workload to an enforceable decision before execution begins.",
+          "CO2 Router evaluates the request against operating constraints, environmental signals, and commercial rules, then admits, reroutes, delays, throttles, or denies the workload with a traceable outcome."
+        ]
+      },
+      {
+        "heading": "Revenue follows control, not dashboards",
+        "paragraphs": [
+          "Enterprise buyers pay for governance that reduces risk, improves placement, and creates an audit trail that finance and operations can both trust.",
+          "That means the product must keep proof, replay, provenance, and billing context attached to the same decision frame so the customer can defend the spend and verify the outcome."
+        ]
+      },
+      {
+        "heading": "The media set should reinforce the operating model",
+        "paragraphs": [
+          "This release uses the existing CO2 Router media theme set under `/blog-media` so the post stays production-ready and self-contained.",
+          "The video, poster, and symbol assets all point to the same thesis: the control plane is a revenue control layer, not a decorative dashboard."
+        ]
+      }
+    ],
+    "relatedLinks": [
+      {
+        "href": "/console",
+        "label": "Open the control surface"
+      },
+      {
+        "href": "/system/replay",
+        "label": "Inspect replay"
+      },
+      {
+        "href": "/billing",
+        "label": "Review billing"
+      }
+    ],
+    "media": [
+      {
+        "type": "video",
+        "src": "/blog-media/the-ai-making-the-cloud-greener.mp4",
+        "poster": "/blog-media/co2router-poster.svg"
+      },
+      {
+        "type": "image",
+        "src": "/blog-media/co2router-symbol.png"
+      }
+    ]
+  },
+  {
+    "slug": "how-co2-router-turns-carbon-policy-into-an-execution-contract",
+    "title": "How CO2 Router turns carbon policy into an execution contract",
+    "description": "Why the control plane has to bind carbon policy before compute starts and keep proof attached to the same decision frame.",
+    "publishedAt": "2026-05-24",
+    "readTime": "7 min read",
+    "summary": "CO2 Router becomes operational when policy is enforced before runtime. The contract is the binding decision itself, with replay, trace, and provenance staying attached to the frame that authorizes execution.",
+    "keywords": [
+      "carbon policy enforcement",
+      "execution contract",
+      "deterministic control plane",
+      "proof replay provenance",
+      "SAIQ governance"
+    ],
+    "heroMedia": {
+      "type": "video",
+      "src": "/blog-media/the-ai-making-the-cloud-greener.mp4",
+      "poster": "/blog-media/co2router-poster.svg",
+      "alt": "CO2 Router decision sequence showing carbon-aware enforcement before execution"
+    },
+    "sections": [
+      {
+        "heading": "Policy only matters if it binds execution",
+        "paragraphs": [
+          "A sustainability policy that appears after compute starts is reporting, not control. The business value comes from deciding before the workload gets a runtime slot.",
+          "CO2 Router uses the control plane as the decision boundary. The request is evaluated against carbon, water, and operating constraints, then admitted, rerouted, delayed, throttled, or denied."
+        ]
+      },
+      {
+        "heading": "The contract includes proof, not just the outcome",
+        "paragraphs": [
+          "A binding decision without evidence cannot survive audit, replay, or customer scrutiny. The system keeps proof, trace, replay, and provenance attached to the same frame that authorizes execution.",
+          "That makes the decision portable across support, compliance, and operations without reconstructing history from logs after the fact."
+        ]
+      },
+      {
+        "heading": "Existing media should reinforce the operating model",
+        "paragraphs": [
+          "The release uses the same CO2 Router media theme set already stored under `/blog-media` so the published post stays self-contained and deployable.",
+          "The video, poster, and symbol assets all reinforce the same thesis: this is execution infrastructure, not a dashboard veneer."
+        ]
+      }
+    ],
+    "relatedLinks": [
+      {
+        "href": "/console",
+        "label": "Open the control surface"
+      },
+      {
+        "href": "/assurance",
+        "label": "Inspect assurance"
+      },
+      {
+        "href": "/system/provenance",
+        "label": "Review provenance"
+      }
+    ],
+    "media": [
+      {
+        "type": "video",
+        "src": "/blog-media/the-ai-making-the-cloud-greener.mp4",
+        "poster": "/blog-media/co2router-poster.svg"
+      },
+      {
+        "type": "image",
+        "src": "/blog-media/co2router-symbol.png"
+      }
+    ]
+  },
+  {
+    "slug": "why-co2-router-turns-sustainability-into-an-execution-decision",
+    "title": "Why CO2 Router turns sustainability into an execution decision",
+    "description": "Why a control plane has to enforce carbon-aware placement before compute starts instead of reporting after the fact.",
+    "publishedAt": "2026-05-21",
+    "readTime": "6 min read",
+    "summary": "CO2 Router becomes operational leverage when sustainability policy is enforced before execution. The decision frame binds the workload to a governed outcome, with proof attached for replay and provenance.",
+    "keywords": [
+      "execution governance",
+      "carbon-aware control plane",
+      "deterministic decisioning",
+      "proof replay provenance",
+      "SAIQ governance"
+    ],
+    "heroMedia": {
+      "type": "video",
+      "src": "/blog-media/the-ai-making-the-cloud-greener.mp4",
+      "poster": "/blog-media/co2router-poster.svg",
+      "alt": "CO2 Router control plane sequence showing AI-assisted cloud optimization"
+    },
+    "sections": [
+      {
+        "heading": "The control plane decides before runtime",
+        "paragraphs": [
+          "Reporting is useful, but it is not enough to govern compute. If the workload is already running, the sustainability decision happened too late to matter operationally.",
+          "CO2 Router treats the control plane as the decision boundary. A request is evaluated before execution, then admitted, rerouted, delayed, throttled, or denied based on policy and environmental signals."
+        ]
+      },
+      {
+        "heading": "Proof has to stay attached to the decision",
+        "paragraphs": [
+          "A binding decision without evidence is brittle. That is why the system keeps proof, trace, replay, and provenance linked to the same frame that authorizes the workload.",
+          "When the action is audited later, the feed must still show where the media came from, what was published, and why that post represents the system’s current state."
+        ]
+      },
+      {
+        "heading": "Media should reinforce the thesis",
+        "paragraphs": [
+          "The blog release uses existing CO2 Router media themes to show the product as a real control surface, not a conceptual dashboard. The video and visual assets stay under `/blog-media` so published content remains self-contained and portable.",
+          "That keeps the content system aligned with the product story: operational, visual, and auditable."
+        ]
+      }
+    ],
+    "relatedLinks": [
+      {
+        "href": "/console",
+        "label": "Open the control surface"
+      },
+      {
+        "href": "/system/replay",
+        "label": "Inspect replay"
+      },
+      {
+        "href": "/system/provenance",
+        "label": "Inspect provenance"
+      }
+    ],
+    "media": [
+      {
+        "type": "video",
+        "src": "/blog-media/the-ai-making-the-cloud-greener.mp4",
+        "poster": "/blog-media/co2router-poster.svg"
+      },
+      {
+        "type": "image",
+        "src": "/blog-media/co2router-symbol.png"
+      }
+    ]
+  }
+]
