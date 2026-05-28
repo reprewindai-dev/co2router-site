@@ -173,6 +173,8 @@ type DashboardRegionsResponse = {
   }>
 }
 
+const CURRENT_REGION_SIGNAL_TTL_MS = 2 * 60 * 60 * 1000
+
 const REGION_ANCHORS: Record<string, { label: string; x: number; y: number }> = {
   'us-west-2': { label: 'US West 2', x: 14, y: 25 },
   'us-west-1': { label: 'US West 1', x: 17, y: 28 },
@@ -848,21 +850,35 @@ function buildBackendRegionNodes(regions: DashboardRegionsResponse['regions']): 
     .map((region, index) => {
       const code = region.code.trim()
       const anchor = resolveRegionAnchor(code, index)
-      const hasCarbonSignal = typeof region.carbonIntensityGPerKwh === 'number'
       const source = region.source?.trim() || null
       const sourceKey = source ? normalizeProviderIdentity(source) : null
       const structuralOnly = sourceKey === 'EMBER_STRUCTURAL_BASELINE'
-      const reasonCode = hasCarbonSignal
+      const lastKnownGood = Boolean(source?.startsWith('LKG_'))
+      const fetchedAtMs = region.fetchedAt ? Date.parse(region.fetchedAt) : NaN
+      const stale =
+        !Number.isFinite(fetchedAtMs) ||
+        Date.now() - fetchedAtMs > CURRENT_REGION_SIGNAL_TTL_MS
+      const hasCurrentCarbonSignal =
+        typeof region.carbonIntensityGPerKwh === 'number' &&
+        !lastKnownGood &&
+        !stale &&
+        !structuralOnly
+      const hasCarbonSignal = typeof region.carbonIntensityGPerKwh === 'number'
+      const reasonCode = hasCurrentCarbonSignal
+        ? 'REGION_SIGNAL_LIVE'
+        : hasCarbonSignal
         ? structuralOnly
           ? 'REGION_STRUCTURAL_BASELINE'
-          : 'REGION_SIGNAL_LIVE'
+          : lastKnownGood
+            ? 'REGION_LAST_KNOWN_GOOD'
+            : 'REGION_STALE_SIGNAL'
         : 'REGION_REGISTERED_NO_CURRENT_SIGNAL'
       return {
         region: code,
         label: region.name?.trim() || anchor.label,
         x: anchor.x,
         y: anchor.y,
-        state: hasCarbonSignal ? 'active' : 'marginal',
+        state: hasCurrentCarbonSignal ? 'active' : 'marginal',
         decisionFrameId: null,
         action: null,
         reasonCode,
