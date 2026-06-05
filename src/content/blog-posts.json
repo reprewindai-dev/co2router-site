@@ -1,5 +1,74 @@
 [
   {
+    "slug": "how-co2-router-turns-grid-volatility-into-a-routing-contract",
+    "title": "How CO2 Router turns grid volatility into a routing contract",
+    "description": "Why energy volatility should change placement before execution and stay tied to a billable control decision.",
+    "publishedAt": "2026-06-05",
+    "readTime": "7 min read",
+    "summary": "CO2 Router becomes commercially useful when grid volatility is turned into an enforceable routing contract. The control plane binds policy, placement, and proof into the same paid decision frame.",
+    "keywords": [
+      "grid volatility",
+      "routing contract",
+      "carbon-aware placement",
+      "billable control plane",
+      "execution governance"
+    ],
+    "heroMedia": {
+      "type": "video",
+      "src": "/blog-media/the-ai-making-the-cloud-greener.mp4",
+      "poster": "/blog-media/co2router-poster.svg",
+      "alt": "CO2 Router control sequence showing grid-aware routing decisions before execution"
+    },
+    "sections": [
+      {
+        "heading": "Volatility is a routing signal, not a postmortem metric",
+        "paragraphs": [
+          "If the control plane only reports after the workload has already started, it cannot convert grid volatility into operational advantage. The decision must happen before the runtime gets capacity.",
+          "CO2 Router uses environmental and operating signals to decide whether a request should be admitted, rerouted, delayed, throttled, or denied. That turns grid conditions into a governed action instead of a dashboard statistic."
+        ]
+      },
+      {
+        "heading": "A billable system needs proof attached to the decision",
+        "paragraphs": [
+          "Enterprise buyers do not pay for vague intent. They pay for a control layer that can explain why a workload was placed, when it was changed, and what policy approved it.",
+          "That requires keeping proof, replay, provenance, and billing context bound to the same execution frame so finance and operations can reconcile the outcome later."
+        ]
+      },
+      {
+        "heading": "The media set should stay aligned with the product story",
+        "paragraphs": [
+          "This post uses the existing CO2 Router theme assets under `/blog-media` so the release remains self-contained and production-ready.",
+          "The video, poster, and symbol all reinforce the same thesis: routing is the commercial control surface, not a decorative sustainability report."
+        ]
+      }
+    ],
+    "relatedLinks": [
+      {
+        "href": "/console",
+        "label": "Open the control surface"
+      },
+      {
+        "href": "/billing",
+        "label": "Review billing"
+      },
+      {
+        "href": "/system/provenance",
+        "label": "Inspect provenance"
+      }
+    ],
+    "media": [
+      {
+        "type": "video",
+        "src": "/blog-media/the-ai-making-the-cloud-greener.mp4",
+        "poster": "/blog-media/co2router-poster.svg"
+      },
+      {
+        "type": "image",
+        "src": "/blog-media/co2router-symbol.png"
+      }
+    ]
+  },
+  {
     "slug": "how-co2-router-turns-carbon-policy-into-a-revenue-control",
     "title": "How CO2 Router turns carbon policy into a revenue control",
     "description": "Why a control plane has to turn carbon-aware placement into an enforceable buying decision before compute starts.",
