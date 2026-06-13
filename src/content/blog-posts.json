@@ -1,5 +1,74 @@
 [
   {
+    "slug": "how-co2-router-turns-carbon-price-volatility-into-an-execution-contract",
+    "title": "How CO2 Router turns carbon price volatility into an execution contract",
+    "description": "Why a control plane has to convert carbon price swings into a binding pre-execution decision instead of a retrospective cost report.",
+    "publishedAt": "2026-06-13",
+    "readTime": "7 min read",
+    "summary": "CO2 Router becomes commercially valuable when carbon price volatility is enforced before execution. The decision frame binds the workload to a governed outcome, with proof attached for replay, provenance, and commercial accountability.",
+    "keywords": [
+      "carbon price volatility",
+      "execution contract",
+      "pre-execution governance",
+      "proof replay provenance",
+      "billing control layer"
+    ],
+    "heroMedia": {
+      "type": "video",
+      "src": "/blog-media/the-ai-making-the-cloud-greener.mp4",
+      "poster": "/blog-media/co2router-poster.svg",
+      "alt": "CO2 Router control sequence showing carbon price-aware execution decisions"
+    },
+    "sections": [
+      {
+        "heading": "Price volatility is a control signal when it changes the decision",
+        "paragraphs": [
+          "If carbon pricing is only reviewed after execution, it becomes accounting instead of control. The value shows up when the system can decide whether a workload should run, reroute, delay, or wait before capacity is consumed.",
+          "CO2 Router treats price and environmental signals as part of the admission boundary, not as a retrospective dashboard. That is what turns volatility into an enforceable operating rule."
+        ]
+      },
+      {
+        "heading": "A paid control layer has to carry proof with the decision",
+        "paragraphs": [
+          "Customers do not buy vague intent. They buy a governed outcome that can be explained, audited, and tied back to the exact rule set that authorized it.",
+          "Keeping proof, trace, replay, provenance, and billing context attached to the same frame makes the control plane usable by finance, operations, and compliance without reconstructing history after the fact."
+        ]
+      },
+      {
+        "heading": "The media theme stays aligned with the operating model",
+        "paragraphs": [
+          "This post uses the existing CO2 Router assets under `/blog-media` so the release stays self-contained and production-ready.",
+          "The video, poster, and symbol all reinforce the same thesis: CO2 Router is a billable execution layer, not a static sustainability report."
+        ]
+      }
+    ],
+    "relatedLinks": [
+      {
+        "href": "/billing",
+        "label": "Review billing"
+      },
+      {
+        "href": "/pricing",
+        "label": "See pricing"
+      },
+      {
+        "href": "/system/provenance",
+        "label": "Inspect provenance"
+      }
+    ],
+    "media": [
+      {
+        "type": "video",
+        "src": "/blog-media/the-ai-making-the-cloud-greener.mp4",
+        "poster": "/blog-media/co2router-poster.svg"
+      },
+      {
+        "type": "image",
+        "src": "/blog-media/co2router-symbol.png"
+      }
+    ]
+  },
+  {
     "slug": "how-co2-router-turns-grid-volatility-into-a-routing-contract",
     "title": "How CO2 Router turns grid volatility into a routing contract",
     "description": "Why energy volatility should change placement before execution and stay tied to a billable control decision.",
