@@ -112,5 +112,43 @@
       "This post pairs the existing CO2 Router visual themes with a buyer-facing message: premium routing needs proof, not just optimization."
     ],
     "status": "published"
+  },
+  {
+    "id": "halogrid-proof-loop-carbon-routing-2026-08-12",
+    "slug": "halogrid-proof-loop-carbon-routing-2026-08-12",
+    "title": "HaloGrid Turns Carbon Routing Proof Into a Buyer-Side Audit Trail",
+    "deck": "A field note on how CO2 Router packages globe imagery, topology detail, and policy context into a premium proof layer for enterprise buyers.",
+    "summary": "HaloGrid extends its existing visual themes into a clearer audit trail for buyers who need to justify every routing decision.",
+    "author": "CO2 Router Editorial Desk",
+    "publishedAt": "2026-08-12T18:16:34.963Z",
+    "tags": [
+      "HaloGrid",
+      "Proof",
+      "Audit Trail",
+      "Carbon Routing"
+    ],
+    "media": [
+      {
+        "src": "/blog-media/halo-grid-earth-night.jpg",
+        "source": "/halogrid/earth-night.jpg",
+        "alt": "HaloGrid night earth render used as the hero image"
+      },
+      {
+        "src": "/blog-media/halo-grid-earth-day.jpg",
+        "source": "/halogrid/earth-day.jpg",
+        "alt": "HaloGrid daylight earth render used for supporting imagery"
+      },
+      {
+        "src": "/blog-media/halo-grid-topology.png",
+        "source": "/halogrid/earth-topology.png",
+        "alt": "HaloGrid topology texture used for technical detail panels"
+      }
+    ],
+    "body": [
+      "HaloGrid is strongest when it can show both the route and the reason behind the route.",
+      "That matters for enterprise buyers because carbon routing is not just an optimization problem; it is a governance problem with revenue implications.",
+      "This post pairs the existing CO2 Router media themes with a buyer-facing story: premium routing is only valuable when the proof is visible, readable, and defensible."
+    ],
+    "status": "published"
   }
 ]
