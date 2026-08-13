@@ -5,7 +5,6 @@ const MCP_BROKER_URL = (process.env.MCP_API_URL || process.env.ECOBE_MVP_URL || 
 
 const nextConfig = {
   reactStrictMode: true,
-  output: 'standalone',
   turbopack: {
     root: __dirname,
   },
